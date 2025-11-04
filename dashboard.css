@@ -1,0 +1,131 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background: #f4f7f6;
+  min-height: 100vh;
+}
+
+/* ===== Main Layout ===== */
+.dashboard-layout {
+  display: flex;
+}
+
+.sidebar {
+  width: 260px;
+  background: #3b5671; /* Using your form's color */
+  color: #ffffff;
+  min-height: 100vh;
+  padding: 20px;
+  position: fixed; /* Fix the sidebar */
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 30px;
+  margin-left: 260px; /* Offset content by sidebar width */
+}
+
+/* ===== Sidebar Styles ===== */
+.sidebar-header {
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-header h3 {
+  font-weight: 500;
+}
+
+.sidebar-links {
+  list-style-type: none;
+}
+
+.sidebar-links li a {
+  display: block;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 15px 10px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  transition: background 0.3s;
+}
+
+.sidebar-links li a:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-links li a.active {
+  background: #1ab188; /* Using your form's title color */
+  font-weight: 600;
+}
+
+/* Special style for logout */
+#nav-logout {
+  color: #fbebee;
+  margin-top: 30px;
+}
+#nav-logout:hover {
+  background: #dc3545;
+}
+
+
+/* ===== Main Content Styles ===== */
+.content-section {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  padding: 30px;
+}
+
+/* Hide all sections by default (we show them with JS) */
+.content-section {
+  display: none;
+}
+/* Show the default active one */
+.content-section.active {
+  display: block;
+}
+
+.content-section h2 {
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Status Box */
+#status-message {
+  font-size: 1.5rem;
+  font-weight: 600;
+  padding: 15px;
+  border-radius: 8px;
+}
+.status-approved { color: #28a745; background: #e9f7ec; }
+.status-pending { color: #ffc107; background: #fff9e6; }
+.status-rejected { color: #dc3545; background: #fbebee; }
+
+/* Details Box */
+.details-box {
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  padding: 20px;
+  border-radius: 8px;
+}
+.details-box p { margin-bottom: 10px; color: #555; }
+
+/* Announcement List */
+#announcements-list { list-style-type: none; }
+#announcements-list li {
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+#announcements-list li strong { display: block; margin-bottom: 5px; color: #000; }
+#announcements-list li p { color: #555; }

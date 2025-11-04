@@ -1,0 +1,11 @@
+# Node.js dependencies
+node_modules/
+
+# Log files
+*.log
+
+# User-uploaded files (we don't want to share these)
+uploads/
+
+# Environment variables (for when you add password hashing)
+.env

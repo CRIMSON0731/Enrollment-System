@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+  <div class="dashboard-layout">
+    
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h3>Welcome, <span id="student-name">...</span>!</h3>
+      </div>
+      <ul class="sidebar-links">
+        <li><a href="#" id="nav-home" class="active">Home (Announcements)</a></li>
+        <li><a href="#" id="nav-status">My Enrollment Status</a></li>
+        <li><a href="#" id="nav-info">My Information</a></li>
+        <li><a href="#" id="nav-logout">Log Out</a></li>
+      </ul>
+    </nav>
+    
+    <main class="main-content">
+      
+      <section id="content-home" class="content-section">
+        <h2>General Announcements</h2>
+        <ul id="announcements-list">
+          </ul>
+      </section>
+      
+      <section id="content-status" class="content-section" style="display: none;">
+        <h2>Your Enrollment Status</h2>
+        <div id="status-message" class="status-pending">
+          Loading...
+        </div>
+      </section>
+      
+      <section id="content-info" class="content-section" style="display: none;">
+        <h2>Your Submitted Information</h2>
+        <div class="details-box">
+          <p><strong>Name:</strong> <span id="detail-name">---</span></p>
+          <p><strong>Email:</strong> <span id="detail-email">---</span></p>
+          <p><strong>Phone:</strong> <span id="detail-phone">---</span></p>
+          <p><strong>Birthdate:</strong> <span id="detail-bday">---</span></p>
+        </div>
+      </section>
+      
+    </main>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

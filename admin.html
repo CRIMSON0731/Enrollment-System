@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <header>
+    <h1>Enrollment Admin Dashboard</h1>
+  </header>
+  
+  <main>
+    <h2>Pending Applications</h2>
+    <table id="applications-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Submitted</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="applications-tbody">
+        <tr>
+          <td colspan="5">Loading applications...</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>

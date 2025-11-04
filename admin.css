@@ -1,0 +1,79 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background: #f4f7f6;
+  color: #333;
+}
+
+header {
+  background: #3b5671;
+  color: white;
+  padding: 20px 40px;
+  margin-bottom: 30px;
+}
+
+main {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+h2 {
+  margin-bottom: 20px;
+}
+
+#applications-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#applications-table th,
+#applications-table td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+}
+
+#applications-table th {
+  background: #f9f9f9;
+}
+
+/* Button Styles */
+.action-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-right: 5px;
+  transition: opacity 0.3s;
+}
+.action-btn:hover {
+  opacity: 0.8;
+}
+
+.approve-btn {
+  background: #28a745;
+  color: white;
+}
+
+.reject-btn {
+  background: #dc3545;
+  color: white;
+}
+
+/* Add a class for applications that are no longer pending */
+.status-Approved,
+.status-Rejected {
+  color: #888;
+  background: #f9f9f9;
+}
