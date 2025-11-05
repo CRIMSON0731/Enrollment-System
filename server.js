@@ -37,6 +37,7 @@ if (!fs.existsSync(uploadDir)){
 }
 
 // --- Multer Storage Configuration ---
+// ... (your multer code is correct) ...
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/'); 
@@ -53,6 +54,7 @@ const upload = multer({ storage: storage }).fields([
     { name: 'f137', maxCount: 1 },
     { name: 'barangay', maxCount: 1 }
 ]);
+
 
 // --- Endpoints ---
 app.get('/', (req, res) => {
@@ -151,13 +153,12 @@ app.get('/get-announcements', (req, res) => {
 });
 
 // --- ------------------------------- ---
-// --- NEW ADMIN ENDPOINTS START HERE ---
+// --- ADMIN ENDPOINTS START HERE ---
 // --- ------------------------------- ---
 
 // --- ADMIN ENDPOINT: GET ALL APPLICATIONS ---
 app.get('/get-applications', (req, res) => {
   console.log('Request received for /get-applications');
-  // Get all applications, with the newest ones first
   const sql = "SELECT * FROM applications ORDER BY created_at DESC";
   
   db.query(sql, (err, applications) => {
@@ -165,7 +166,6 @@ app.get('/get-applications', (req, res) => {
       console.error('Database query error:', err);
       return res.json({ success: false, message: 'Server error' });
     }
-    // Send back all the applications
     res.json({ success: true, applications: applications });
   });
 });
@@ -174,10 +174,7 @@ app.get('/get-applications', (req, res) => {
 // --- ADMIN ENDPOINT: APPROVE/REJECT APPLICATION ---
 app.post('/update-application-status', (req, res) => {
   const { applicationId, newStatus } = req.body;
-
   console.log(`Updating application ${applicationId} to status: ${newStatus}`);
-
-  // 1. Update the application's status in the 'applications' table
   const updateSql = "UPDATE applications SET status = ? WHERE id = ?";
   
   db.query(updateSql, [newStatus, applicationId], (err, result) => {
@@ -186,10 +183,7 @@ app.post('/update-application-status', (req, res) => {
       return res.json({ success: false, message: 'Database error' });
     }
     
-    // 2. Check if the new status is "Approved"
     if (newStatus === 'Approved') {
-      // --- This is the key step from your flowchart ---
-      // 3. Get the applicant's info to create a user account
       const getAppSql = "SELECT * FROM applications WHERE id = ?";
       db.query(getAppSql, [applicationId], (err, applications) => {
         if (err || applications.length === 0) {
@@ -197,18 +191,13 @@ app.post('/update-application-status', (req, res) => {
         }
         
         const app = applications[0];
-        
-        // 4. Create the username and a temporary password
         const username = `${app.first_name.toLowerCase()}.${app.last_name.toLowerCase()}`;
-        const tempPassword = 'password123'; // In a real app, this would be random
-        
+        const tempPassword = 'password123';
         console.log(`Creating user: ${username}, Pass: ${tempPassword}`);
 
-        // 5. Insert the new user into the 'users' table
         const insertUserSql = "INSERT INTO users (username, password, application_id) VALUES (?, ?, ?)";
         db.query(insertUserSql, [username, tempPassword, applicationId], (err, result) => {
           if (err) {
-            // This might fail if the username (e.g., john.doe) already exists
             console.error('Error creating user:', err);
             return res.json({ success: false, message: 'Error creating user account.' });
           }
@@ -218,10 +207,25 @@ app.post('/update-application-status', (req, res) => {
       });
       
     } else {
-      // If "Rejected", we're done. Just send a success response.
       res.json({ success: true, message: `Application ${applicationId} Rejected.` });
     }
   });
+});
+
+// --- NEW ADMIN LOGIN ENDPOINT ---
+app.post('/admin-login', (req, res) => {
+  const { username, password } = req.body;
+
+  console.log(`Admin login attempt with: ${username}`);
+
+  // THIS IS THE HARD-CODED CHECK
+  if (username === 'admin' && password === 'admin123') {
+    // Correct login
+    res.json({ success: true });
+  } else {
+    // Incorrect login
+    res.json({ success: false, message: 'Invalid admin credentials' });
+  }
 });
 
 
