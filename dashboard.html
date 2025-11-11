@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Dashboard</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  
   <link rel="stylesheet" href="notification.css">
   <link rel="stylesheet" href="dashboard.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
@@ -11,8 +14,6 @@
 <body>
   <div id="notification-bar" class="notification-bar"></div>
 
-  ```
-  <!-- NEW: Header for Logout Button -->
   <header class="dashboard-header">
     <div class="header-content">
       <h1>Student Dashboard</h1>
@@ -27,32 +28,65 @@
         <h3>Welcome, <br><span id="student-name" style="font-size: 1.2em; font-weight: 700;">Loading...</span></h3>
       </div>
       <ul class="sidebar-links">
-        <li><a href="#" id="nav-home" class="active">Home (Announcements)</a></li>
+        <li><a href="#" id="nav-home" class="active">Home</a></li> 
         <li><a href="#" id="nav-status">My Enrollment Status</a></li>
         <li><a href="#" id="nav-info">My Information</a></li>
         <li><a href="#" id="nav-password">Change Password</a></li>
-        <!-- Old Logout Link Removed -->
+        <li><a href="#" id="nav-history">School History</a></li> 
       </ul>
     </nav>
     
     <main class="main-content">
       
       <section id="content-home" class="content-section active">
-        <h2>General Announcements</h2>
-        <ul id="announcements-list">
-            <li>Loading announcements...</li>
-        </ul>
+        
+        <div class="welcome-banner" 
+             data-tilt 
+             data-tilt-max="4" 
+             data-tilt-speed="400" 
+             data-tilt-perspective="1000">
+            <h2 style="margin-top: 0;">Hi, <span id="student-name-full">Loading...</span>!</h2>
+            <p class="enrollment-status-summary">Your application status is currently: <strong id="status-summary-text">Loading...</strong></p>
+        </div>
+
+        <div class="dashboard-widget" 
+             data-tilt 
+             data-tilt-max="2" 
+             data-tilt-speed="600">
+            <h3>Enrollment Checklist</h3>
+            <div id="enrollment-checklist">
+                <p>Loading checklist...</p>
+            </div>
+        </div>
+
+        <div class="announcement-widget">
+            <h2>School Announcements</h2>
+            <ul id="announcements-list">
+                <li>Loading announcements...</li>
+            </ul>
+        </div>
       </section>
       
       <section id="content-status" class="content-section" style="display: none;">
         <h2>Your Enrollment Status</h2>
         <p class="status-label">Current Status:</p>
+        
         <div id="status-message" class="status-pending">
           Loading...
         </div>
-        <p class="status-note">
-            If your status is **Approved**, you are officially enrolled. If **Pending Review**, the admin is still checking your documents. If **Rejected**, please contact the school office.
-        </p>
+        
+        <div class="status-notes-container">
+            <div class="status-note status-approved-note">
+                <p><strong>Approved:</strong> You are officially enrolled and your admission is confirmed.</p>
+            </div>
+            <div class="status-note status-pending-note">
+                <p><strong>Pending Review:</strong> The administrative office is actively checking your submitted documents.</p>
+            </div>
+            <div class="status-note status-rejected-note">
+                <p><strong>Rejected:</strong> Your application requires attention. Please contact the school office immediately.</p>
+            </div>
+        </div>
+        
       </section>
       
       <section id="content-info" class="content-section" style="display: none;">
@@ -64,33 +98,79 @@
           <p><strong>Email:</strong> <span id="detail-email">---</span></p>
           <p><strong>Phone:</strong> <span id="detail-phone">---</span></p>
           <p><strong>Login Username:</strong> <span id="detail-username">---</span></p>
+
+          <h3>Submitted Documents:</h3>
+          <div id="document-links-container">
+               <p>Loading document access links...</p>
+          </div>
         </div>
       </section>
 
       <section id="content-password" class="content-section" style="display: none;">
         <h2>Change Password</h2>
         <form id="change-password-form">
-            <div class="input-group">
-                <label for="current-password">Current Password:</label>
-                <input type="password" id="current-password" required>
+            <div class="details-box password-box-container">
+                <div class="input-group">
+                    <label for="current-password">Current Password:</label>
+                    <input type="password" id="current-password" required>
+                </div>
+                <div class="input-group">
+                    <label for="new-password">New Password:</label>
+                    <input type="password" id="new-password" required>
+                </div>
+                <div class="input-group">
+                    <label for="confirm-password">Confirm New Password:</label>
+                    <input type="password" id="confirm-password" required>
+                </div>
+                <button type="submit" class="submit-btn">Update Password</button>
+                <p id="password-message" class="message-text"></p>
             </div>
-            <div class="input-group">
-                <label for="new-password">New Password:</label>
-                <input type="password" id="new-password" required>
-            </div>
-            <div class="input-group">
-                <label for="confirm-password">Confirm New Password:</label>
-                <input type="password" id="confirm-password" required>
-            </div>
-            <button type="submit" class="submit-btn">Update Password</button>
-            <p id="password-message" class="message-text"></p>
         </form>
+      </section>
+
+      <section id="content-history" class="content-section history-section" style="display: none;">
+        <h2>Our School's Inspiration: Doña Teodora Alonzo Realonda</h2>
+        <p class="history-intro">
+            Our school is named to honor Doña Teodora Alonzo Realonda, the very smart and strong mother of the Philippines’ national hero, Dr. José Rizal. This name was chosen because Teodora Alonzo was a well-educated woman from a respected family who was famous for being Rizal’s first teacher. She is remembered for her intelligence, strength, and great influence on her son’s education and good character.
+        </p>
+        
+        <div class="history-block">
+            <h3> The Founding Story of Our School</h3>
+            <p><strong>Doña Teodora Alonzo High School opened its doors in 1961.</strong> Its beginning was simple: it was created by bringing together five smaller school units that used to belong to a bigger school called Arellano High School. These five small units were spread out on different streets in Manila, including Mayhaligue, O'Donnel, and others. When they were all put together, they became one new, independent high school. The school is located on T. Alonzo Street in the Santa Cruz area of Manila. For many decades, the school has been a very important place for the local community, teaching many generations of students.</p>
+        </div>
+
+        <div class="history-block">
+            <h3> The Unbreakable Mother: Doña Teodora's Story</h3>
+            <p>The story of Doña Teodora Alonzo Realonda begins on November 9, 1827, in Manila. She was a truly extraordinary woman—smart, strong, and highly educated. She came from a distinguished, rich family and attended the famous Colegio de Santa Rosa, where she learned about math and literature, which was very unusual for women at the time.</p>
+        </div>
+        
+        <div class="history-block">
+            <h3> The Guiding Light of Calamba</h3>
+            <p>Teodora was Jose Rizal's first and best teacher. She taught him his letters, helped him write his first poems, and gave him the deep love for learning and for Filipino culture that stayed with him his whole life. She was the real leader of the house and the businesses. While her husband worked the farm, she handled all the money, started new ventures like cloth weaving and sugar milling, and ran the family's store.</p>
+            <p>Their close relationship was marked by mutual affection, respect, and intellectual kinship. From her, he learned the critical value of reading and study, strong discipline, faith in God, and the importance of working hard and being thrifty. Her own failing eyesight was the main reason Rizal decided to study medicine and specialize in ophthalmology.</p>
+        </div>
+
+        <div class="history-block">
+            <h3> Courage Against Cruelty</h3>
+            <p>The family’s success soon made them enemies of the Spanish authorities. In 1872, Doña Teodora faced a terrible wrong when she was falsely accused of trying to poison her sister-in-law. This was a complete lie, created by officials who wanted to damage the family. She was forced to walk about 50 kilometers all the way to the prison in Santa Cruz and stayed locked up for **two and a half years** until a higher court declared her innocent. This shocking injustice deeply hurt the young Jose Rizal and fueled his powerful anger against oppression.</p>
+        </div>
+        
+        <div class="history-block">
+            <h3> Honor Over Riches</h3>
+            <p>Teodora faced the greatest pain in 1896 when her son, Jose Rizal, was executed. After the Spanish era ended, the new American government offered Doña Teodora a monthly payment for the rest of her life to honor her sacrifice. She refused the money, declaring simply that her family **“has never been patriotic for money.”** She showed the world that her honor and love for her country were worth more than any payment. She stands as a hero for her own strength and for raising the greatest hero of the Philippines.</p>
+        </div>
+
+        <p class="history-outro">
+            Our school honors Doña Teodora’s enduring spirit by dedicating ourselves to learning, business acumen, and standing up for what is right!
+        </p>
       </section>
 
     </main>
     
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

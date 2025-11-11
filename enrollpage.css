@@ -136,6 +136,28 @@ body {
 }
 
 /* === INPUT GROUPS === */
+/* --- Keep the existing styles and add the new button ID to the selector --- */
+input[type="submit"], 
+#enrollment-submit-btn { /* ADDED #enrollment-submit-btn */
+    width: 100%;
+    padding: 15px;
+    margin-top: 30px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary-green);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+input[type="submit"]:hover,
+#enrollment-submit-btn:hover { /* ADDED #enrollment-submit-btn */
+    background: #3f8a43; 
+    transform: translateY(-1px);
+}
+
 .input-group {
     margin-bottom: 18px;
 }
@@ -224,4 +246,30 @@ input[type="submit"]:disabled {
     padding: 15px 0;
     font-size: 0.85rem;
     margin-top: 20px;
+}
+
+/* --- NEW: Visual feedback for selected files --- */
+.input-group input[type="file"].file-selected {
+    border: 2px solid var(--primary-green); /* Change border to the primary green */
+    background-color: #e9f7ec; /* Very light green background */
+    box-shadow: 0 0 5px rgba(43, 122, 11, 0.5); 
+}
+
+/* --- NEW: Visual feedback for selected files --- */
+.input-group input[type="file"] {
+    /* ... existing styles ... */
+    transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s; /* ADDED TRANSITION */
+}
+
+.input-group input[type="file"].file-selected {
+    border: 2px solid var(--primary-green); /* Change border to the primary green */
+    background-color: #e9f7ec; /* Very light green background */
+    box-shadow: 0 0 5px rgba(43, 122, 11, 0.5); 
+}
+
+/* Make the label text green and bold when file is selected */
+/* Note: The JS handles adding the checkmark and filename */
+.document-section .input-group label[data-default-text]:not([data-default-text$=":"]) {
+    color: var(--primary-green);
+    font-weight: 700;
 }

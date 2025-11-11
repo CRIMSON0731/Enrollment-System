@@ -4,10 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Student Enrollment Form</title>
+  <link rel="icon" href="school-logo.png" type="image/png">
+  <link rel="stylesheet" href="notification.css"> 
   <link rel="stylesheet" href="enrollpage.css" /> 
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+  
+  <div id="notification-bar" class="notification-bar"></div> 
 
   <header class="school-header">
     <div class="header-content">
@@ -25,7 +29,6 @@
       <a href="index.html" class="back-home-btn">← Back to Home Page</a>
 
       <form class="Enrollment" id="enrollment-form" method="POST" enctype="multipart/form-data">
-
         <h1 class="title">Student Enrollment Application</h1>
         <p class="subtitle">Please fill out all required fields and upload the necessary documents to apply for enrollment. Your application status (Pending, Approved, Rejected) will be seen by the Admin.</p>
 
@@ -34,23 +37,17 @@
           
           <div class="input-group">
             <label for="first-name">First Name:</label>
-            <input type="text" id="first-name" name="first_name" 
-                   pattern="[a-zA-Z .'-]+" 
-                   title="Only letters, dots, hyphens, and spaces are allowed." required>
+            <input type="text" id="first-name" name="first_name" required>
           </div>
 
           <div class="input-group">
             <label for="middle-name">Middle Name (Optional):</label>
-            <input type="text" id="middle-name" name="middle_name"
-                   pattern="[a-zA-Z .'-]+"
-                   title="Only letters, dots, hyphens, and spaces are allowed.">
+            <input type="text" id="middle-name" name="middle_name">
           </div>
 
           <div class="input-group">
             <label for="last-name">Last Name:</label>
-            <input type="text" id="last-name" name="last_name"
-                   pattern="[a-zA-Z .'-]+"
-                   title="Only letters, dots, hyphens, and spaces are allowed." required>
+            <input type="text" id="last-name" name="last_name" required>
           </div>
 
           <div class="input-group">
@@ -112,7 +109,7 @@
           </div>
         </section>
 
-        <input type="submit" value="Submit Enrollment Application">
+        <input type="submit" value="Submit Enrollment Application"> 
 
       </form>
     </div>

@@ -1,6 +1,8 @@
 // Global variable to store all fetched applications
 let allApplications = [];
 let currentGradeLevel = '7'; 
+let currentSortKey = 'created_at'; // Default sort by submission date
+let currentSortDir = 'desc'; // Default direction is descending
 
 // --- MODAL ELEMENTS ---
 const detailsModal = document.getElementById('details-modal');
@@ -9,16 +11,161 @@ const modalApproveBtn = document.getElementById('modal-approve-btn');
 const modalRejectBtn = document.getElementById('modal-reject-btn');
 const modalDeleteBtn = document.getElementById('modal-delete-btn'); 
 
+// --- NOTIFICATION FUNCTION ---
+function showNotification(message, type) {
+  const notification = document.getElementById('notification-bar');
+  if (!notification) return;
+  
+  notification.textContent = message;
+  notification.className = `notification-bar ${type}`;
+  notification.classList.add('show');
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+  }, 3000);
+}
+
 // Run this code when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     addLogoutListener();
     addTabListeners();
     addFilterListeners(); 
+    addSortListeners(); // Added Sort Listeners
     addModalListeners(); 
     simulateDataLoad(); 
+    setupAnnouncementManagement();
+    
+    // NEW: Call the animation function after a slight pause
+    setTimeout(animateQuickStats, 500); 
 });
 
-// --- Modal Listeners (Fixed) ---
+// --- NEW: Function to animate stat cards on load ---
+function animateQuickStats() {
+    const statCards = document.querySelectorAll('.quick-stats .stat-card');
+    
+    statCards.forEach((card, index) => {
+        // Use a slight delay based on index for a staggered effect
+        setTimeout(() => {
+            card.classList.add('animate-in');
+        }, 150 * index); 
+    });
+}
+
+// --- Announcement Management Setup ---
+function setupAnnouncementManagement() {
+    loadCurrentAnnouncements(); 
+    
+    const form = document.getElementById('create-announcement-form');
+    if (form) {
+      form.addEventListener('submit', handleAnnouncementSubmission);
+    }
+}
+
+// --- Load Current Announcements (Fetches ID for deletion) ---
+async function loadCurrentAnnouncements() {
+    const listEl = document.getElementById('current-announcements-list');
+    listEl.innerHTML = '<li>Fetching announcements...</li>';
+
+    try {
+        const response = await fetch('http://localhost:3000/get-announcements');
+        const data = await response.json();
+
+        if (data.success && data.announcements.length > 0) {
+            listEl.innerHTML = '';
+            data.announcements.forEach(ann => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div style="flex-grow: 1;">
+                        <strong>${ann.title}</strong>
+                        <p>${ann.content}</p>
+                    </div>
+                    <button class="action-btn-danger delete-ann-btn" data-id="${ann.id}">Delete</button>
+                `;
+                li.style.display = 'flex';
+                li.style.justifyContent = 'space-between';
+                li.style.alignItems = 'center';
+                listEl.appendChild(li);
+            });
+            addAnnouncementDeleteListeners(); 
+        } else {
+            listEl.innerHTML = '<li>No announcements have been published yet.</li>';
+        }
+    } catch (error) {
+        listEl.innerHTML = '<li>Error loading announcements from server.</li>';
+    }
+}
+
+// --- Attaches click listeners to Delete buttons ---
+function addAnnouncementDeleteListeners() {
+    document.querySelectorAll('.delete-ann-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const annId = e.target.getAttribute('data-id');
+            if (confirm('Are you sure you want to permanently delete this announcement?')) {
+                deleteAnnouncement(annId);
+            }
+        });
+    });
+}
+
+// --- Sends the delete request to the server (Endpoint 11) ---
+async function deleteAnnouncement(announcementId) {
+    try {
+        const response = await fetch('http://localhost:3000/delete-announcement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ announcementId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            loadCurrentAnnouncements(); // Reload the list
+        } else {
+            showNotification(`Deletion Error: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Failed to delete announcement.', 'error');
+    }
+}
+
+// --- Handle Announcement Submission (to server.js endpoint 10) ---
+async function handleAnnouncementSubmission(e) {
+    e.preventDefault();
+    const form = e.target;
+    const title = document.getElementById('announcement-title').value;
+    const content = document.getElementById('announcement-content').value;
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    submitBtn.textContent = 'Publishing...';
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch('http://localhost:3000/create-announcement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            form.reset();
+            loadCurrentAnnouncements(); 
+        } else {
+            showNotification(`Error: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Failed to publish announcement.', 'error');
+    } finally {
+        submitBtn.textContent = 'Publish Announcement';
+        submitBtn.disabled = false;
+    }
+}
+
+
+// --- Modal Listeners ---
 function addModalListeners() {
     closeModalBtn.onclick = function() { detailsModal.style.display = 'none'; }
     window.onclick = function(event) {
@@ -61,15 +208,15 @@ async function deleteApplicant(applicationId) {
         const data = await response.json();
         
         if (data.success) {
-            alert(data.message);
+            showNotification(data.message, 'success');
             detailsModal.style.display = 'none';
-            simulateDataLoad(); // Reload data
+            simulateDataLoad(); 
         } else {
-            alert(`Deletion Error: ${data.message}`);
+            showNotification(`Deletion Error: ${data.message}`, 'error');
         }
     } catch (error) {
         console.error('Network Error deleting applicant:', error);
-        alert('Network error. Failed to delete applicant.');
+        showNotification('Network error. Failed to delete applicant.', 'error');
     }
 }
 
@@ -78,17 +225,35 @@ function addLogoutListener() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            alert('You have been logged out.');
-            window.location.href = 'admin-login.html'; 
+            showNotification('Logging out of Admin Panel...', 'success');
+            
+            setTimeout(() => {
+                window.location.href = 'admin-login.html'; 
+            }, 1500);
         });
     }
 }
 
 // --- Tab Functionality ---
 function addTabListeners() {
-    document.querySelectorAll('.tab-button').forEach(button => {
+    // 1. Logic for main content tabs (Application Review / Manage Announcements)
+    document.querySelectorAll('.main-tab-button').forEach(button => {
         button.addEventListener('click', (e) => {
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.main-tab-button').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            const targetContentId = `content-${e.target.getAttribute('data-content')}`;
+            document.querySelectorAll('.main-content-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(targetContentId).style.display = 'block';
+        });
+    });
+
+    // 2. Logic for grade level tabs (inside Application Review section)
+    document.querySelectorAll('.grade-tabs .tab-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            document.querySelectorAll('.grade-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
             e.target.classList.add('active');
             currentGradeLevel = e.target.getAttribute('data-grade');
             applyFiltersAndDisplay(); 
@@ -101,6 +266,62 @@ function addFilterListeners() {
     document.getElementById('name-search').addEventListener('input', applyFiltersAndDisplay);
     document.getElementById('status-filter').addEventListener('change', applyFiltersAndDisplay);
 }
+
+// --- NEW: Table Sorting Listener and Handler ---
+function addSortListeners() {
+    document.querySelectorAll('#applications-table .sortable').forEach(header => {
+        header.addEventListener('click', () => {
+            const newKey = header.getAttribute('data-sort');
+
+            // Toggle direction if the same column is clicked
+            if (newKey === currentSortKey) {
+                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                // Default to ascending for a new column
+                currentSortKey = newKey;
+                currentSortDir = 'asc';
+            }
+
+            // Remove old icons and add class to current header
+            document.querySelectorAll('#applications-table th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            header.classList.add(`sorted-${currentSortDir}`);
+
+            // Apply sorting and re-display the table
+            applyFiltersAndDisplay(); 
+        });
+    });
+}
+
+// --- Custom Comparison Logic ---
+function compare(a, b, key, dir) {
+    let valA = a[key];
+    let valB = b[key];
+
+    // Handle string comparisons (case-insensitive)
+    if (typeof valA === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+    }
+    
+    // Convert grade level string to number for correct numerical sort
+    if (key === 'grade_level') {
+        valA = parseInt(valA, 10);
+        valB = parseInt(valB, 10);
+    }
+
+    let comparison = 0;
+    if (valA > valB) {
+        comparison = 1;
+    } else if (valA < valB) {
+        comparison = -1;
+    }
+
+    // Apply direction
+    return dir === 'desc' ? comparison * -1 : comparison;
+}
+
 
 // --- Calculate and Update Quick Stats ---
 function updateQuickStats() {
@@ -123,13 +344,14 @@ function updateQuickStats() {
     document.getElementById('stat-rejected').textContent = rejected;
 }
 
-// --- Filtering Logic ---
+// --- Filtering Logic (Refactored to include Sorting) ---
 function applyFiltersAndDisplay() {
     const searchName = document.getElementById('name-search').value.toLowerCase();
     const statusFilter = document.getElementById('status-filter').value;
     
     let filteredApps = allApplications.filter(app => app.grade_level == currentGradeLevel);
 
+    // Apply Status and Search Filters (existing logic)
     if (statusFilter !== 'All') {
         filteredApps = filteredApps.filter(app => app.status === statusFilter);
     }
@@ -141,6 +363,9 @@ function applyFiltersAndDisplay() {
             app.email.toLowerCase().includes(searchName)
         );
     }
+    
+    // --- Apply Sorting to the filtered results ---
+    filteredApps.sort((a, b) => compare(a, b, currentSortKey, currentSortDir));
     
     displayTableContent(filteredApps, currentGradeLevel);
 }
@@ -173,7 +398,7 @@ function displayTableContent(applicationsToDisplay, gradeLevel) {
       tableBody.appendChild(row);
     });
 
-    addEventListenersToButtons(); // Renamed to avoid confusion
+    addEventListenersToButtons(); 
 }
 
 // --- Function to add click handlers to View Details buttons ---
@@ -189,9 +414,8 @@ function addEventListenersToButtons() {
 // --- Function to display details in the modal (UPDATED for credentials) ---
 async function showApplicationDetails(appId) {
     const detailsDiv = document.getElementById('application-details');
-    detailsDiv.innerHTML = '<p>Loading details...</p>'; // Show loading message
+    detailsDiv.innerHTML = '<p>Loading details...</p>'; 
 
-    // Set data-id on modal buttons
     modalApproveBtn.setAttribute('data-id', appId);
     modalRejectBtn.setAttribute('data-id', appId);
     modalDeleteBtn.setAttribute('data-id', appId);
@@ -206,16 +430,13 @@ async function showApplicationDetails(appId) {
         }
 
         const fullApp = data.application;
-        // Use 'birthdate' from your SQL schema, fallback to 'bday' just in case
         const birthdate = new Date(fullApp.birthdate || fullApp.bday || '2000-01-01').toLocaleDateString();
-        const serverUrl = 'http://localhost:3000'; // Base URL for file links
+        const serverUrl = 'http://localhost:3000'; 
 
-        // Dynamically show/hide decision buttons
         const isPending = fullApp.status === 'Pending Review';
         modalApproveBtn.style.display = isPending ? 'inline-block' : 'none';
         modalRejectBtn.style.display = isPending ? 'inline-block' : 'none';
 
-        // --- NEW: Login Info Display Block ---
         let loginDetailsHtml = '';
         if (fullApp.status === 'Approved' && fullApp.student_username) {
             loginDetailsHtml = `
@@ -268,7 +489,7 @@ async function showApplicationDetails(appId) {
 }
 
 
-// --- Approve/Reject Handlers (Update local data and server) ---
+// --- Approve/Reject Handlers ---
 async function updateStatus(applicationId, newStatus) {
     const appIndex = allApplications.findIndex(app => app.id == applicationId);
     const originalStatus = allApplications[appIndex].status;
@@ -285,32 +506,30 @@ async function updateStatus(applicationId, newStatus) {
             if (appIndex !== -1) {
                 allApplications[appIndex].status = newStatus;
                 if (newStatus === 'Approved') {
-                    // Update local data with credentials from server response
                     allApplications[appIndex].student_username = data.student_username;
                     allApplications[appIndex].student_password = data.student_password;
-                    alert(`✅ Application Approved!\nStudent Username (Email): ${data.student_username}\nTemporary Password: ${data.student_password}`);
-                    // Re-show the modal to display the new credentials
+                    showNotification('✅ Application Approved! Credentials have been generated.', 'success');
                     showApplicationDetails(applicationId);
                 } else {
-                    alert(`Status updated to ${newStatus}.`);
+                    showNotification(`Status updated to ${newStatus}.`, 'success');
                     detailsModal.style.display = 'none';
                 }
             }
             updateQuickStats();
             applyFiltersAndDisplay(); 
         } else {
-            alert(`Error updating status: ${data.message}`);
+            showNotification(`Error updating status: ${data.message}`, 'error');
             if (appIndex !== -1) allApplications[appIndex].status = originalStatus;
         }
 
     } catch (error) {
         console.error('Network Error updating status:', error);
-        alert('Network error. Status may not have been saved.');
+        showNotification('Network error. Status may not have been saved.', 'error');
         if (appIndex !== -1) allApplications[appIndex].status = originalStatus;
     }
 }
 
-// --- SIMULATED DATA FETCH (Renamed to loadApplications for clarity) ---
+// --- SIMULATED DATA FETCH ---
 async function simulateDataLoad() {
     const tableBody = document.getElementById('applications-tbody');
     tableBody.innerHTML = '<tr><td colspan="6">Loading applications...</td></tr>';

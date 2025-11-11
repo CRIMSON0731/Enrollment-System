@@ -99,18 +99,18 @@ body {
   margin-top: 5px;
 }
 
-/* === NEW: LOGIN SECTION CONTAINER === */
+/* === LOGIN SECTION CONTAINER (Optimized for single centered card) === */
 .login-section-container {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: center; /* Centers the remaining card */
   gap: 30px;
   width: 100%;
-  max-width: 1000px;
+  max-width: 500px; /* Reduced max-width for centering effect */
   margin-bottom: 50px;
 }
 
-/* === LOGIN/ENROLL CONTAINER (SHARED) === */
+/* === LOGIN/ENROLL CONTAINER (STUDENT ONLY) === */
 .login-container {
   background: #ffffff;
   padding: 40px;
@@ -119,15 +119,11 @@ body {
   width: 90%;
   max-width: 450px;
   text-align: center;
-  flex-grow: 1;
+  /* Removed flex-grow to maintain center alignment on large screens */
 }
 
 .student-container {
-  border-top: 5px solid #2b7a0b; /* Green for students */
-}
-
-.admin-container {
-  border-top: 5px solid #3b5671; /* Blue for admin */
+  border-top: 5px solid #2b7a0b; /* Green border remains */
 }
 
 /* === ENROLL BUTTON === */
@@ -179,20 +175,16 @@ body {
 .divider::after { right: 0; }
 
 
-/* === LOGIN FORM (SHARED) === */
+/* === LOGIN FORM (SHARED/STUDENT) === */
 .login-container form {
   text-align: center;
 }
 
 .login-container h2 {
-  color: #3b5671;
+  color: #2b7a0b; /* Changed from general color to student green */
   margin-bottom: 25px;
   font-size: 2rem;
   font-weight: 700;
-}
-
-.student-container h2 {
-  color: #2b7a0b; /* Green title */
 }
 
 .input-group {
@@ -222,13 +214,13 @@ body {
   outline: none;
 }
 
-/* === LOGIN BUTTON (SHARED) === */
+/* === LOGIN BUTTON (STUDENT) === */
 .login-btn {
   width: 100%;
   padding: 14px;
   border: none;
   border-radius: 8px;
-  background: #3b5671; /* Admin Button Blue */
+  background: #2b7a0b; /* Student Button Green */
   color: white;
   font-size: 1.1rem;
   font-weight: 600;
@@ -238,17 +230,11 @@ body {
 }
 
 .login-btn:hover {
-  background: #2a4053;
+  background: #215c08;
   transform: translateY(-1px);
 }
 
-.student-login-btn {
-  background: #2b7a0b; /* Student Button Green */
-}
-
-.student-login-btn:hover {
-  background: #215c08;
-}
+/* REMOVED: .student-login-btn and .admin-container styles */
 
 /* === ERROR MESSAGE === */
 .error-message {

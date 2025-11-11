@@ -1,25 +1,25 @@
-/* --- Notification Bar Style --- */
-/* The main bar, hidden by default */
+/* --- Notification Bar Style (Modified for size and prominence) --- */
 .notification-bar {
   position: fixed;
   top: -100px; /* Start off-screen */
   left: 50%;
   transform: translateX(-50%);
-  padding: 15px 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-size: 1rem;
+  padding: 20px 35px; /* Increased padding */
+  border-radius: 10px; /* Slightly more rounded */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Stronger shadow */
+  font-size: 1.1rem; /* Slightly larger font */
   font-weight: 600;
   color: white;
   z-index: 2000;
   transition: top 0.5s ease-in-out;
-  max-width: 400px;
+  max-width: 600px; /* Increased max-width */
+  width: 90%; /* Ensure it uses width on smaller screens */
   text-align: center;
 }
 
 /* The 'show' class to slide it in */
 .notification-bar.show {
-  top: 20px; /* Slide it down to this position */
+  top: 25px; /* Slide it down slightly more */
 }
 
 /* The 'success' style (green) */

@@ -58,7 +58,7 @@ body {
     padding-top: 60px; /* Account for fixed header */
 }
 
-/* ===== Sidebar Styles ===== */
+/* ===== Sidebar Styles (Enhanced Contrast) ===== */
 .sidebar {
     width: 260px;
     background: #1ab188; /* Green theme */
@@ -70,12 +70,15 @@ body {
 
 .sidebar-header {
     padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    /* FIX: Made border slightly whiter for contrast */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4); 
 }
 
 .sidebar-header h3 {
-    font-weight: 400;
+    /* FIX: Explicitly white and slightly bolder */
+    font-weight: 500; 
     font-size: 1.1rem;
+    color: #fff; 
 }
 
 .sidebar-links {
@@ -103,7 +106,7 @@ body {
     font-weight: 600;
 }
 
-/* ===== Main Content Styles ===== */
+/* ===== Main Content Styles (Enhanced Headers) ===== */
 .main-content {
     flex-grow: 1;
     padding: 30px;
@@ -119,105 +122,286 @@ body {
 }
 
 .content-section h2 {
-    color: #3b5671;
+    /* FIX: Use primary green color */
+    color: #1ab188; 
+    font-weight: 700; 
     margin-bottom: 20px;
-    border-bottom: 2px solid #f0f3f6;
+    
+    /* Subtle gradient underline for visual interest */
+    border-bottom: 3px solid transparent; 
+    border-image: linear-gradient(to right, #1ab188, #f0f3f6) 1; 
+    
     padding-bottom: 10px;
 }
 
-/* Announcements List */
-#announcements-list {
-    list-style: none;
-}
-#announcements-list li {
-    background: #f9f9f9;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    border-left: 4px solid #1ab188;
-}
-#announcements-list li strong {
-    display: block;
-    font-size: 1.1rem;
-    color: #333;
-    margin-bottom: 5px;
-}
-#announcements-list li p {
-    color: #555;
-    line-height: 1.5;
+/* --- NEW: Welcome Banner Styling --- */
+.welcome-banner {
+    background: linear-gradient(to right, #e9f7ec, #ffffff);
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    border-left: 5px solid #1ab188;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
 }
 
-
-/* Status Box */
-#status-message {
-  font-size: 1.5rem;
-  font-weight: 600;
-  padding: 15px;
-  border-radius: 8px;
-  display: inline-block;
-}
-
-.status-approved { color: #1ab188; background: #e9f7ec; } /* Green */
-.status-pending { color: #ffc107; background: #fff9e6; } /* Yellow */
-.status-rejected { color: #dc3545; background: #fcebeb; } /* Red */
-
-.status-label {
-    margin-bottom: 5px;
-    font-size: 0.9em;
-    color: #666;
-}
-.status-note {
-    margin-top: 15px;
-    padding: 10px;
-    border-left: 4px solid #3b5671;
-    background: #f0f3f6;
-    color: #333;
-    font-size: 0.9em;
-    line-height: 1.5;
-}
-
-/* Details Box Styling */
-.details-box p {
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px dotted #eee;
-    font-size: 1.1rem;
-}
-.details-box strong {
-    display: inline-block;
-    width: 150px; /* Align the content neatly */
+.welcome-banner h2 {
     color: #3b5671;
-    font-weight: 600;
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+    padding-bottom: 0;
+    border-bottom: none;
 }
 
-/* Password Form Styling */
-#change-password-form .input-group {
+.enrollment-status-summary {
+    font-size: 1.1rem;
+    color: #555;
+    font-weight: 500;
+}
+
+/* --- NEW: Checklist and Announcement Widget Styling --- */
+.dashboard-widget {
+    margin-top: 20px;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.dashboard-widget h3 {
+    color: #3b5671;
+    font-size: 1.2rem;
     margin-bottom: 15px;
 }
-#change-password-form label {
-    display: block;
-    margin-bottom: 5px;
+
+.announcement-widget {
+    margin-top: 30px;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.announcement-widget h2 {
+    color: #1ab188;
+    margin-top: 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #f0f3f6;
+}
+
+/* Checklist Item Styling */
+#enrollment-checklist {
+    padding: 0; 
+}
+.checklist-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-bottom: 1px dotted #eee;
+    font-size: 1rem;
     font-weight: 600;
 }
-#change-password-form input {
-    width: 100%;
-    max-width: 300px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+.checklist-item.done {
+    color: #1ab188; /* Green checkmark */
 }
+.checklist-item.pending {
+    color: #ffc107; /* Yellow pending icon */
+}
+.checklist-item.rejected {
+    color: #dc3545; /* Red rejected icon */
+}
+
+/* --- Status Box (My Enrollment Status) --- */
+#status-message {
+  /* Increased size for prominence */
+  font-size: 2rem; 
+  font-weight: 700; 
+  padding: 20px 25px; 
+  border-radius: 10px;
+  display: inline-block;
+  margin-bottom: 25px; 
+}
+
+.status-approved { color: #1ab188; background: #e9f7ec; } 
+.status-pending { color: #ffc107; background: #fff9e6; } 
+.status-rejected { color: #dc3545; background: #fcebeb; } 
+
+/* --- Status Notes Styling --- */
+.status-notes-container {
+    margin-top: 30px;
+    padding: 15px;
+    background: #f8f8f8; 
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.status-note {
+    padding: 10px 0;
+    font-size: 0.95rem;
+    color: #444;
+}
+
+.status-note strong {
+    font-weight: 700;
+    margin-right: 5px;
+}
+
+/* Highlight the notes based on their status type */
+.status-approved-note { 
+    border-left: 4px solid #1ab188; 
+    padding-left: 10px;
+}
+.status-pending-note { 
+    border-left: 4px solid #ffc107; 
+    padding-left: 10px;
+}
+.status-rejected-note { 
+    border-left: 4px solid #dc3545; 
+    padding-left: 10px;
+}
+
+/* --- Details Box (My Information) --- */
+.details-box {
+    padding: 10px; 
+}
+
+.details-box p {
+    margin-bottom: 10px;
+    /* FIX: Solid border for cleaner look */
+    padding: 10px 15px; 
+    border-bottom: 1px solid #ddd; 
+    font-size: 1.1rem;
+    display: flex; 
+    align-items: baseline; /* FIX: Align value with label */
+    background: #fcfcfc; /* FIX: Subtle background for row distinction */
+    border-radius: 4px;
+}
+
+.details-box strong {
+    display: inline-block;
+    width: 150px; 
+    min-width: 150px;
+    color: #3b5671;
+    font-weight: 600;
+    margin-right: 20px; 
+    flex-shrink: 0; 
+}
+
+/* Submitted Documents Section Styling */
+.details-box h3 {
+    color: #1ab188; 
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+    margin-top: 30px; 
+    margin-bottom: 15px;
+    font-size: 1.3rem; 
+}
+
+#document-links-container {
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 15px; 
+    margin-top: 15px;
+}
+
+/* Styling the Document Link Buttons */
+.file-link {
+    display: flex; 
+    align-items: center;
+    padding: 10px 15px; 
+    background-color: #f0f3f6; 
+    color: #3b5671; 
+    border-radius: 8px; 
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); 
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.file-link:hover {
+    background-color: #e0e4e8; 
+    color: #1ab188; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.file-link span {
+    margin-left: 8px; 
+}
+
+/* --- NEW: Change Password Form Styling --- */
+.password-box-container {
+    padding: 20px; 
+}
+
+#change-password-form .input-group {
+    display: flex; 
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px dotted #eee; 
+}
+
+#change-password-form label {
+    width: 150px; 
+    min-width: 150px;
+    font-weight: 600;
+    color: #3b5671; 
+    margin-right: 20px; 
+    margin-bottom: 0; 
+}
+
+#change-password-form input {
+    max-width: none; 
+    flex-grow: 1; 
+}
+
 #change-password-form .submit-btn {
+    margin-top: 25px;
+    max-width: 200px;
+    display: block;
+    margin-left: 170px; 
     background: #1ab188;
     color: white;
     padding: 10px 20px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    margin-top: 10px;
 }
-#password-message {
-    margin-top: 15px;
-    padding: 10px;
-    border-radius: 5px;
-    background: #f0f0f0;
+
+
+/* --- History Section Styling --- */
+.history-intro {
+    font-size: 1.1rem;
+    color: #3b5671;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #f0f3f6;
+    padding-bottom: 15px;
+}
+
+.history-block {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3b5671;
+}
+
+.history-block h3 {
+    color: #1ab188;
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.history-block p {
+    line-height: 1.5;
+    color: #555;
+    font-size: 1rem;
+}
+
+.history-outro {
+    margin-top: 30px;
+    padding-top: 15px;
+    font-style: italic;
+    color: #333;
 }

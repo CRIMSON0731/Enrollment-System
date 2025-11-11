@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById('student-login-form');
   const errorMessage = document.getElementById('student-error-message');
 
+  // Ensure form exists before attaching listener
   if (loginForm) {
     loginForm.addEventListener("submit", (event) => {
       event.preventDefault();
