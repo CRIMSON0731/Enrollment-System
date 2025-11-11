@@ -4,50 +4,91 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Dashboard</title>
+  <link rel="stylesheet" href="notification.css">
   <link rel="stylesheet" href="dashboard.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <div id="notification-bar" class="notification-bar"></div>
+
+  ```
+  <!-- NEW: Header for Logout Button -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1>Student Dashboard</h1>
+      <button id="header-logout-btn" class="logout-btn">Log Out</button>
+    </div>
+  </header>
 
   <div class="dashboard-layout">
     
     <nav class="sidebar">
       <div class="sidebar-header">
-        <h3>Welcome, <span id="student-name">...</span>!</h3>
+        <h3>Welcome, <br><span id="student-name" style="font-size: 1.2em; font-weight: 700;">Loading...</span></h3>
       </div>
       <ul class="sidebar-links">
         <li><a href="#" id="nav-home" class="active">Home (Announcements)</a></li>
         <li><a href="#" id="nav-status">My Enrollment Status</a></li>
         <li><a href="#" id="nav-info">My Information</a></li>
-        <li><a href="#" id="nav-logout">Log Out</a></li>
+        <li><a href="#" id="nav-password">Change Password</a></li>
+        <!-- Old Logout Link Removed -->
       </ul>
     </nav>
     
     <main class="main-content">
       
-      <section id="content-home" class="content-section">
+      <section id="content-home" class="content-section active">
         <h2>General Announcements</h2>
         <ul id="announcements-list">
-          </ul>
+            <li>Loading announcements...</li>
+        </ul>
       </section>
       
       <section id="content-status" class="content-section" style="display: none;">
         <h2>Your Enrollment Status</h2>
+        <p class="status-label">Current Status:</p>
         <div id="status-message" class="status-pending">
           Loading...
         </div>
+        <p class="status-note">
+            If your status is **Approved**, you are officially enrolled. If **Pending Review**, the admin is still checking your documents. If **Rejected**, please contact the school office.
+        </p>
       </section>
       
       <section id="content-info" class="content-section" style="display: none;">
         <h2>Your Submitted Information</h2>
         <div class="details-box">
-          <p><strong>Name:</strong> <span id="detail-name">---</span></p>
+          <p><strong>Full Name:</strong> <span id="detail-name">---</span></p>
+          <p><strong>Grade Level:</strong> <span id="detail-grade">---</span></p>
+          <p><strong>Birthdate:</strong> <span id="detail-bday">---</span></p>
           <p><strong>Email:</strong> <span id="detail-email">---</span></p>
           <p><strong>Phone:</strong> <span id="detail-phone">---</span></p>
-          <p><strong>Birthdate:</strong> <span id="detail-bday">---</span></p>
+          <p><strong>Login Username:</strong> <span id="detail-username">---</span></p>
         </div>
       </section>
-      
+
+      <section id="content-password" class="content-section" style="display: none;">
+        <h2>Change Password</h2>
+        <form id="change-password-form">
+            <div class="input-group">
+                <label for="current-password">Current Password:</label>
+                <input type="password" id="current-password" required>
+            </div>
+            <div class="input-group">
+                <label for="new-password">New Password:</label>
+                <input type="password" id="new-password" required>
+            </div>
+            <div class="input-group">
+                <label for="confirm-password">Confirm New Password:</label>
+                <input type="password" id="confirm-password" required>
+            </div>
+            <button type="submit" class="submit-btn">Update Password</button>
+            <p id="password-message" class="message-text"></p>
+        </form>
+      </section>
+
     </main>
+    
   </div>
 
   <script src="dashboard.js"></script>

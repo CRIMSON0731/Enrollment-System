@@ -6,95 +6,94 @@ document.addEventListener("DOMContentLoaded", () => {
   // TEST 2: Check if the 'DOMContentLoaded' event fired.
   console.log("DOMContentLoaded event fired. Looking for form...");
 
-  // Find the enrollment form by its class name
+  // -----------------------------------------------------------------
+  // ⭐️ NEW: LIVE INPUT VALIDATION
+  // -----------------------------------------------------------------
+
+  // --- 1. Validation for Name Fields (Allow letters, dot, space, ', -) ---
+  const validateNameInput = (event) => {
+    // This regex finds any character that is NOT (^) a letter, space, dot, apostrophe, or hyphen
+    const invalidChars = /[^a-zA-Z .'-]/g;
+    event.target.value = event.target.value.replace(invalidChars, '');
+  };
+
+  document.getElementById('first-name').addEventListener('input', validateNameInput);
+  document.getElementById('middle-name').addEventListener('input', validateNameInput);
+  document.getElementById('last-name').addEventListener('input', validateNameInput);
+
+  // --- 2. Validation for Phone Number (Allow only numbers) ---
+  document.getElementById('phone').addEventListener('input', (event) => {
+    // This regex finds any character that is NOT (^) a number (0-9)
+    const invalidChars = /[^0-9]/g;
+    event.target.value = event.target.value.replace(invalidChars, '');
+  });
+
+
+  // -----------------------------------------------------------------
+  // EXISTING: FORM SUBMISSION LOGIC
+  // -----------------------------------------------------------------
+  
   const enrollmentForm = document.querySelector(".Enrollment");
 
-  // Check if the form actually exists on this page
   if (enrollmentForm) {
-    // TEST 3: Check if the form was found.
     console.log("Enrollment form was found. Adding submit listener...");
 
-    // Add an event listener for when the user clicks "Submit"
     enrollmentForm.addEventListener("submit", (event) => {
-      // TEST 4: Check if the submit click is detected.
       console.log("Submit button clicked!");
 
-      // Prevent the form from trying to reload the page (its default action)
+      // Prevent the form from trying to reload the page
       event.preventDefault();
 
-      // --- Get all the text values ---
-      const firstName = document.getElementById("First Name").value;
-      const lastName = document.getElementById("Last Name").value;
-      const bday = document.getElementById("Bday").value;
-      const email = document.getElementById("Email").value;
-      const phone = document.getElementById("Phone").value;
+      const submitButton = enrollmentForm.querySelector('input[type="submit"]');
 
-      // --- Get all the file inputs ---
-      const cardFile = document.getElementById("Card").files;
-      const psaFile = document.getElementById("PSA").files;
-      const f137File = document.getElementById("F137").files;
-      const barangayFile = document.getElementById("Barangay Cer").files;
+      // --- 1. Prepare for Submission ---
+      submitButton.value = 'Submitting... Please Wait';
+      submitButton.disabled = true;
 
-      // --- Validation Check ---
-      if (
-        !firstName ||
-        !lastName ||
-        !bday ||
-        !email ||
-        !phone ||
-        cardFile.length === 0 ||
-        psaFile.length === 0 ||
-        f137File.length === 0 ||
-        barangayFile.length === 0
-      ) {
-        alert("Error: Please fill out all fields and upload all required documents.");
-        return; // Stop the function here
+      // --- 2. Create FormData (Automatically includes ALL fields by their 'name' attribute) ---
+      const formData = new FormData(enrollmentForm);
+
+      if (!formData.get('first_name') || !formData.get('grade_level') || !formData.get('email')) {
+        alert("Error: Please fill out all required fields.");
+        submitButton.value = 'Submit Enrollment Application';
+        submitButton.disabled = false;
+        return;
       }
       
-      // TEST 5: If validation passes, log it.
-      console.log("Form is valid. Creating FormData...");
+      console.log("Form is valid. Sending data to server with fetch()...");
 
-      // 1. Create a FormData object to package our data
-      const formData = new FormData();
-
-      // 2. Add all the text fields
-      formData.append("firstName", firstName);
-      formData.append("lastName", lastName);
-      formData.append("bday", bday);
-      formData.append("email", email);
-      formData.append("phone", phone);
-
-      // 3. Add all the files
-      formData.append("card", cardFile[0]);
-      formData.append("psa", psaFile[0]);
-      formData.append("f137", f137File[0]);
-      formData.append("barangay", barangayFile[0]);
-
-      // TEST 6: Log right before sending to server.
-      console.log("Sending data to server with fetch()...");
-
-      // 4. Send the data to the server using fetch()
+      // --- 3. Send the data to the server ---
       fetch("http://localhost:3000/submit-application", {
         method: "POST",
-        body: formData,
+        body: formData, // FormData handles the Content-Type for file uploads
       })
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            alert(data.message);
-            enrollmentForm.reset();
+            // Success: Application is now visible in Admin Panel
+            alert('✅ Enrollment submitted successfully! Your application is now pending review.');
+            
+            // Redirect the user back to the main page
+            window.location.href = 'index.html'; 
+
           } else {
-            alert("Error: " + data.message);
+            alert("Error: " + (data.message || "Failed to save application on the server."));
+            
+            // Re-enable button on failure
+            submitButton.value = 'Submit Enrollment Application';
+            submitButton.disabled = false;
           }
         })
         .catch(error => {
           console.error("Error submitting form:", error);
           alert("A connection error occurred. Is the server running?");
+          
+          // Re-enable button on network error
+          submitButton.value = 'Submit Enrollment Application';
+          submitButton.disabled = false;
         });
     });
   } else {
-    // TEST 3 FAILED:
     console.error("Error: Could not find element with class '.Enrollment'");
   }
 });
-// The extra '}' that was here is now GONE.

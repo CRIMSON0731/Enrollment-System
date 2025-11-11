@@ -1,102 +1,152 @@
+/* --- Global & Fonts --- */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Poppins", sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
 }
 
 body {
-  background: #f4f7f6;
-  min-height: 100vh;
+    background-color: #f0f3f6; /* Light gray background */
 }
 
-/* ===== Main Layout ===== */
+/* --- NEW: Dashboard Header --- */
+.dashboard-header {
+    background: #3b5671; /* Dark Blue */
+    color: white;
+    padding: 0 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 100;
+}
+
+.dashboard-header .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-header h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.logout-btn {
+    padding: 8px 15px;
+    border: 1px solid white;
+    border-radius: 5px;
+    background: transparent;
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    background: white;
+    color: #3b5671;
+}
+
+/* --- Main Layout --- */
 .dashboard-layout {
-  display: flex;
-}
-
-.sidebar {
-  width: 260px;
-  background: #3b5671; /* Using your form's color */
-  color: #ffffff;
-  min-height: 100vh;
-  padding: 20px;
-  position: fixed; /* Fix the sidebar */
-}
-
-.main-content {
-  flex-grow: 1;
-  padding: 30px;
-  margin-left: 260px; /* Offset content by sidebar width */
+    display: flex;
+    padding-top: 60px; /* Account for fixed header */
 }
 
 /* ===== Sidebar Styles ===== */
+.sidebar {
+    width: 260px;
+    background: #1ab188; /* Green theme */
+    color: white;
+    min-height: calc(100vh - 60px); /* Full height minus header */
+    padding: 20px;
+    flex-shrink: 0;
+}
+
 .sidebar-header {
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .sidebar-header h3 {
-  font-weight: 500;
+    font-weight: 400;
+    font-size: 1.1rem;
 }
 
 .sidebar-links {
-  list-style-type: none;
+    list-style: none;
+    margin-top: 20px;
 }
 
 .sidebar-links li a {
-  display: block;
-  color: #ffffff;
-  text-decoration: none;
-  padding: 15px 10px;
-  border-radius: 8px;
-  margin-bottom: 5px;
-  transition: background 0.3s;
+    display: block;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    transition: background 0.2s;
 }
 
 .sidebar-links li a:hover {
-  background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-links li a.active {
-  background: #1ab188; /* Using your form's title color */
-  font-weight: 600;
+    background: white;
+    color: #1ab188;
+    font-weight: 600;
 }
-
-/* Special style for logout */
-#nav-logout {
-  color: #fbebee;
-  margin-top: 30px;
-}
-#nav-logout:hover {
-  background: #dc3545;
-}
-
 
 /* ===== Main Content Styles ===== */
+.main-content {
+    flex-grow: 1;
+    padding: 30px;
+    background: #f0f3f6;
+}
+
 .content-section {
   background: #ffffff;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   padding: 30px;
-}
-
-/* Hide all sections by default (we show them with JS) */
-.content-section {
-  display: none;
-}
-/* Show the default active one */
-.content-section.active {
-  display: block;
+  margin-bottom: 20px;
 }
 
 .content-section h2 {
-  color: #333;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+    color: #3b5671;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #f0f3f6;
+    padding-bottom: 10px;
 }
+
+/* Announcements List */
+#announcements-list {
+    list-style: none;
+}
+#announcements-list li {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 4px solid #1ab188;
+}
+#announcements-list li strong {
+    display: block;
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 5px;
+}
+#announcements-list li p {
+    color: #555;
+    line-height: 1.5;
+}
+
 
 /* Status Box */
 #status-message {
@@ -104,28 +154,70 @@ body {
   font-weight: 600;
   padding: 15px;
   border-radius: 8px;
+  display: inline-block;
 }
-.status-approved { color: #28a745; background: #e9f7ec; }
-.status-pending { color: #ffc107; background: #fff9e6; }
-.status-rejected { color: #dc3545; background: #fbebee; }
 
-/* Details Box */
-.details-box {
-  background: #f9f9f9;
-  border: 1px solid #eee;
-  padding: 20px;
-  border-radius: 8px;
-}
-.details-box p { margin-bottom: 10px; color: #555; }
+.status-approved { color: #1ab188; background: #e9f7ec; } /* Green */
+.status-pending { color: #ffc107; background: #fff9e6; } /* Yellow */
+.status-rejected { color: #dc3545; background: #fcebeb; } /* Red */
 
-/* Announcement List */
-#announcements-list { list-style-type: none; }
-#announcements-list li {
-  background: #f9f9f9;
-  border: 1px solid #eee;
-  border-radius: 5px;
-  padding: 15px;
-  margin-bottom: 10px;
+.status-label {
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: #666;
 }
-#announcements-list li strong { display: block; margin-bottom: 5px; color: #000; }
-#announcements-list li p { color: #555; }
+.status-note {
+    margin-top: 15px;
+    padding: 10px;
+    border-left: 4px solid #3b5671;
+    background: #f0f3f6;
+    color: #333;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+/* Details Box Styling */
+.details-box p {
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px dotted #eee;
+    font-size: 1.1rem;
+}
+.details-box strong {
+    display: inline-block;
+    width: 150px; /* Align the content neatly */
+    color: #3b5671;
+    font-weight: 600;
+}
+
+/* Password Form Styling */
+#change-password-form .input-group {
+    margin-bottom: 15px;
+}
+#change-password-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+#change-password-form input {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+#change-password-form .submit-btn {
+    background: #1ab188;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+#password-message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    background: #f0f0f0;
+}

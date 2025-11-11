@@ -1,0 +1,33 @@
+/* --- Notification Bar Style --- */
+/* The main bar, hidden by default */
+.notification-bar {
+  position: fixed;
+  top: -100px; /* Start off-screen */
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 15px 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  z-index: 2000;
+  transition: top 0.5s ease-in-out;
+  max-width: 400px;
+  text-align: center;
+}
+
+/* The 'show' class to slide it in */
+.notification-bar.show {
+  top: 20px; /* Slide it down to this position */
+}
+
+/* The 'success' style (green) */
+.notification-bar.success {
+  background-color: #28a745;
+}
+
+/* The 'error' style (red) */
+.notification-bar.error {
+  background-color: #dc3545;
+}

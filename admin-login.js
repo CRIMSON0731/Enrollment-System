@@ -1,13 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('admin-login-form');
-  const errorMessage = document.getElementById('error-message');
+  
+  // --- 1. Our new Notification Function ---
+  // This function controls the new notification bar
+  function showNotification(message, type) {
+    const notification = document.getElementById('notification-bar');
+    
+    // Set the text and style
+    notification.textContent = message;
+    notification.className = `notification-bar ${type}`; // e.g., "notification-bar success"
+    
+    // Slide it in
+    notification.classList.add('show');
+    
+    // Hide it after 3 seconds
+    setTimeout(() => {
+      notification.classList.remove('show');
+    }, 3000);
+  }
 
+  // --- 2. Our Updated Form Listener ---
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault(); // Stop the form from reloading
     
-    // Clear old errors
-    errorMessage.textContent = '';
-
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
@@ -21,17 +36,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
 
       if (data.success) {
-        // --- LOGIN SUCCESSFUL! ---
-        // Redirect to the admin dashboard
-        alert('Admin login successful!');
-        window.location.href = 'admin.html';
+        // --- REPLACED! ---
+        // Old: alert('Admin login successful!');
+        showNotification('Admin login successful!', 'success');
+        
+        // Redirect AFTER the notification is seen
+        setTimeout(() => {
+          window.location.href = 'admin.html';
+        }, 1000); // Wait 1 second before redirecting
+
       } else {
-        // --- LOGIN FAILED ---
-        errorMessage.textContent = data.message;
+        // --- REPLACED! ---
+        // Old: errorMessage.textContent = data.message;
+        showNotification(data.message, 'error');
       }
 
     } catch (err) {
-      errorMessage.textContent = 'Cannot connect to server. Please try again later.';
+      // --- REPLACED! ---
+      // Old: errorMessage.textContent = 'Cannot connect...';
+      showNotification('Cannot connect to server. Please try again later.', 'error');
     }
   });
 });

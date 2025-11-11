@@ -1,4 +1,18 @@
-// --- Function to load announcements ---
+// --- NOTIFICATION FUNCTION (New!) ---
+function showNotification(message, type) {
+  const notification = document.getElementById('notification-bar');
+  if (!notification) return;
+  
+  notification.textContent = message;
+  notification.className = `notification-bar ${type}`;
+  notification.classList.add('show');
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+  }, 3000);
+}
+
+// --- 1. Function to load announcements ---
 async function loadAnnouncements() {
   try {
     const response = await fetch("http://localhost:3000/get-announcements");
@@ -28,55 +42,100 @@ async function loadAnnouncements() {
   }
 }
 
-// --- Function to handle navigation ---
+// --- 2. Function to handle sidebar navigation ---
 function setupNavigation() {
   const links = document.querySelectorAll(".sidebar-links a");
   const contentSections = document.querySelectorAll(".content-section");
   
   links.forEach(link => {
     link.addEventListener("click", (e) => {
-      e.preventDefault(); // Stop the link from jumping
-      
-      // Get the target content ID from the link ID
-      // e.g., "nav-home" -> "content-home"
-      const targetId = "content-" + link.id.split("-")[1];
-      
-      // Handle logout separately
-      if (link.id === "nav-logout") {
-        localStorage.removeItem("applicationData");
-        alert("You have been logged out.");
-        window.location.href = "index.html";
-        return;
-      }
+      e.preventDefault(); 
+      const targetId = "content-" + link.id.split("-")[1]; 
 
-      // --- Handle normal navigation ---
-      // 1. Remove 'active' class from all links
       links.forEach(l => l.classList.remove("active"));
-      
-      // 2. Add 'active' class to clicked link
       link.classList.add("active");
       
-      // 3. Hide all content sections
       contentSections.forEach(section => {
         section.style.display = "none";
       });
       
-      // 4. Show the target content section
       const targetSection = document.getElementById(targetId);
       if (targetSection) {
         targetSection.style.display = "block";
       }
     });
   });
-  
-  // Show the home content by default
   document.getElementById("content-home").style.display = "block";
 }
 
-// --- Main function runs on page load ---
+// --- 3. Function to handle the "Change Password" form ---
+function setupPasswordForm(appData) {
+  const form = document.getElementById('change-password-form');
+  const messageEl = document.getElementById('password-message');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    messageEl.textContent = 'Updating...';
+    messageEl.style.color = '#666'; // Reset color
+    
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    if (newPassword !== confirmPassword) {
+      messageEl.textContent = 'Error: New passwords do not match.';
+      messageEl.style.color = '#dc3545'; // Red
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          applicationId: appData.id,
+          currentPassword: currentPassword,
+          newPassword: newPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Use the new notification for success too!
+        showNotification(data.message, 'success');
+        messageEl.textContent = ''; // Clear the small text since we used the big bar
+        form.reset();
+      } else {
+        messageEl.textContent = `Error: ${data.message}`;
+        messageEl.style.color = '#dc3545'; // Red
+      }
+
+    } catch (err) {
+      messageEl.textContent = 'A connection error occurred.';
+      messageEl.style.color = '#dc3545'; // Red
+    }
+  });
+}
+
+// --- 4. Function to handle logging out (UPDATED) ---
+function setupLogout() {
+  const logoutBtn = document.getElementById('header-logout-btn');
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem("applicationData"); 
+    
+    // --- REPLACED ALERT WITH NOTIFICATION ---
+    showNotification("Logging out...", "success");
+    
+    // Wait 1.5 seconds before redirecting so they see the message
+    setTimeout(() => {
+        window.location.href = "index.html";
+    }, 1500);
+  });
+}
+
+// --- 5. Main function ---
 document.addEventListener("DOMContentLoaded", () => {
-  
-  // 1. Check if user is logged in
   const appDataString = localStorage.getItem("applicationData");
   if (!appDataString) {
     alert("You are not logged in. Redirecting to login page.");
@@ -84,28 +143,24 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
   
-  // 2. Parse the data
   const appData = JSON.parse(appDataString);
 
-  // 3. Load announcements
   loadAnnouncements();
-  
-  // 4. Setup navigation
   setupNavigation();
+  setupPasswordForm(appData);
+  setupLogout();
 
-  // 5. Fill in all the data fields
   document.getElementById("student-name").textContent = appData.first_name;
   
-  // Status Page
   const statusMessageEl = document.getElementById("status-message");
   statusMessageEl.textContent = appData.status;
-  if (appData.status === "Approved") statusMessageEl.className = "status-approved";
-  else if (appData.status === "Rejected") statusMessageEl.className = "status-rejected";
-  else statusMessageEl.className = "status-pending";
+  statusMessageEl.className = `status-${appData.status.replace(/ /g, '')}`;
 
-  // Info Page
   document.getElementById("detail-name").textContent = `${appData.first_name} ${appData.middle_name || ''} ${appData.last_name}`;
+  document.getElementById("detail-grade").textContent = `Grade ${appData.grade_level}`;
+  // Handle potential missing birthdate if it wasn't saved correctly before
+  document.getElementById("detail-bday").textContent = appData.birthdate ? new Date(appData.birthdate).toLocaleDateString() : 'N/A';
   document.getElementById("detail-email").textContent = appData.email;
   document.getElementById("detail-phone").textContent = appData.phone;
-  document.getElementById("detail-bday").textContent = appData.birthdate;
+  document.getElementById("detail-username").textContent = appData.username;
 });

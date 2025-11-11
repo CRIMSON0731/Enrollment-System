@@ -1,0 +1,227 @@
+/* === GLOBAL RESET & FONT === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* === COLORS === */
+:root {
+    --primary-green: #2b7a0b; 
+    --secondary-green: #4caf50;
+    --background-light: #f4f7f6;
+    --card-background: #ffffff;
+    --border-color: #e0e0e0;
+    --text-color: #333;
+    --shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* === BODY & LAYOUT === */
+body {
+    display: flex;
+    flex-direction: column; /* Stack header, main, and footer */
+    align-items: center;
+    min-height: 100vh;
+    background: var(--background-light);
+}
+
+.main-content {
+    flex-grow: 1; /* Allows the main content to fill the space between header/footer */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+.form-container {
+    width: 100%;
+    max-width: 750px; 
+    background: var(--card-background);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+/* --- HEADER STYLING (Copied from index.css) --- */
+.school-header {
+    background: var(--card-background);
+    border-bottom: 4px solid var(--primary-green);
+    width: 100%;
+    padding: 10px 0;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+}
+
+.school-text {
+    text-align: left;
+    max-width: 500px;
+}
+
+.school-text h1 {
+    color: var(--primary-green);
+    font-size: 1.3rem;
+    margin-bottom: 5px;
+}
+
+.school-text p {
+    color: #375a2e;
+    font-size: 0.9rem;
+}
+
+/* --- BACK BUTTON STYLING --- */
+.back-home-btn {
+    display: inline-block;
+    margin-bottom: 25px;
+    padding: 8px 15px;
+    background: #e0e0e0;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.back-home-btn:hover {
+    background: #ccc;
+}
+
+/* === FORM HEADER === */
+.title {
+    font-size: 2.2rem;
+    color: var(--primary-green);
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.95rem;
+}
+
+/* === FORM SECTIONS === */
+.form-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+}
+
+.section-title {
+    font-size: 1.4rem;
+    color: var(--secondary-green);
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--primary-green);
+    display: inline-block;
+    padding-bottom: 5px;
+}
+
+/* === INPUT GROUPS === */
+.input-group {
+    margin-bottom: 18px;
+}
+
+.input-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.input-group input[type="text"],
+.input-group input[type="email"],
+.input-group input[type="tel"],
+.input-group input[type="date"],
+.input-group select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(43, 122, 11, 0.2); 
+    outline: none;
+}
+
+/* === FILE INPUTS === */
+.document-section {
+    background-color: #f9f9f9;
+    padding: 20px;
+}
+
+.file-note {
+    color: #888;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.input-group input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    border: 1px dashed var(--secondary-green);
+    border-radius: 6px;
+    background-color: #ffffff;
+    cursor: pointer;
+}
+
+/* === SUBMIT BUTTON === */
+input[type="submit"] {
+    width: 100%;
+    padding: 15px;
+    margin-top: 30px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary-green);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+input[type="submit"]:hover {
+    background: #3f8a43; 
+    transform: translateY(-1px);
+}
+
+input[type="submit"]:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* --- FOOTER STYLING --- */
+.school-footer {
+    width: 100%;
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 15px 0;
+    font-size: 0.85rem;
+    margin-top: 20px;
+}

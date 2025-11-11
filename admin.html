@@ -4,33 +4,99 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="notification.css">
   <link rel="stylesheet" href="admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <div id="notification-bar" class="notification-bar"></div>
 
-  <header>
-    <h1>Enrollment Admin Dashboard</h1>
+  ```
+  <header class="admin-header">
+    <div class="header-content">
+      <h1>Enrollment Review Panel</h1>
+      <button id="logout-btn" class="logout-btn">Logout</button>
+    </div>
   </header>
   
   <main>
-    <h2>Pending Applications</h2>
-    <table id="applications-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Status</th>
-          <th>Submitted</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="applications-tbody">
-        <tr>
-          <td colspan="5">Loading applications...</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="quick-stats">
+        <div class="stat-card total">
+            <p>Total Applications</p>
+            <h3 id="stat-total">0</h3>
+        </div>
+        <div class="stat-card pending">
+            <p>Pending Review</p>
+            <h3 id="stat-pending">0</h3>
+        </div>
+        <div class="stat-card approved">
+            <p>Approved</p>
+            <h3 id="stat-approved">0</h3>
+        </div>
+        <div class="stat-card rejected">
+            <p>Rejected / Waitlisted</p>
+            <h3 id="stat-rejected">0</h3>
+        </div>
+    </div>
+    
+    <h2>Application Details</h2>
+
+    <div class="filter-controls">
+        <input type="text" id="name-search" placeholder="Search by name or email..." class="search-input">
+        <select id="status-filter" class="filter-select">
+            <option value="All">Filter by Status: All</option>
+            <option value="Pending Review">Pending Review</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+        </select>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-button active" data-grade="7">Grade 7</button>
+      <button class="tab-button" data-grade="8">Grade 8</button>
+      <button class="tab-button" data-grade="9">Grade 9</button>
+      <button class="tab-button" data-grade="10">Grade 10</button>
+    </div>
+
+    <div class="table-container">
+      <table id="applications-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Grade Level</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="applications-tbody">
+          <tr>
+            <td colspan="6">Loading applications...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </main>
+
+  <div id="details-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Application Details</h2>
+        
+        <div id="application-details" class="details-body">
+            </div>
+        
+        <div class="modal-actions">
+            <div class="status-buttons">
+                <button id="modal-approve-btn" class="action-btn approve-btn">Approve</button>
+                <button id="modal-reject-btn" class="action-btn reject-btn">Reject</button>
+            </div>
+            
+            <button id="modal-delete-btn" class="action-btn-danger">Delete Applicant</button>
+        </div>
+    </div>
+  </div>
 
   <script src="admin.js"></script>
 </body>

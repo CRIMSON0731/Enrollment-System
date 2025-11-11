@@ -1,70 +1,157 @@
+/* === GLOBAL RESET & FONT === */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Poppins", sans-serif;
+  font-family: 'Inter', sans-serif; 
 }
 
+/* Theme Color Variable */
+:root {
+  --theme-green: #074403; /* Dark Green */
+  --light-green: #1a5e17;
+  --focus-blue: #007bff;
+}
+
+/* === BODY & LAYOUT (Center Alignment) === */
 body {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   min-height: 100vh;
-  background: #f4f7f6;
-}
-
-.login-container {
-  width: 100%;
-  max-width: 400px;
-  background: #ffffff;
-  padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-h2 {
-  text-align: center;
   color: #333;
-  margin-bottom: 25px;
+  position: relative; 
+  background-color: #f0f2f5; 
 }
+
+/* --- BACKGROUND IMAGE AND BLUR --- */
+body::before {
+  content: "";
+  position: absolute;
+  top: -10px;   
+  left: -10px;  
+  width: calc(100% + 20px); 
+  height: calc(100% + 20px); 
+  
+  /* Your background image (Re-added) */
+  background: url('school-bg.jpg') no-repeat center center;
+  background-size: cover;
+  
+  /* The blur effect */
+  filter: blur(4px); 
+  
+  z-index: -1; 
+}
+
+/* --- Centering the Login Block --- */
+.main-content-wrapper {
+  flex-grow: 1; 
+  display: flex;
+  align-items: center; 
+  justify-content: center; 
+  padding: 20px; 
+  z-index: 1; 
+}
+
+/* === HEADER & FOOTER (Theme Color, Fixed Height, Left-Aligned) === */
+.admin-header, .admin-footer {
+  width: 100%;
+  background: var(--theme-green);
+  color: white;
+  min-height: 60px; /* Unified Height with Dashboard */
+  display: flex;
+  align-items: center;
+}
+
+.admin-header .header-content {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 30px;
+    text-align: left; 
+}
+
+.admin-header h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.admin-footer {
+    padding: 15px 20px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    text-align: center;
+}
+.admin-footer p {
+    font-size: 0.85rem;
+}
+
+/* === ADMIN LOGIN CONTAINER === */
+.admin-login-container {
+  width: 100%;
+  max-width: 380px;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15); 
+  text-align: center;
+}
+
+.login-header h3 {
+  font-size: 1.5rem;
+  color: var(--theme-green); 
+  margin-bottom: 25px;
+  font-weight: 700;
+}
+.login-header .lock-icon {
+    font-size: 1.2rem;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* --- (rest of the form and button styles for admin-login.css) --- */
 
 .input-group {
+  text-align: left;
   margin-bottom: 20px;
 }
 
 .input-group label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #444;
+  font-size: 0.9rem;
 }
 
 .input-group input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ccc;
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 1rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.input-group input:focus {
+  border-color: var(--focus-blue);
+  box-shadow: 0 0 0 3px rgba(0,123,255,0.2);
+  outline: none;
 }
 
 .login-btn {
   width: 100%;
   padding: 12px;
   border: none;
-  border-radius: 5px;
-  background: #3b5671;
+  border-radius: 8px;
+  background: var(--light-green); 
   color: white;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background-color 0.3s, transform 0.1s;
+  margin-top: 10px;
 }
 
 .login-btn:hover {
-  background: #2c4053;
-}
-
-#error-message {
-  text-align: center;
-  color: #dc3545;
-  margin-top: 15px;
+  background: var(--theme-green); 
+  transform: translateY(-1px);
 }

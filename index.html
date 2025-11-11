@@ -1,31 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Enrollment Home</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doña Teodora Alonzo Highschool</title>
+  <link rel="stylesheet" href="index.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <div class="left-side">
-    <a href="Enrollment page.html" class="enroll-link">
-      <span>👆</span>
-      Enroll now!
-    </a>
-  </div>
+  <header class="school-header">
+    <div class="header-content">
+      <img src="school-logo.png" alt="School Logo" class="logo">
+      <div class="school-text">
+        <h1>Doña Teodora Alonzo Highschool</h1>
+        <p>Mataas na Paaralang Doña Teodora Alonzo</p>
+      </div>
+    </div>
+  </header>
 
-  <div class="right-side">
-    <div class="login-box">
-      <h2>Log In</h2>
-      <form>
-        <input type="text" placeholder="Username or email" required />
-        <input type="password" placeholder="Password" required />
-        <button class="login-btn" type="submit">Log In</button>
+  <section class="hero">
+    <div class="overlay">
+      <h2>Welcome!</h2>
+      <p class="hero-subtext">
+        Doña Teodora Alonzo High School<br>
+        <span class="inspire-text">Inspiring young minds to dream big, work hard, <br>
+          and make a difference.</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- NEW: Main container for both login forms -->
+  <main class="login-section-container">
+
+    <!-- Section 1: Enroll & Student Login -->
+    <div class="login-container student-container">
+      <button class="enroll-btn" onclick="window.location.href='Enrollment page.html'">
+        Enroll Now!
+        <img src="cursor--v2.png" alt="cursor icon" class="cursor-icon">
+      </button>
+      
+      <div class="divider">OR</div>
+
+      <!-- NEW: Student Login Form -->
+      <form id="student-login-form">
+        <h2>Student Status Check</h2>
+        <p id="student-error-message" class="error-message"></p>
+        <div class="input-group">
+          <label for="student-username">Username (e.g., jdelacruz@dtahs.edu.ph)</label>
+          <input type="text" id="student-username" required>
+        </div>
+        <div class="input-group">
+          <label for="student-password">Password</label>
+          <input type="password" id="student-password" required>
+        </div>
+        <button type="submit" class="login-btn student-login-btn">Log In</button>
       </form>
     </div>
-  </div>
 
-  <script src="login.js"></script>
+
+  </main>
+  
+  <footer class="school-footer">
+    <p>&copy; 2025 Doña Teodora Alonzo Highschool. All rights reserved.</p>
+  </footer>
+
+  <!-- Link BOTH JavaScript files -->
+  <script src="index.js"></script> <!-- Handles Admin Login -->
+  <script src="login.js"></script> <!-- Handles Student Login -->
 </body>
 </html>

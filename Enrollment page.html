@@ -3,48 +3,125 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Split Screen Login</title>
-  <link rel="stylesheet" href="style copy.css" />
+  <title>Student Enrollment Form</title>
+  <link rel="stylesheet" href="enrollpage.css" /> 
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-  <form class="Enrollment" method="POST" enctype="multipart/form-data">
 
-    <p class="title">Enrollment Form</p>
+  <header class="school-header">
+    <div class="header-content">
+      <img src="school-logo.png" alt="School Logo" class="logo">
+      <div class="school-text">
+        <h1>Doña Teodora Alonzo Highschool</h1>
+        <p>Mataas na Paaralang Doña Teodora Alonzo</p>
+      </div>
+    </div>
+  </header>
+  
+  <main class="main-content">
+    <div class="form-container">
+      
+      <a href="index.html" class="back-home-btn">← Back to Home Page</a>
 
-   <label for="First Name">First Name:</label>
-   <input type="text" id="First Name" required>
+      <form class="Enrollment" id="enrollment-form" method="POST" enctype="multipart/form-data">
 
-   <label for="Middle Name">Middle Name:</label>
-   <input type="text" id="Middle Name" required>
+        <h1 class="title">Student Enrollment Application</h1>
+        <p class="subtitle">Please fill out all required fields and upload the necessary documents to apply for enrollment. Your application status (Pending, Approved, Rejected) will be seen by the Admin.</p>
 
-   <label for="Last Name">Last Name:</label>
-   <input type="text" id="Last Name"><br>
+        <section class="form-section">
+          <h2 class="section-title">Personal Information</h2>
+          
+          <div class="input-group">
+            <label for="first-name">First Name:</label>
+            <input type="text" id="first-name" name="first_name" 
+                   pattern="[a-zA-Z .'-]+" 
+                   title="Only letters, dots, hyphens, and spaces are allowed." required>
+          </div>
 
-   <label for="Bday">Birthdate:</label>
-   <input type="date" id="Bday" required><br>
+          <div class="input-group">
+            <label for="middle-name">Middle Name (Optional):</label>
+            <input type="text" id="middle-name" name="middle_name"
+                   pattern="[a-zA-Z .'-]+"
+                   title="Only letters, dots, hyphens, and spaces are allowed.">
+          </div>
 
-   <label for="Email">Email:</label>
-   <input type="email" id="Email" required><br>
+          <div class="input-group">
+            <label for="last-name">Last Name:</label>
+            <input type="text" id="last-name" name="last_name"
+                   pattern="[a-zA-Z .'-]+"
+                   title="Only letters, dots, hyphens, and spaces are allowed." required>
+          </div>
 
-   <label for="Phone">Phone Num#:</label>
-   <input type="tel" id="Phone" required><br>
+          <div class="input-group">
+            <label for="bday">Birthdate:</label>
+            <input type="date" id="bday" name="birthdate" required>
+          </div>
+        </section>
 
-   <label for="Card">Card:</label>
-   <input type="file" id="Card" accept="image/png"><br>
-   
-   <label for="PSA">PSA(birth certificate) Original:</label>
-   <input type="file" id="PSA" accept="image/png"><br>
+        <section class="form-section">
+          <h2 class="section-title">Target Grade & Contact</h2>
+          
+          <div class="input-group">
+            <label for="grade-level">Target Grade Level:</label>
+            <select id="grade-level" name="grade_level" required>
+              <option value="">-- Select Grade --</option>
+              <option value="7">Grade 7</option>
+              <option value="8">Grade 8</option>
+              <option value="9">Grade 9</option>
+              <option value="10">Grade 10</option>
+            </select>
+          </div>
+          
+          <div class="input-group">
+            <label for="email">Email (Used for Admin Contact):</label>
+            <input type="email" id="email" name="email" required>
+          </div>
 
-   <label for="F137">FORM 137/SF10:</label>
-   <input type="file" id="F137" accept="image/png"><br>
+          <div class="input-group">
+            <label for="phone">Phone Number:</label>
+            <input type="tel" id="phone" name="phone_num" 
+                   pattern="09[0-9]{9}" 
+                   maxlength="11"
+                   title="Must be an 11-digit PH number starting with 09 (e.g., 09171234567)." required>
+          </div>
+        </section>
 
-   <label for="Barangay Cer">Barangay Certificate Original:</label>
-   <input type="file" id="Barangay Cer" accept="image/png"><br>
+        <section class="form-section document-section">
+          <h2 class="section-title">Required Documents</h2>
+          <p class="file-note">Files must be PNG or PDF format. These documents will be accessible to the Admin.</p>
+          
+          <div class="input-group file-group">
+            <label for="card">School Card (Previous Grade):</label>
+            <input type="file" id="card" name="card_file" accept=".png,.pdf" required>
+          </div>
+          
+          <div class="input-group file-group">
+            <label for="psa">PSA (Birth Certificate) Original:</label>
+            <input type="file" id="psa" name="psa_file" accept=".png,.pdf" required>
+          </div>
 
+          <div class="input-group file-group">
+            <label for="f137">FORM 137/SF10 (Academic Records):</label>
+            <input type="file" id="f137" name="f137_file" accept=".png,.pdf" required>
+          </div>
 
-   <input type="submit">
+          <div class="input-group file-group">
+            <label for="brgy-cert">Barangay Certificate Original:</label>
+            <input type="file" id="brgy-cert" name="brgy_cert_file" accept=".png,.pdf" required>
+          </div>
+        </section>
 
-  </form>
+        <input type="submit" value="Submit Enrollment Application">
+
+      </form>
+    </div>
+  </main>
+
+  <footer class="school-footer">
+    <p>&copy; 2025 Doña Teodora Alonzo Highschool. All rights reserved.</p>
+  </footer>
+
   <script src="script.js"></script>
 </body>
 </html>
