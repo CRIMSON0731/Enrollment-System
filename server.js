@@ -29,9 +29,20 @@ function showNotification(message, type) {
   }, 3000);
 }
 
+<<<<<<< Updated upstream
 // =========================================================================
 //                             SECURITY ENFORCEMENT
 // =========================================================================
+=======
+// --- MySQL Connection ---
+const db = mysql.createConnection({
+    host: process.env.DB_HOST,
+    port: process.env.PORT
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE
+});
+>>>>>>> Stashed changes
 
 function getAdminToken() {
     // Retrieves the simple token (or flag) set during login.
