@@ -5,120 +5,135 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Student Enrollment Form</title>
   <link rel="icon" href="school-logo.png" type="image/png">
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  
   <link rel="stylesheet" href="notification.css"> 
-  <link rel="stylesheet" href="enrollpage.css" /> 
+  <link rel="stylesheet" href="index.css" /> 
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
 </head>
-<body>
+
+<body class="d-flex flex-column min-vh-100">
   
   <div id="notification-bar" class="notification-bar"></div> 
 
-  <header class="school-header">
-    <div class="header-content">
-      <img src="school-logo.png" alt="School Logo" class="logo">
-      <div class="school-text">
-        <h1>Doña Teodora Alonzo Highschool</h1>
-        <p>Mataas na Paaralang Doña Teodora Alonzo</p>
-      </div>
+  <header class="navbar navbar-expand-lg bg-success-dark shadow-sm" data-bs-theme="dark">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <img src="school-logo.png" alt="School Logo" width="60" height="60" class="me-3">
+        <div>
+          <h1 class="h5 mb-0 fw-bold text-white">Doña Teodora Alonzo Highschool</h1>
+          <p class="mb-0 small text-white-50">Mataas na Paaralang Doña Teodora Alonzo</p>
+        </div>
+      </a>
     </div>
   </header>
   
-  <main class="main-content">
-    <div class="form-container">
-      
-      <a href="index.html" class="back-home-btn">← Back to Home Page</a>
+  <main class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 col-md-10">
+        
+        <div class="card shadow-lg border-0">
+          <div class="card-body p-4 p-md-5">
 
-      <form class="Enrollment" id="enrollment-form" method="POST" enctype="multipart/form-data">
-        <h1 class="title">Student Enrollment Application</h1>
-        <p class="subtitle">Please fill out all required fields and upload the necessary documents to apply for enrollment. Your application status (Pending, Approved, Rejected) will be seen by the Admin.</p>
+            <a href="index.html" class="btn btn-outline-secondary mb-4">← Back to Home Page</a>
 
-        <section class="form-section">
-          <h2 class="section-title">Personal Information</h2>
-          
-          <div class="input-group">
-            <label for="first-name">First Name:</label>
-            <input type="text" id="first-name" name="first_name" required>
+            <form class="Enrollment" id="enrollment-form" method="POST" enctype="multipart/form-data">
+              <h1 class="h2 text-center text-success-dark fw-bold">Student Enrollment Application</h1>
+              <p class="text-center text-muted mb-4 border-bottom pb-3">Please fill out all required fields and upload the necessary documents to apply for enrollment.</p>
+
+              <fieldset class="mb-4">
+                <h2 class="h4 text-success-dark border-bottom pb-2 mb-3">Personal Information</h2>
+                
+                <div class="row g-3">
+                  <div class="col-md-5">
+                    <label for="first-name" class="form-label fw-medium">First Name:</label>
+                    <input type="text" id="first-name" name="first_name" class="form-control" required>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="middle-name" class="form-label fw-medium">Middle Name (Optional):</label>
+                    <input type="text" id="middle-name" name="middle_name" class="form-control">
+                  </div>
+                  <div class="col-md-3">
+                    <label for="last-name" class="form-label fw-medium">Last Name:</label>
+                    <input type="text" id="last-name" name="last_name" class="form-control" required>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <label for="bday" class="form-label fw-medium">Birthdate:</label>
+                  <input type="date" id="bday" name="birthdate" class="form-control" required>
+                </div>
+              </fieldset>
+
+              <fieldset class="mb-4">
+                <h2 class="h4 text-success-dark border-bottom pb-2 mb-3">Target Grade & Contact</h2>
+                
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label for="grade-level" class="form-label fw-medium">Target Grade Level:</label>
+                    <select id="grade-level" name="grade_level" class="form-select" required>
+                      <option value="">-- Select Grade --</option>
+                      <option value="7">Grade 7</option>
+                      <option value="8">Grade 8</option>
+                      <option value="9">Grade 9</option>
+                      <option value="10">Grade 10</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="phone" class="form-label fw-medium">Phone Number:</label>
+                    <input type="tel" id="phone" name="phone_num" class="form-control"
+                           pattern="09[0-9]{9}" maxlength="11"
+                           title="Must be an 11-digit PH number starting with 09 (e.g., 09171234567)." required>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <label for="email" class="form-label fw-medium">Email (Used for Admin Contact):</label>
+                  <input type="email" id="email" name="email" class="form-control" required>
+                </div>
+              </fieldset>
+
+              <fieldset class="mb-4 p-3 bg-light rounded-3 border">
+                <h2 class="h4 text-success-dark border-bottom pb-2 mb-3">Required Documents</h2>
+                <p class="small text-muted">Files must be PNG or PDF format. These documents will be accessible to the Admin.</p>
+                
+                <div class="mb-3 file-group">
+                  <label for="card" class="form-label fw-medium">School Card (Previous Grade):</label>
+                  <input type="file" id="card" name="card_file" class="form-control" accept=".png,.pdf" required>
+                </div>
+                
+                <div class="mb-3 file-group">
+                  <label for="psa" class="form-label fw-medium">PSA (Birth Certificate) Original:</label>
+                  <input type="file" id="psa" name="psa_file" class="form-control" accept=".png,.pdf" required>
+                </div>
+
+                <div class="mb-3 file-group">
+                  <label for="f137" class="form-label fw-medium">FORM 137/SF10 (Academic Records):</label>
+                  <input type="file" id="f137" name="f137_file" class="form-control" accept=".png,.pdf" required>
+                </div>
+
+                <div class="mb-3 file-group">
+                  <label for="brgy-cert" class="form-label fw-medium">Barangay Certificate Original:</label>
+                  <input type="file" id="brgy-cert" name="brgy_cert_file" class="form-control" accept=".png,.pdf" required>
+                </div>
+              </fieldset>
+              
+              <button type="submit" class="btn btn-success btn-lg w-100" id="submit-enrollment-btn">
+                Submit Enrollment Application
+              </button>
+            </form>
           </div>
-
-          <div class="input-group">
-            <label for="middle-name">Middle Name (Optional):</label>
-            <input type="text" id="middle-name" name="middle_name">
-          </div>
-
-          <div class="input-group">
-            <label for="last-name">Last Name:</label>
-            <input type="text" id="last-name" name="last_name" required>
-          </div>
-
-          <div class="input-group">
-            <label for="bday">Birthdate:</label>
-            <input type="date" id="bday" name="birthdate" required>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <h2 class="section-title">Target Grade & Contact</h2>
-          
-          <div class="input-group">
-            <label for="grade-level">Target Grade Level:</label>
-            <select id="grade-level" name="grade_level" required>
-              <option value="">-- Select Grade --</option>
-              <option value="7">Grade 7</option>
-              <option value="8">Grade 8</option>
-              <option value="9">Grade 9</option>
-              <option value="10">Grade 10</option>
-            </select>
-          </div>
-          
-          <div class="input-group">
-            <label for="email">Email (Used for Admin Contact):</label>
-            <input type="email" id="email" name="email" required>
-          </div>
-
-          <div class="input-group">
-            <label for="phone">Phone Number:</label>
-            <input type="tel" id="phone" name="phone_num" 
-                   pattern="09[0-9]{9}" 
-                   maxlength="11"
-                   title="Must be an 11-digit PH number starting with 09 (e.g., 09171234567)." required>
-          </div>
-        </section>
-
-        <section class="form-section document-section">
-          <h2 class="section-title">Required Documents</h2>
-          <p class="file-note">Files must be PNG or PDF format. These documents will be accessible to the Admin.</p>
-          
-          <div class="input-group file-group">
-            <label for="card">School Card (Previous Grade):</label>
-            <input type="file" id="card" name="card_file" accept=".png,.pdf" required>
-          </div>
-          
-          <div class="input-group file-group">
-            <label for="psa">PSA (Birth Certificate) Original:</label>
-            <input type="file" id="psa" name="psa_file" accept=".png,.pdf" required>
-          </div>
-
-          <div class="input-group file-group">
-            <label for="f137">FORM 137/SF10 (Academic Records):</label>
-            <input type="file" id="f137" name="f137_file" accept=".png,.pdf" required>
-          </div>
-
-          <div class="input-group file-group">
-            <label for="brgy-cert">Barangay Certificate Original:</label>
-            <input type="file" id="brgy-cert" name="brgy_cert_file" accept=".png,.pdf" required>
-          </div>
-        </section>
-
-        <input type="submit" value="Submit Enrollment Application"> 
-
-      </form>
+        </div>
+      </div>
     </div>
   </main>
 
-  <footer class="school-footer">
-    <p>&copy; 2025 Doña Teodora Alonzo Highschool. All rights reserved.</p>
+  <footer class="bg-dark text-white text-center p-4 mt-auto">
+    <p class="mb-0 small">&copy; 2025 Doña Teodora Alonzo Highschool. All rights reserved.</p>
   </footer>
 
-  <script src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script src="enrollment.js"></script>
 </body>
 </html>

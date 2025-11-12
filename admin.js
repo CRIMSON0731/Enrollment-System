@@ -5,13 +5,15 @@ let currentSortKey = 'created_at'; // Default sort by submission date
 let currentSortDir = 'desc'; // Default direction is descending
 
 // --- MODAL ELEMENTS ---
-const detailsModal = document.getElementById('details-modal');
-const closeModalBtn = document.querySelector('.close-btn');
+// Get the Bootstrap Modal Instance
+const detailsModalEl = document.getElementById('details-modal');
+const detailsModal = new bootstrap.Modal(detailsModalEl); 
+const modalSendCredentialsBtn = document.getElementById('modal-send-credentials-btn'); // NEW BUTTON
 const modalApproveBtn = document.getElementById('modal-approve-btn');
 const modalRejectBtn = document.getElementById('modal-reject-btn');
 const modalDeleteBtn = document.getElementById('modal-delete-btn'); 
 
-// --- NOTIFICATION FUNCTION ---
+// --- NOTIFICATION FUNCTION (EXISTING) ---
 function showNotification(message, type) {
   const notification = document.getElementById('notification-bar');
   if (!notification) return;
@@ -30,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addLogoutListener();
     addTabListeners();
     addFilterListeners(); 
-    addSortListeners(); // Added Sort Listeners
+    addSortListeners(); 
     addModalListeners(); 
     simulateDataLoad(); 
     setupAnnouncementManagement();
@@ -51,7 +53,7 @@ function animateQuickStats() {
     });
 }
 
-// --- Announcement Management Setup ---
+// --- Announcement Management Setup (EXISTING) ---
 function setupAnnouncementManagement() {
     loadCurrentAnnouncements(); 
     
@@ -61,7 +63,7 @@ function setupAnnouncementManagement() {
     }
 }
 
-// --- Load Current Announcements (Fetches ID for deletion) ---
+// --- Load Current Announcements (EXISTING) ---
 async function loadCurrentAnnouncements() {
     const listEl = document.getElementById('current-announcements-list');
     listEl.innerHTML = '<li>Fetching announcements...</li>';
@@ -95,7 +97,7 @@ async function loadCurrentAnnouncements() {
     }
 }
 
-// --- Attaches click listeners to Delete buttons ---
+// --- Attaches click listeners to Delete buttons (EXISTING) ---
 function addAnnouncementDeleteListeners() {
     document.querySelectorAll('.delete-ann-btn').forEach(button => {
         button.addEventListener('click', (e) => {
@@ -107,7 +109,7 @@ function addAnnouncementDeleteListeners() {
     });
 }
 
-// --- Sends the delete request to the server (Endpoint 11) ---
+// --- Sends the delete request to the server (EXISTING) ---
 async function deleteAnnouncement(announcementId) {
     try {
         const response = await fetch('http://localhost:3000/delete-announcement', {
@@ -120,7 +122,7 @@ async function deleteAnnouncement(announcementId) {
         
         if (data.success) {
             showNotification(data.message, 'success');
-            loadCurrentAnnouncements(); // Reload the list
+            loadCurrentAnnouncements(); 
         } else {
             showNotification(`Deletion Error: ${data.message}`, 'error');
         }
@@ -129,7 +131,7 @@ async function deleteAnnouncement(announcementId) {
     }
 }
 
-// --- Handle Announcement Submission (to server.js endpoint 10) ---
+// --- Handle Announcement Submission (EXISTING) ---
 async function handleAnnouncementSubmission(e) {
     e.preventDefault();
     const form = e.target;
@@ -165,14 +167,15 @@ async function handleAnnouncementSubmission(e) {
 }
 
 
-// --- Modal Listeners ---
+// --- Modal Listeners (UPDATED) ---
 function addModalListeners() {
-    closeModalBtn.onclick = function() { detailsModal.style.display = 'none'; }
-    window.onclick = function(event) {
-        if (event.target == detailsModal) {
-            detailsModal.style.display = 'none';
-        }
-    }
+    // Note: Bootstrap handles modal close (click X or outside) automatically via data attributes.
+    
+    // NEW: Send Credentials Button Listener
+    modalSendCredentialsBtn.addEventListener('click', () => {
+        const appId = modalSendCredentialsBtn.getAttribute('data-id');
+        sendCredentialsOnly(appId);
+    });
     
     modalApproveBtn.addEventListener('click', () => {
         const appId = modalApproveBtn.getAttribute('data-id');
@@ -182,7 +185,7 @@ function addModalListeners() {
     modalRejectBtn.addEventListener('click', () => {
         const appId = modalRejectBtn.getAttribute('data-id');
         updateStatus(appId, 'Rejected');
-        detailsModal.style.display = 'none';
+        detailsModal.hide(); // Use Bootstrap method
     });
 
     modalDeleteBtn.addEventListener('click', () => {
@@ -196,7 +199,46 @@ function addModalListeners() {
     });
 }
 
-// --- Delete Applicant Function ---
+// --- NEW: Send Credentials Only Function (Endpoint 15) ---
+async function sendCredentialsOnly(applicationId) {
+    if (!confirm('Are you sure you want to generate and send credentials? The application status will NOT be changed.')) {
+        return;
+    }
+
+    modalSendCredentialsBtn.disabled = true;
+    modalSendCredentialsBtn.textContent = 'Sending...';
+
+    try {
+        const response = await fetch('http://localhost:3000/generate-credentials', { // Endpoint 15
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ applicationId })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification('✅ Provisional credentials sent successfully! Status remains unchanged.', 'info');
+            // Update the local application object with new credentials
+            const appIndex = allApplications.findIndex(app => app.id == applicationId);
+            if (appIndex !== -1 && data.student_username) {
+                allApplications[appIndex].student_username = data.student_username;
+                allApplications[appIndex].student_password = data.student_password;
+            }
+            showApplicationDetails(applicationId); // Re-show modal to display credentials
+        } else {
+            showNotification(`Error sending credentials: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Network Error sending credentials:', error);
+        showNotification('Network error. Failed to send credentials.', 'error');
+    } finally {
+        modalSendCredentialsBtn.disabled = false;
+        modalSendCredentialsBtn.textContent = 'Send Credentials (Provisional)';
+    }
+}
+
+
+// --- Delete Applicant Function (EXISTING) ---
 async function deleteApplicant(applicationId) {
     try {
         const response = await fetch('http://localhost:3000/delete-application', {
@@ -209,7 +251,7 @@ async function deleteApplicant(applicationId) {
         
         if (data.success) {
             showNotification(data.message, 'success');
-            detailsModal.style.display = 'none';
+            detailsModal.hide(); // Use Bootstrap method
             simulateDataLoad(); 
         } else {
             showNotification(`Deletion Error: ${data.message}`, 'error');
@@ -220,7 +262,7 @@ async function deleteApplicant(applicationId) {
     }
 }
 
-// --- Logout Functionality ---
+// --- Logout Functionality (EXISTING) ---
 function addLogoutListener() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
@@ -234,7 +276,7 @@ function addLogoutListener() {
     }
 }
 
-// --- Tab Functionality ---
+// --- Tab Functionality (EXISTING) ---
 function addTabListeners() {
     // 1. Logic for main content tabs (Application Review / Manage Announcements)
     document.querySelectorAll('.main-tab-button').forEach(button => {
@@ -261,51 +303,45 @@ function addTabListeners() {
     });
 }
 
-// --- Search and Filter Listeners ---
+// --- Search and Filter Listeners (EXISTING) ---
 function addFilterListeners() {
     document.getElementById('name-search').addEventListener('input', applyFiltersAndDisplay);
     document.getElementById('status-filter').addEventListener('change', applyFiltersAndDisplay);
 }
 
-// --- NEW: Table Sorting Listener and Handler ---
+// --- Table Sorting Listener and Handler (EXISTING) ---
 function addSortListeners() {
     document.querySelectorAll('#applications-table .sortable').forEach(header => {
         header.addEventListener('click', () => {
             const newKey = header.getAttribute('data-sort');
 
-            // Toggle direction if the same column is clicked
             if (newKey === currentSortKey) {
                 currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
             } else {
-                // Default to ascending for a new column
                 currentSortKey = newKey;
                 currentSortDir = 'asc';
             }
 
-            // Remove old icons and add class to current header
             document.querySelectorAll('#applications-table th').forEach(th => {
                 th.classList.remove('sorted-asc', 'sorted-desc');
             });
             header.classList.add(`sorted-${currentSortDir}`);
 
-            // Apply sorting and re-display the table
             applyFiltersAndDisplay(); 
         });
     });
 }
 
-// --- Custom Comparison Logic ---
+// --- Custom Comparison Logic (EXISTING) ---
 function compare(a, b, key, dir) {
     let valA = a[key];
     let valB = b[key];
 
-    // Handle string comparisons (case-insensitive)
     if (typeof valA === 'string') {
         valA = valA.toLowerCase();
         valB = valB.toLowerCase();
     }
     
-    // Convert grade level string to number for correct numerical sort
     if (key === 'grade_level') {
         valA = parseInt(valA, 10);
         valB = parseInt(valB, 10);
@@ -318,12 +354,11 @@ function compare(a, b, key, dir) {
         comparison = -1;
     }
 
-    // Apply direction
     return dir === 'desc' ? comparison * -1 : comparison;
 }
 
 
-// --- Calculate and Update Quick Stats ---
+// --- Calculate and Update Quick Stats (EXISTING) ---
 function updateQuickStats() {
     if (allApplications.length === 0) {
         document.getElementById('stat-total').textContent = 0;
@@ -344,14 +379,13 @@ function updateQuickStats() {
     document.getElementById('stat-rejected').textContent = rejected;
 }
 
-// --- Filtering Logic (Refactored to include Sorting) ---
+// --- Filtering Logic (EXISTING) ---
 function applyFiltersAndDisplay() {
     const searchName = document.getElementById('name-search').value.toLowerCase();
     const statusFilter = document.getElementById('status-filter').value;
     
     let filteredApps = allApplications.filter(app => app.grade_level == currentGradeLevel);
 
-    // Apply Status and Search Filters (existing logic)
     if (statusFilter !== 'All') {
         filteredApps = filteredApps.filter(app => app.status === statusFilter);
     }
@@ -364,13 +398,12 @@ function applyFiltersAndDisplay() {
         );
     }
     
-    // --- Apply Sorting to the filtered results ---
     filteredApps.sort((a, b) => compare(a, b, currentSortKey, currentSortDir));
     
     displayTableContent(filteredApps, currentGradeLevel);
 }
 
-// --- Main function to display table data ---
+// --- Main function to display table data (EXISTING) ---
 function displayTableContent(applicationsToDisplay, gradeLevel) {
     const tableBody = document.getElementById('applications-tbody');
     
@@ -401,7 +434,7 @@ function displayTableContent(applicationsToDisplay, gradeLevel) {
     addEventListenersToButtons(); 
 }
 
-// --- Function to add click handlers to View Details buttons ---
+// --- Function to add click handlers to View Details buttons (EXISTING) ---
 function addEventListenersToButtons() {
     document.querySelectorAll('.view-details-btn').forEach(button => {
         button.addEventListener('click', (e) => {
@@ -411,7 +444,7 @@ function addEventListenersToButtons() {
     });
 }
 
-// --- Function to display details in the modal (UPDATED for credentials) ---
+// --- Function to display details in the modal (UPDATED for provisional button logic) ---
 async function showApplicationDetails(appId) {
     const detailsDiv = document.getElementById('application-details');
     detailsDiv.innerHTML = '<p>Loading details...</p>'; 
@@ -419,6 +452,7 @@ async function showApplicationDetails(appId) {
     modalApproveBtn.setAttribute('data-id', appId);
     modalRejectBtn.setAttribute('data-id', appId);
     modalDeleteBtn.setAttribute('data-id', appId);
+    modalSendCredentialsBtn.setAttribute('data-id', appId); // NEW: Set ID
 
     try {
         const response = await fetch(`http://localhost:3000/get-application-details/${appId}`);
@@ -433,18 +467,24 @@ async function showApplicationDetails(appId) {
         const birthdate = new Date(fullApp.birthdate || fullApp.bday || '2000-01-01').toLocaleDateString();
         const serverUrl = 'http://localhost:3000'; 
 
-        const isPending = fullApp.status === 'Pending Review';
-        modalApproveBtn.style.display = isPending ? 'inline-block' : 'none';
-        modalRejectBtn.style.display = isPending ? 'inline-block' : 'none';
+        const isApproved = fullApp.status === 'Approved';
+        const hasCredentials = !!fullApp.student_username; // Check if credentials exist
+
+        // Show/Hide main approval buttons
+        modalApproveBtn.style.display = isApproved ? 'none' : 'inline-block';
+        modalRejectBtn.style.display = isApproved ? 'none' : 'inline-block';
+        
+        // Show Send Credentials button if NOT Approved and credentials DO NOT exist yet
+        modalSendCredentialsBtn.style.display = (!isApproved && !hasCredentials) ? 'inline-block' : 'none';
 
         let loginDetailsHtml = '';
-        if (fullApp.status === 'Approved' && fullApp.student_username) {
+        if (hasCredentials) {
             loginDetailsHtml = `
                 <div class="user-credentials">
                     <p><strong>Student Login Details:</strong></p>
                     <div><strong>Username (Email):</strong> <code>${fullApp.student_username}</code></div>
                     <div><strong>Password:</strong> <code>${fullApp.student_password}</code></div>
-                    <p class="note">Please provide these credentials to the student. Advise them to change their password upon first login.</p>
+                    <p class="note">These credentials have been sent to the student. Advise them to change their password upon first login.</p>
                 </div>
                 <hr style="margin: 20px 0; border-color: #eee;">
             `;
@@ -479,17 +519,17 @@ async function showApplicationDetails(appId) {
             ${loginDetailsHtml}
         `;
 
-        detailsModal.style.display = 'block';
+        detailsModal.show(); // Use Bootstrap method
 
     } catch (error) {
         console.error('Error fetching details:', error);
         detailsDiv.innerHTML = '<p>Error loading details. Please check server connection and try again.</p>';
-        detailsModal.style.display = 'block';
+        detailsModal.show(); // Use Bootstrap method
     }
 }
 
 
-// --- Approve/Reject Handlers ---
+// --- Approve/Reject Handlers (EXISTING) ---
 async function updateStatus(applicationId, newStatus) {
     const appIndex = allApplications.findIndex(app => app.id == applicationId);
     const originalStatus = allApplications[appIndex].status;
@@ -506,13 +546,16 @@ async function updateStatus(applicationId, newStatus) {
             if (appIndex !== -1) {
                 allApplications[appIndex].status = newStatus;
                 if (newStatus === 'Approved') {
-                    allApplications[appIndex].student_username = data.student_username;
-                    allApplications[appIndex].student_password = data.student_password;
-                    showNotification('✅ Application Approved! Credentials have been generated.', 'success');
-                    showApplicationDetails(applicationId);
+                    // Update credentials only if they were newly generated by the server
+                    if (data.student_username) { 
+                        allApplications[appIndex].student_username = data.student_username;
+                        allApplications[appIndex].student_password = data.student_password;
+                    }
+                    showNotification('✅ Application Approved! Credentials have been sent/reconfirmed.', 'success');
+                    showApplicationDetails(applicationId); // Re-show modal with credentials
                 } else {
                     showNotification(`Status updated to ${newStatus}.`, 'success');
-                    detailsModal.style.display = 'none';
+                    detailsModal.hide(); // Use Bootstrap method
                 }
             }
             updateQuickStats();
@@ -529,7 +572,7 @@ async function updateStatus(applicationId, newStatus) {
     }
 }
 
-// --- SIMULATED DATA FETCH ---
+// --- SIMULATED DATA FETCH (EXISTING) ---
 async function simulateDataLoad() {
     const tableBody = document.getElementById('applications-tbody');
     tableBody.innerHTML = '<tr><td colspan="6">Loading applications...</td></tr>';

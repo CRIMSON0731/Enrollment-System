@@ -1,61 +1,65 @@
-// Wait for the HTML document to finish loading
-document.addEventListener("DOMContentLoaded", () => {
-  // IDs updated to be unique
-  const loginForm = document.getElementById('student-login-form');
-  const errorMessage = document.getElementById('student-error-message');
+// --- 1. NEW: Notification Function ---
+function showNotification(message, type) {
+  const notification = document.getElementById('notification-bar');
+  if (!notification) {
+    console.error("Notification bar element not found.");
+    return;
+  }
+  
+  notification.textContent = message;
+  notification.className = `notification-bar ${type}`;
+  notification.classList.add('show');
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+  }, 8000); // Show for 8 seconds
+}
 
-  // Ensure form exists before attaching listener
-  if (loginForm) {
-    loginForm.addEventListener("submit", (event) => {
-      event.preventDefault();
+// --- 2. MODIFIED: DOMContentLoaded Listener ---
+document.addEventListener('DOMContentLoaded', () => {
+  
+  // --- A) Check for Submission Success Message ---
+  const successMessage = sessionStorage.getItem('submissionSuccess');
+  if (successMessage) {
+    showNotification(successMessage, 'success');
+    sessionStorage.removeItem('submissionSuccess');
+  }
+});
 
-      errorMessage.textContent = ''; // Clear previous errors
 
-      // IDs updated to be unique
-      const username = document.getElementById('student-username').value;
-      const password = document.getElementById('student-password').value;
+// --- 3. Student Login Form Logic ---
+const loginForm = document.getElementById('student-login-form');
+const errorMessage = document.getElementById('student-error-message');
 
-      if (!username || !password) {
-        errorMessage.textContent = "Please enter both username and password.";
-        return;
-      }
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault(); 
+  errorMessage.textContent = ''; 
 
-      // --- Send the data to the server (to POST /login) ---
-      fetch("http://localhost:3000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          password: password,
-        }),
-      })
-        .then(response => {
-            if (!response.ok) {
-                // Get error message from server for 401, 400, etc.
-                return response.json().then(err => { throw err; });
-            }
-            return response.json();
-        })
-        .then(data => {
-          if (data.success) {
-            // --- LOGIN SUCCESSFUL! ---
-            // Store the application data in the browser's storage
-            localStorage.setItem("applicationData", JSON.stringify(data.application));
-            
-            // Redirect the user to their dashboard
-            window.location.href = "dashboard.html"; 
-          } else {
-             // This 'else' might not be reached if errors are thrown, but good as a fallback.
-             errorMessage.textContent = data.message || "Login failed. Check your credentials.";
-          }
-        })
-        .catch(error => {
-          console.error("Login error:", error);
-          // Use the message from the server if available
-          errorMessage.textContent = error.message || "A connection error occurred. Is the server running?";
-        });
+  const username = document.getElementById('student-username').value;
+  const password = document.getElementById('student-password').value;
+
+  try {
+    const response = await fetch('http://localhost:3000/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
     });
+
+    const data = await response.json();
+
+    if (data.success) {
+      localStorage.setItem('applicationData', JSON.stringify(data.application));
+      
+      if (data.firstLogin) {
+        sessionStorage.setItem('showWelcomeModal', 'true');
+      }
+      
+      window.location.href = 'dashboard.html';
+    } else {
+      errorMessage.textContent = data.message;
+    }
+
+  } catch (err) {
+    errorMessage.textContent = 'Cannot connect to server. Please try again later.';
   }
 });

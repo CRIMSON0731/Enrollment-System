@@ -1,4 +1,4 @@
-// --- NOTIFICATION FUNCTION (New!) ---
+// --- NOTIFICATION FUNCTION ---
 function showNotification(message, type) {
   const notification = document.getElementById('notification-bar');
   if (!notification) return;
@@ -17,76 +17,170 @@ async function loadAnnouncements() {
   try {
     const response = await fetch("http://localhost:3000/get-announcements");
     const data = await response.json();
-    const listElement = document.getElementById("announcements-list");
+    const containerElement = document.getElementById("announcements-list");
+    
+    if (!containerElement || containerElement.tagName !== 'DIV') return;
     
     if (data.success) {
       if (data.announcements.length === 0) {
-        listElement.innerHTML = "<li>No announcements at this time.</li>";
+        containerElement.innerHTML = "<p>No announcements at this time.</p>";
         return;
       }
-      listElement.innerHTML = ""; 
+      containerElement.innerHTML = ""; 
       data.announcements.forEach(ann => {
-        const li = document.createElement("li");
-        li.innerHTML = `
+        const card = document.createElement("div");
+        card.className = "announcement-card";
+        card.innerHTML = `
           <strong>${ann.title}</strong>
           <p>${ann.content}</p>
         `;
-        listElement.appendChild(li);
+        containerElement.appendChild(card);
       });
     } else {
-      listElement.innerHTML = "<li>Error loading announcements.</li>";
+      containerElement.innerHTML = "<p>Error loading announcements.</p>";
     }
   } catch (error) {
     console.error("Error fetching announcements:", error);
-    document.getElementById("announcements-list").innerHTML = "<li>Connection error.</li>";
+    document.getElementById("announcements-list").innerHTML = "<p>Connection error.</p>";
   }
 }
 
-// --- 2. Function to handle sidebar navigation ---
-function setupNavigation() {
+// --- 2. Function to handle sidebar navigation (CRITICAL MODIFICATION) ---
+function setupNavigation(isFirstLogin = false) {
   const links = document.querySelectorAll(".sidebar-links a");
   const contentSections = document.querySelectorAll(".content-section");
   
+  // Default to Home or force Password Change
+  const initialTargetId = isFirstLogin ? "content-password" : "content-home";
+  const initialNavLinkId = isFirstLogin ? "nav-password" : "nav-home";
+
+  // 1. Set initial active section/link
+  document.getElementById(initialTargetId).classList.add("active-section");
+  document.getElementById(initialNavLinkId).classList.add("active");
+
+
   links.forEach(link => {
     link.addEventListener("click", (e) => {
       e.preventDefault(); 
       const targetId = "content-" + link.id.split("-")[1]; 
 
+      // 2. Enforcement Check: If first login, block all links except the password change link
+      if (isFirstLogin && link.id !== 'nav-password') {
+          showNotification("SECURITY ALERT: You must change your temporary password to access the dashboard.", 'error');
+          return;
+      }
+      
+      const sidebar = document.querySelector(".sidebar");
+      if (sidebar.classList.contains('sidebar-open')) {
+          sidebar.classList.remove('sidebar-open');
+      }
+
+      // Update active link class
       links.forEach(l => l.classList.remove("active"));
       link.classList.add("active");
       
+      // Update active content section class
       contentSections.forEach(section => {
-        section.style.display = "none";
+        section.classList.remove("active-section");
       });
       
       const targetSection = document.getElementById(targetId);
       if (targetSection) {
-        targetSection.style.display = "block";
+        targetSection.classList.add("active-section");
       }
     });
   });
-  document.getElementById("content-home").style.display = "block";
 }
 
-// --- 3. Function to handle the "Change Password" form ---
+// --- Function to toggle password visibility ---
+function setupPasswordToggle() {
+    document.querySelectorAll('.toggle-password').forEach(icon => {
+        icon.addEventListener('click', () => {
+            const input = icon.previousElementSibling;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        });
+    });
+}
+
+// --- 3. Function to handle the "Change Password" form (CRITICAL MODIFICATION) ---
 function setupPasswordForm(appData) {
   const form = document.getElementById('change-password-form');
   const messageEl = document.getElementById('password-message');
+  
+  const currentPasswordInput = document.getElementById('current-password');
+  const newPasswordInput = document.getElementById('new-password');
+  const confirmPasswordInput = document.getElementById('confirm-password');
+
+  const errorElements = {
+      current: document.getElementById('current-password-error'),
+      new: document.getElementById('new-password-error'),
+      confirm: document.getElementById('confirm-password-error')
+  };
+
+  const clearErrors = () => {
+    Object.values(errorElements).forEach(el => el.textContent = '');
+    messageEl.textContent = '';
+  };
+  
+  [currentPasswordInput, newPasswordInput, confirmPasswordInput].forEach(input => {
+      input.addEventListener('focus', clearErrors);
+  });
+
+  const validateForm = () => {
+      clearErrors();
+      const currentPass = currentPasswordInput.value;
+      const newPass = newPasswordInput.value;
+      const confirmPass = confirmPasswordInput.value;
+      let isValid = true;
+
+      if (currentPass.length === 0) {
+          errorElements.current.textContent = 'Current password is required.';
+          isValid = false;
+      }
+      
+      if (newPass.length > 0 && newPass.length < 8) {
+        errorElements.new.textContent = 'Password must be at least 8 characters.';
+        isValid = false;
+      }
+
+      if (newPass !== confirmPass) {
+          errorElements.confirm.textContent = 'New passwords do not match.';
+          isValid = false;
+      }
+
+      if (!isValid) {
+          messageEl.textContent = 'Please fix the errors above.';
+          messageEl.style.color = '#dc3545';
+      }
+
+      return isValid;
+  };
+
+  confirmPasswordInput.addEventListener('keyup', validateForm);
+  newPasswordInput.addEventListener('keyup', validateForm);
+  currentPasswordInput.addEventListener('keyup', validateForm);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    messageEl.textContent = 'Updating...';
-    messageEl.style.color = '#666'; // Reset color
-    
-    const currentPassword = document.getElementById('current-password').value;
-    const newPassword = document.getElementById('new-password').value;
-    const confirmPassword = document.getElementById('confirm-password').value;
+    clearErrors(); 
 
-    if (newPassword !== confirmPassword) {
-      messageEl.textContent = 'Error: New passwords do not match.';
-      messageEl.style.color = '#dc3545'; // Red
-      return;
+    if (!validateForm()) {
+        return; 
     }
+    
+    messageEl.textContent = 'Updating...';
+    messageEl.style.color = '#666'; 
+    
+    const currentPassword = currentPasswordInput.value;
+    const newPassword = newPasswordInput.value;
 
     try {
       const response = await fetch('http://localhost:3000/change-password', {
@@ -102,17 +196,35 @@ function setupPasswordForm(appData) {
       const data = await response.json();
 
       if (data.success) {
+        // --- CRITICAL FIX: Update localStorage to clear the temporary status ---
+        appData.password = newPassword; // This updates the cached password to the new one
+        // The check in the Main function relies on the password *not* being 'password123'
+        // Since the server successfully updated the password, this locally recorded change 
+        // means on next refresh/relogin, the forced check passes.
+        localStorage.setItem("applicationData", JSON.stringify(appData));
+        
         showNotification(data.message, 'success');
-        messageEl.textContent = ''; // Clear the small text since we used the big bar
+        messageEl.textContent = '';
         form.reset();
+        
+        // If the password was successfully changed from the temporary one, reload the dashboard
+        // to re-run setupNavigation and unlock the sidebar.
+        if (currentPassword === 'password123') { 
+            window.location.reload(); 
+        }
+        
       } else {
         messageEl.textContent = `Error: ${data.message}`;
-        messageEl.style.color = '#dc3545'; // Red
+        messageEl.style.color = '#dc3545';
+        
+        if (data.message.includes('current password')) {
+            errorElements.current.textContent = data.message;
+        }
       }
 
     } catch (err) {
       messageEl.textContent = 'A connection error occurred.';
-      messageEl.style.color = '#dc3545'; // Red
+      messageEl.style.color = '#dc3545';
     }
   });
 }
@@ -121,6 +233,9 @@ function setupPasswordForm(appData) {
 function setupLogout() {
   const logoutBtn = document.getElementById('header-logout-btn');
   logoutBtn.addEventListener('click', () => {
+    if (!confirm("Are you sure you want to log out?")) {
+        return;
+    }
     localStorage.removeItem("applicationData"); 
     
     showNotification("Logging out...", "success");
@@ -131,29 +246,30 @@ function setupLogout() {
   });
 }
 
-// --- NEW: Function to render dynamic checklist (Emojis removed) ---
+// --- Function to render dynamic checklist ---
 function renderEnrollmentChecklist(status) {
     const checklistEl = document.getElementById('enrollment-checklist');
     let html = '';
     
-    // Icon Mappings (Using text symbols and relying on CSS for color)
-    const checkIcon = '<span style="font-size: 1.2em; margin-right: 10px; font-weight: 700;">✓</span>'; 
-    const pendingIcon = '<span style="font-size: 1.2em; margin-right: 10px; font-weight: 700;">•</span>'; 
-    const rejectIcon = '<span style="font-size: 1.2em; margin-right: 10px; font-weight: 700;">X</span>'; 
+    const checkIcon = '<span class="fa-solid fa-check"></span>'; 
+    const pendingIcon = '<span class="fa-solid fa-circle-notch fa-spin"></span>'; 
+    const rejectIcon = '<span class="fa-solid fa-xmark"></span>'; 
 
     const isApproved = status === 'Approved';
     const isPending = status === 'Pending Review';
     const isRejected = status === 'Rejected';
 
-    // Item 1: Application Submitted
     html += `<div class="checklist-item done">
                 ${checkIcon} Application Submitted (Documents Uploaded)
              </div>`;
     
-    // Item 2: Document Review Status
-    if (isApproved || isPending) {
-        html += `<div class="checklist-item ${isApproved ? 'done' : 'pending'}">
-                    ${isApproved ? checkIcon : pendingIcon} Documents Reviewed by Admin
+    if (isApproved) {
+        html += `<div class="checklist-item done">
+                    ${checkIcon} Documents Reviewed by Admin
+                 </div>`;
+    } else if (isPending) {
+         html += `<div class="checklist-item pending">
+                    ${pendingIcon} Documents Under Review by Admin
                  </div>`;
     } else if (isRejected) {
         html += `<div class="checklist-item rejected">
@@ -161,14 +277,13 @@ function renderEnrollmentChecklist(status) {
                  </div>`;
     }
 
-    // Item 3: Access to Portal
     if (isApproved) {
         html += `<div class="checklist-item done">
                     ${checkIcon} Enrollment Finalized & Portal Access Granted
                  </div>`;
-        html += `<p style="margin-top: 15px; background: #e9f7ec; padding: 10px; border-radius: 5px; font-size: 0.9em;">
+        html += `<div class="alert alert-success mt-3" style="font-size: 0.9em;">
                     You are all set! View your information tab to see your generated username.
-                 </p>`;
+                 </div>`;
     } else if (isPending) {
          html += `<div class="checklist-item pending">
                     ${pendingIcon} Awaiting Final Enrollment Status
@@ -182,14 +297,13 @@ function renderEnrollmentChecklist(status) {
     checklistEl.innerHTML = html;
 }
 
-// --- NEW: Function to load student's submitted file links ---
+// --- Function to load student's submitted file links ---
 async function loadFullApplicationDetails(appData) {
-    const serverUrl = 'http://localhost:3000'; // Base URL for file links
+    const serverUrl = 'http://localhost:3000'; 
     const documentLinksContainer = document.getElementById('document-links-container');
     documentLinksContainer.innerHTML = '<p>Fetching document links...</p>';
 
     try {
-        // Fetch the full details, including all file path columns
         const response = await fetch(`${serverUrl}/get-application-details/${appData.id}`);
         const data = await response.json();
 
@@ -200,8 +314,16 @@ async function loadFullApplicationDetails(appData) {
 
         const fullApp = data.application;
         let linksHtml = '';
+        
+        // Mock Status Logic
+        const getMockStatus = (docName) => {
+            if (appData.status === 'Approved') return 'Verified';
+            if (appData.status === 'Rejected') {
+                return docName.includes('Card') ? 'Rejected' : 'Pending';
+            }
+            return 'Pending';
+        };
 
-        // Map the document fields to display names and paths
         const docs = [
             { path: fullApp.doc_card_path, name: "School Card (Previous Grade)" },
             { path: fullApp.doc_psa_path, name: "PSA (Birth Certificate)" },
@@ -211,12 +333,17 @@ async function loadFullApplicationDetails(appData) {
 
         docs.forEach(doc => {
             if (doc.path) {
-                // Use eye icon and simple text for clean button look
+                const status = getMockStatus(doc.name);
+                const statusClass = `doc-status-${status.toLowerCase()}`;
+                
                 linksHtml += `
-                    <a href="${serverUrl}/uploads/${doc.path}" target="_blank" class="file-link">
-                        <span style="font-size: 1.1em;">👁️</span> 
-                        <span>${doc.name}</span>
-                    </a>`;
+                    <div class="file-link-wrapper">
+                        <a href="${serverUrl}/uploads/${doc.path}" target="_blank" class="file-link">
+                            <span class="fa-solid fa-file-pdf"></span> 
+                            <span>${doc.name}</span>
+                        </a>
+                        <span class="doc-status-tag ${statusClass}">${status}</span>
+                    </div>`;
             }
         });
 
@@ -224,12 +351,57 @@ async function loadFullApplicationDetails(appData) {
 
     } catch (error) {
         console.error('Error fetching application details for student:', error);
-        documentLinksContainer.innerHTML = '<p style="color:red;">Network error. Failed to load document links.</p>';
+        document.getElementById('document-links-container').innerHTML = '<p style="color:red;">Network error. Failed to load document links.</p>';
+    }
+}
+
+// --- Function to update the progress bar visuals ---
+function updateEnrollmentProgress(status) {
+    const progressBar = document.getElementById('enrollment-progress-bar');
+    const progressText = document.getElementById('progress-text');
+    let percentage = 0;
+    let className = 'bg-warning';
+    
+    if (!progressBar || !progressText) return;
+
+    if (status === 'Pending Review') {
+        percentage = 60;
+        className = 'bg-warning progress-bar-animated';
+    } else if (status === 'Approved') {
+        percentage = 100;
+        className = 'bg-success';
+    } else if (status === 'Rejected') {
+        percentage = 10; 
+        className = 'bg-danger';
+    } else {
+        percentage = 0;
+        className = 'bg-secondary';
+    }
+
+    progressBar.style.width = `${percentage}%`;
+    progressBar.setAttribute('aria-valuenow', percentage);
+    progressBar.className = `progress-bar progress-bar-striped ${className}`;
+    progressText.textContent = `${percentage}% Complete`;
+    
+    if (percentage === 100) {
+        progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+    }
+}
+
+// --- Function to handle Mobile Sidebar Toggle (MODIFIED - NO 2FA) ---
+function setupMobileToggle() {
+    const toggleBtn = document.getElementById('mobile-sidebar-toggle');
+    const sidebar = document.querySelector(".sidebar");
+    
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('sidebar-open');
+        });
     }
 }
 
 
-// --- 5. Main function ---
+// --- 5. Main function (CRITICAL FORCED PASSWORD CHECK) ---
 document.addEventListener("DOMContentLoaded", () => {
   const appDataString = localStorage.getItem("applicationData");
   if (!appDataString) {
@@ -239,25 +411,39 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   const appData = JSON.parse(appDataString);
+  
+  // Determine if this is the first login (password == 'password123')
+  const isFirstLogin = appData.password === 'password123';
+  
+  // Initialize navigation, forcing password change if needed
+  setupNavigation(isFirstLogin); 
+
+  // Display alert if forced to change password
+  if (isFirstLogin) {
+      showNotification("SECURITY ALERT: Please change your temporary password immediately.", 'error');
+  }
 
   loadAnnouncements();
-  setupNavigation();
+  setupPasswordToggle(); 
   setupPasswordForm(appData);
   setupLogout();
-  loadFullApplicationDetails(appData); // Load file links on dashboard load
+  loadFullApplicationDetails(appData); 
 
-  // 1. Update NEW Full Name and Status Summary
+  // 1. Update Full Name and Status Summary
   document.getElementById("student-name").textContent = appData.first_name;
   document.getElementById("student-name-full").textContent = `${appData.first_name} ${appData.last_name}`;
   document.getElementById("status-summary-text").textContent = appData.status;
 
-  // 2. Update Status Box (Existing Logic)
+  // 2. Update Status Box
   const statusMessageEl = document.getElementById("status-message");
   statusMessageEl.textContent = appData.status;
-  statusMessageEl.className = `status-${appData.status.replace(/ /g, '')}`;
+  statusMessageEl.className = `status-${appData.status.replace(/ /g, '')} mb-4`; 
 
-  // 3. Render the NEW Checklist
+  // 3. Render the Checklist
   renderEnrollmentChecklist(appData.status);
+
+  // 4. Update Enrollment Progress Bar
+  updateEnrollmentProgress(appData.status);
   
   // Update Information Details
   document.getElementById("detail-name").textContent = `${appData.first_name} ${appData.middle_name || ''} ${appData.last_name}`;
@@ -267,7 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("detail-phone").textContent = appData.phone;
   document.getElementById("detail-username").textContent = appData.username;
   
-  // NEW: Initialize Tilt effect globally after the DOM is fully loaded
+  // Initialize Tilt effect globally after the DOM is fully loaded
   if (window.VanillaTilt) {
       VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {
           // Default options: speed and max tilt are set on the elements themselves

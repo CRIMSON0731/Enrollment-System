@@ -1,258 +1,342 @@
-/* === COLOR PALETTE === */
-/* Green: #2b7a0b */
-/* Dark Teal/Blue: #3b5671 */
-/* Light Background: #eef3f7 */
-/* Accent Green: #4caf50 */
-
-/* === GLOBAL RESET === */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Montserrat", sans-serif;
+/* === 0. GLOBAL ZOOM FIX === */
+html {
+  zoom: 0.95;
+  /* Firefox fix for non-standard zoom property */
+  -moz-transform: scale(0.8);
+  -moz-transform-origin: 0 0;
 }
 
-/* === BODY === */
-body {
+/* === 1. THEME & BOOTSTRAP OVERRIDES === */
+:root {
+  --bs-success: #2b7a0b;
+  --bs-success-rgb: 43, 122, 11;
+  --bs-success-dark: #215c08;
+  --bs-dark: #3b5671;
+  --bs-dark-rgb: 59, 86, 113;
+  --bs-body-font-family: "Montserrat", sans-serif;
+  --bs-body-bg: #eef3f7;
+}
+
+.bg-success-dark {
+  background-color: var(--bs-success-dark);
+}
+
+.btn-outline-success {
+  --bs-btn-border-color: var(--bs-success);
+  --bs-btn-color: var(--bs-success);
+  --bs-btn-hover-bg: var(--bs-success);
+  --bs-btn-hover-border-color: var(--bs-success);
+  --bs-btn-active-bg: var(--bs-success-dark);
+  --bs-btn-active-border-color: var(--bs-success-dark);
+  --bs-btn-focus-shadow-rgb: var(--bs-success-rgb);
+}
+
+/* === 2. SPLIT-SCREEN LAYOUT (FIXED) === */
+.split-screen-container {
+  display: flex;
+  width: 100%;
+  min-height: calc(100vh - 76px); /* 76px is approx header height */
+}
+
+/* === 3. LEFT SIDE (WELCOME) (FIXED) === */
+.left-side {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  background: #eef3f7; /* Soft, professional background */
-  min-height: 100vh;
-  overflow-x: hidden;
-  color: #333; /* Dark text for readability */
-}
-
-/* === HEADER === */
-.school-header {
-  background: #ffffff;
-  border-bottom: 5px solid #2b7a0b; /* Stronger green border */
-  width: 100%;
-  padding: 15px 0; /* Increased padding */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-}
-
-.logo {
-  width: 80px; /* Slightly larger logo */
-  height: 80px;
-  object-fit: cover;
-}
-
-.school-text {
-  text-align: left;
-  max-width: 500px;
-}
-
-.school-text h1 {
-  color: #3b5671; /* Use dark accent color */
-  font-size: 1.5rem;
-  margin-bottom: 2px;
-  font-weight: 700;
-}
-
-.school-text p {
-  color: #555;
-  font-size: 0.95rem;
-  font-weight: 500;
-}
-
-/* === HERO SECTION === */
-.hero {
-  background: linear-gradient(135deg, #2b7a0b 0%, #4caf50 100%);
-  width: 100%;
-  height: 350px; /* Taller hero section */
-  display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 40px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.hero .overlay {
-  text-align: center;
-  color: white;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* For better text visibility */
-}
-
-.hero h2 {
-  font-size: 3rem;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-
-.hero-subtext {
-  font-size: 1.2rem;
-  line-height: 1.6;
-}
-
-.inspire-text {
-  font-style: italic;
-  font-weight: 500;
-  display: block;
-  margin-top: 5px;
-}
-
-/* === LOGIN SECTION CONTAINER (Optimized for single centered card) === */
-.login-section-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center; /* Centers the remaining card */
-  gap: 30px;
-  width: 100%;
-  max-width: 500px; /* Reduced max-width for centering effect */
-  margin-bottom: 50px;
-}
-
-/* === LOGIN/ENROLL CONTAINER (STUDENT ONLY) === */
-.login-container {
-  background: #ffffff;
   padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  width: 90%;
-  max-width: 450px;
-  text-align: center;
-  /* Removed flex-grow to maintain center alignment on large screens */
-}
-
-.student-container {
-  border-top: 5px solid #2b7a0b; /* Green border remains */
-}
-
-/* === ENROLL BUTTON === */
-.enroll-btn {
-  background: #2b7a0b; /* Primary Green */
+  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url('school-bg.jpg');
+  background-size: cover;
+  background-position: center;
   color: white;
-  padding: 18px 30px; /* Larger button */
-  border: none;
-  border-radius: 10px;
-  font-size: 1.3rem;
-  font-weight: 700;
-  cursor: pointer;
+  text-align: center;
+  min-width: 0; 
+  position: relative;
+  overflow: hidden; 
+}
+.hero-overlay .logo {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 24px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+}
+.hero-overlay h2 {
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.hero-overlay .lead {
+  max-width: 450px;
+  margin-left: auto;
+  margin-right: auto;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* === 4. RIGHT SIDE (LOGIN & ENROLL) === */
+.right-side {
+  flex: 1;
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 12px;
+  align-items: center;
+  padding: 40px;
+  overflow-y: auto; 
+  min-width: 0;
+}
+.right-side-content {
   width: 100%;
-  transition: background 0.3s, transform 0.2s;
+  max-width: 450px;
 }
 
-.enroll-btn .cursor-icon {
-  height: 1.3em;
-  width: auto;
-}
-
-.enroll-btn:hover {
-  background: #215c08; /* Darker green on hover */
-  transform: translateY(-2px);
-}
-
+/* === 5. DIVIDER (FIXED) === */
 .divider {
   margin: 30px 0;
   color: #777;
   font-weight: 600;
   font-size: 1rem;
-  position: relative;
+  display: flex;
+  align-items: center;
+  text-align: center;
 }
-
 .divider::before,
 .divider::after {
     content: '';
-    position: absolute;
-    top: 50%;
-    width: 40%;
+    flex: 1;
     height: 1px;
     background: #ccc;
 }
-.divider::before { left: 0; }
-.divider::after { right: 0; }
+.divider::before { margin-right: 1rem; }
+.divider::after { margin-left: 1rem; }
 
-
-/* === LOGIN FORM (SHARED/STUDENT) === */
-.login-container form {
-  text-align: center;
-}
-
-.login-container h2 {
-  color: #2b7a0b; /* Changed from general color to student green */
-  margin-bottom: 25px;
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-.input-group {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-.input-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #444;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 14px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-.input-group input:focus {
-  border-color: #3b5671;
-  box-shadow: 0 0 0 3px rgba(59, 86, 113, 0.2);
-  outline: none;
-}
-
-/* === LOGIN BUTTON (STUDENT) === */
-.login-btn {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  background: #2b7a0b; /* Student Button Green */
-  color: white;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background 0.3s, transform 0.2s;
-}
-
-.login-btn:hover {
-  background: #215c08;
-  transform: translateY(-1px);
-}
-
-/* REMOVED: .student-login-btn and .admin-container styles */
-
-/* === ERROR MESSAGE === */
+/* === 6. NOTIFICATION & ERROR === */
 .error-message {
-  color: #dc3545;
-  margin-bottom: 15px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  min-height: 1.2em; /* Prevent layout shift */
+  min-height: 1.2em;
 }
 
-/* === FOOTER === */
-.school-footer {
-  width: 100%;
-  background: #3b5671;
-  color: #eef3f7;
-  padding: 20px 0;
+/* === 7. RESPONSIVE (FIXED) === */
+@media (max-width: 991px) { /* Bootstrap's 'lg' breakpoint */
+  body {
+    height: auto;
+  }
+  .split-screen-container {
+    flex-direction: column; 
+    min-height: auto; 
+  }
+  .left-side {
+    min-height: 500px; 
+    flex: auto;
+    padding: 40px 20px 80px 20px; 
+  }
+  .right-side {
+    flex: auto;
+    padding: 60px 20px;
+  }
+
+  /* --- MOBILE HEADER FIX --- */
+  .navbar-brand {
+    flex-grow: 1;
+    text-align: center;
+    margin-left: -48px; 
+  }
+  .navbar-brand img {
+    width: 50px !important; 
+    height: 50px !important;
+  }
+  .navbar-brand h1 {
+    font-size: 1rem !important; 
+  }
+  .navbar-brand p {
+    font-size: 0.75rem !important; 
+  }
+  .navbar-toggler {
+    flex-grow: 0;
+  }
+  .navbar-collapse {
+    flex-basis: 100%;
+    flex-grow: 1;
+  }
+  .navbar-nav {
+    width: 100%;
+  }
+}
+
+/* === 8. ANIMATIONS (FIXED) === */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.anim-fade-in-up,
+.anim-fade-in {
+  opacity: 0; /* Start hidden */
+  animation-fill-mode: forwards;
+}
+
+/* Staggered Animation Delays */
+.left-side .logo {
+  animation: fadeInUp 0.6s ease-out 0.3s forwards;
+}
+.left-side h2 {
+  animation: fadeInUp 0.6s ease-out 0.5s forwards;
+}
+.left-side .lead {
+  animation: fadeInUp 0.6s ease-out 0.7s forwards;
+}
+.right-side .btn-success {
+  animation: fadeInUp 0.6s ease-out 0.9s forwards;
+}
+.right-side .divider {
+  animation: fadeIn 0.6s ease-out 1.1s forwards;
+}
+.right-side .card {
+  animation: fadeInUp 0.6s ease-out 1.2s forwards;
+}
+
+
+/* === 9. MOBILE SCROLL CUE (FIXED) === */
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+.scroll-down-cue {
+  position: absolute;
+  bottom: 20px;
+  
+  /* FIXED: Use left/right 0 and margin:auto for perfect centering */
+  left: 0;
+  right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  
+  width: 200px; /* Give it a defined width */
+  
+  color: rgba(255, 255, 255, 0.7);
   text-align: center;
+  opacity: 0; 
+  animation: fadeIn 1s ease-out 2s forwards, bob 2s ease-in-out 3s infinite;
+  z-index: 10; 
+}
+.scroll-down-cue span {
   font-size: 0.9rem;
   font-weight: 500;
-  margin-top: auto; /* Pushes the footer to the bottom */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.scroll-down-cue .arrow {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* === 10. "ABOUT US" SECTION STYLING (FIXED) === */
+.about-us-section {
+  background-color: #ffffff; 
+  border-top: 1px solid #dee2e6;
+}
+
+/* Historical Image Card Style */
+.historical-image-card {
+  border: 1px solid #dee2e6;
+  border-radius: .375rem; 
+  overflow: hidden;
+  background: #fdfdfd;
+}
+.historical-image-card img {
+  width: 100%;
+  height: 250px; 
+  object-fit: cover; 
+  background-color: #f0f0f0; 
+}
+.historical-image-card caption {
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Accordion */
+.history-accordion .accordion-button:not(.collapsed) {
+  font-weight: 600;
+  color: var(--bs-success-dark);
+  background-color: #f6fdf9;
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
+}
+.history-accordion .accordion-body {
+  background: #fdfdfd;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* Info Card */
+.info-card {
+  border: 1px solid #dee2e6;
+  padding: 1.5rem;
+  border-radius: .375rem;
+  background-color: #fcfcfc;
+  border-left: 5px solid var(--bs-success-dark); 
+}
+
+.info-card .info-title {
+  font-weight: 700;
+  color: var(--bs-success-dark); 
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+}
+.info-card .info-subtitle {
+  font-weight: 600;
+  color: var(--bs-success);
+  font-size: 1.1rem;
+  margin-top: 15px;
+}
+.info-card .info-list {
+  list-style: none;
+  padding-left: 0;
+}
+.info-card .info-list li {
+  position: relative;
+  padding-left: 25px;
+  margin-bottom: 8px;
+}
+.info-card .info-list li::before {
+  content: '\F28A'; /* bi-check-circle */
+  font-family: 'bootstrap-icons';
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 600;
+  color: var(--bs-success);
+  font-size: 1rem;
+}
+
+/* === 11. 2FA FORM FIXES (NEW) === */
+
+/* Ensure the main form container doesn't add unwanted structure */
+#login-fields-container {
+  display: contents; /* CRITICAL: Makes the div transparent to the layout flow, preserving original spacing */
+}
+
+/* Style the OTP container to ensure consistent spacing within the card */
+#otp-form-container {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+/* Ensure the submit/verify buttons look consistent */
+#verify-otp-btn {
+    /* Match the look of the existing button class */
+    --bs-btn-color: white; 
+    --bs-btn-bg: var(--bs-success);
+    --bs-btn-border-color: var(--bs-success);
 }

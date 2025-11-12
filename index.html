@@ -7,71 +7,230 @@
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
   
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
   <link rel="stylesheet" href="index.css">
   <link rel="icon" href="school-logo.png" type="image/png">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+
+<body class="d-flex flex-column min-vh-100">
   <div id="notification-bar" class="notification-bar"></div> 
-  
-  <header class="school-header">
-    <div class="header-content">
-      <img src="school-logo.png" alt="School Logo" class="logo">
-      <div class="school-text">
-        <h1>Doña Teodora Alonzo Highschool</h1>
-        <p>Mataas na Paaralang Doña Teodora Alonzo</p>
+
+  <header class="navbar navbar-expand-lg bg-success-dark shadow-sm sticky-top" data-bs-theme="dark">
+    <div class="container-fluid">
+      
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <img src="school-logo.png" alt="School Logo" width="60" height="60" class="me-3">
+        <div>
+          <h1 class="h5 mb-0 fw-bold text-white">Doña Teodora Alonzo Highschool</h1>
+          <p class="mb-0 small text-white-50">Mataas na Paaralang Doña Teodora Alonzo</p>
+        </div>
+      </a>
+      
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <nav class="navbar-nav ms-auto text-center text-lg-start mt-3 mt-lg-0">
+          <a class="nav-link fw-medium" href="#about-us">About Us</a>
+        </nav>
       </div>
     </div>
   </header>
 
-  <section class="hero">
-    <div class="overlay">
-      <h2>Welcome!</h2>
-      <p class="hero-subtext">
-        Doña Teodora Alonzo High School<br>
-        <span class="inspire-text">Inspiring young minds to dream big, work hard, <br>
-          and make a difference.</span>
-      </p>
-    </div>
-  </section>
+  <main class="split-screen-container" id="home">
 
-  <main class="login-section-container">
+    <section class="left-side">
+      <div class="hero-overlay">
+        <img src="school-logo.png" alt="School Logo" class="logo anim-fade-in-up">
+        <h2 class="display-4 fw-bold anim-fade-in-up">A Legacy of Excellence</h2>
+        <p class="lead fw-light fst-italic anim-fade-in-up">
+          Inspired by the wisdom and resilience of our namesake, Doña Teodora Alonzo, we welcome you. Join a community dedicated to honor, knowledge, and building a brighter future.
+        </p>
+        <div class="scroll-down-cue d-block d-lg-none">
+          <span>Scroll to Enroll or Log In</span>
+          <div class="arrow">&#8595;</div>
+        </div>
+      </div>
+    </section>
 
-    <div class="card student-container shadow-lg">
-      <div class="card-body p-4">
+    <section class="right-side">
+      <div class="right-side-content">
         
-        <button class="btn btn-success btn-lg enroll-btn w-100 mb-4" onclick="window.location.href='Enrollment page.html'">
+        <button class="btn btn-success btn-lg px-5 py-3 fs-5 fw-bold w-100 anim-fade-in-up" onclick="window.location.href='Enrollment page.html'">
           Enroll Now!
-          <img src="cursor--v2.png" alt="cursor icon" class="cursor-icon">
         </button>
         
-        <div class="divider">OR</div>
+        <div class="divider anim-fade-in">OR</div>
 
-        <form id="student-login-form">
-          <h2 class="card-title mt-3">Student Status Check</h2>
-          <p id="student-error-message" class="error-message"></p>
-          <div class="input-group mb-3">
-            <label for="student-username" class="form-label">Username (e.g., jdelacruz@dtahs.edu.ph)</label>
-            <input type="text" id="student-username" class="form-control" required>
+        <div class="card shadow-lg border-0 anim-fade-in-up">
+          <div class="card-body p-4 p-md-5">
+            <form id="student-login-form">
+              <h2 class="h4 text-success-dark text-center mb-3 fw-bold">Student Status Check</h2>
+              <p id="student-error-message" class="error-message text-danger text-center small fw-medium"></p>
+              
+              <div class="mb-3">
+                <label for="student-username" class="form-label fw-medium">Username</label>
+                <input type="text" id="student-username" class="form-control" placeholder="e.g., jdelacruz@dtahs.edu.ph" required>
+              </div>
+              <div class="mb-4">
+                <label for="student-password" class="form-label fw-medium">Password</label>
+                <input type="password" id="student-password" class="form-control" required>
+              </div>
+              
+              <button type="submit" class="btn btn-outline-success w-100">Log In</button>
+            </form>
           </div>
-          <div class="input-group mb-4">
-            <label for="student-password" class="form-label">Password</label>
-            <input type="password" id="student-password" class="form-control" required>
-          </div>
-          <button type="submit" class="btn student-login-btn w-100">Log In</button>
-        </form>
+        </div>
       </div>
-    </div>
-
+    </section>
   </main>
   
-  <footer class="school-footer">
-    <p>&copy; 2025 Doña Teodora Alonzo Highschool. All rights reserved.</p>
+  <section class="about-us-section" id="about-us">
+    <div class="container py-5">
+      
+      <h2 class="display-5 fw-bold text-center mb-4">About Our School</h2>
+      <p class="lead text-center mb-5">
+        Our school is named to honor Doña Teodora Alonzo Realonda, the very smart and strong mother of the Philippines’ national hero, Dr. José Rizal.
+      </T>
+
+      <div class="row g-5 mb-5">
+        <div class="col-lg-7">
+          <h3 class="info-title">Our Story & Legacy</h3>
+          <div class="accordion history-accordion" id="historyAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                    The Founding Story of Our School
+                </button>
+              </h2>
+              <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#historyAccordion">
+                <div class="accordion-body">
+                    <strong>Doña Teodora Alonzo High School opened its doors in 1961.</strong> Its beginning was simple: it was created by bringing together five smaller school units that used to belong to a bigger school called Arellano High School. These five small units were spread out on different streets in Manila, including Mayhaligue, O'Donnel, and others. When they were all put together, they became one new, independent high school. The school is located on T. Alonzo Street in the Santa Cruz area of Manila. For many decades, the school has been a very important place for the local community, teaching many generations of students.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                    The Unbreakable Mother: Doña Teodora's Story
+                </button>
+              </h2>
+              <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#historyAccordion">
+                <div class="accordion-body">
+                    The story of Doña Teodora Alonzo Realonda begins on November 9, 1827, in Manila. She was a truly extraordinary woman—smart, strong, and highly educated. She came from a distinguished, rich family and attended the famous Colegio de Santa Rosa, where she learned about math and literature, which was very unusual for women at that time.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    The Guiding Light of Calamba
+                </button>
+              </h2>
+              <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#historyAccordion">
+                <div class="accordion-body">
+                    Teodora was Jose Rizal's first and best teacher. She taught him his letters, helped him write his first poems, and gave him the deep love for learning and for Filipino culture that stayed with him his whole life. She was the real leader of the house and the businesses. While her husband worked the farm, she handled all the money, started new ventures like cloth weaving and sugar milling, and ran the family's store.
+                    <br><br>
+                    Their close relationship was marked by mutual affection, respect, and intellectual kinship. From her, he learned the critical value of reading and study, strong discipline, faith in God, and the importance of working hard and being thrifty. Her own failing eyesight was the main reason Rizal decided to study medicine and specialize in ophthalmology.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                    Courage Against Cruelty
+                </button>
+              </h2>
+              <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#historyAccordion">
+                <div class="accordion-body">
+                    The family’s success soon made them enemies of the Spanish authorities. In 1872, Doña Teodora faced a terrible wrong when she was falsely accused of trying to poison her sister-in-law. This was a complete lie, created by officials who wanted to damage the family. She was forced to walk about 50 kilometers all the way to the prison in Santa Cruz and stayed locked up for <strong>two and a half years</strong> until a higher court declared her innocent. This shocking injustice deeply hurt the young Jose Rizal and fueled his powerful anger against oppression.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                    Honor Over Riches
+                </button>
+              </h2>
+              <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#historyAccordion">
+                <div class="accordion-body">
+                    Teodora faced the greatest pain in 1896 when her son, Jose Rizal, was executed. After the Spanish era ended, the new American government offered Doña Teodora a monthly payment for the rest of her life to honor her sacrifice. She refused the money, declaring simply that her family <strong>“has never been patriotic for money.”</strong> She showed the world that her honor and love for her country were worth more than any payment. She stands as a hero for her own strength and for raising the greatest hero of the Philippines.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-lg-5">
+          <h3 class="info-title">Our Legacy in Photos</h3>
+          <div class="historical-image-card">
+            <img src="dona-teodora-alonzo.jpg" alt="Doña Teodora Alonzo Realonda" class="img-fluid">
+            <caption class="d-block p-2 text-center text-muted small">Doña Teodora Alonzo's last portrait</caption>
+          </div>
+          <div class="historical-image-card mt-4">
+            <img src="jose-rizal.jpg" alt="Dr. José Rizal" class="img-fluid">
+            <caption class="d-block p-2 text-center text-muted small">Doña Teodora Alonzo teaching her son Rizal how to read</caption>
+          </div>
+          <div class="historical-image-card mt-4"> 
+            <img src="dona-teodora-alonzo-highschool-campus.jpg" alt="Old school campus" class="img-fluid">
+            <caption class="d-block p-2 text-center text-muted small">Old Doña Teodora Alonzo Highschool Campus</caption>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-4">
+        <div class="col-lg-7">
+          <div class="info-card h-100">
+            <h3 class="info-title"><i class="bi bi-book me-2"></i>Curriculum & Programs</h3>
+            <p>The school is mandated to follow the K to 12 Basic Education Curriculum set by the Department of Education (DepEd).</p>
+            <h4 class="info-subtitle">Core Subjects (Grades 7-10)</h4>
+            <ul class="info-list">
+              <li>Filipino</li>
+              <li>English</li>
+              <li>Mathematics</li>
+              <li>Science</li>
+              <li>Araling Panlipunan</li>
+              <li>Edukasyon sa Pagpapakatao (EsP)</li>
+              <li>MAPEH</li>
+              <li>Technology and Livelihood Education (TLE)</li>
+            </ul>
+            
+            <h4 class="info-subtitle">Alternative Learning System (ALS)</h4>
+            <p>The school also offers the Alternative Learning System (ALS) for out-of-school youth and adults.</p>
+            <ul class="info-list">
+                <li>Accreditation and Equivalency (A & E)</li>
+                <li>Basic Literacy Program (BLP)</li>
+                <li>Life Skills</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="col-lg-5">
+          <div class="info-card h-100">
+            <h3 class="info-title"><i class="bi bi-info-circle me-2"></i>School & Contact Info</h3>
+            <ul class="info-list">
+              <li><strong>School ID:</strong> 305299</li>
+              <li><strong>School Head:</strong> JOANNE FEL M. LIWAG</li>
+              <li><strong>Address:</strong> Alvarez St., cor. Ipil St., Sta. Cruz, Manila</li>
+              <hr class="my-3">
+              <li><strong>Landline:</strong> 88078669</li>
+              <li><strong>Cellphone:</strong> 0943 367 8764</li>
+              <li><strong>Email:</strong> DTAHS.MANILA@DEPED.GOV.PH</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <footer class="bg-dark text-white text-center p-4 mt-auto">
+    <p class="mb-0 small">&copy; 2025 Doña Teodora Alonzo Highschool. All rights reserved.</p>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
   <script src="index.js"></script> 
-  <script src="login.js"></script> 
 </body>
 </html>

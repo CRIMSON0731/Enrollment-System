@@ -11,10 +11,13 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "multer": "^2.0.2",
     "mysql2": "^3.15.3",
-    "nodemailer": "^7.0.10"
+    "nodemailer": "^7.0.10",
+    "otp-generator": "^4.0.1",
+    "socket.io": "^4.8.1"
   }
 }

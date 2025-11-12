@@ -1,27 +1,25 @@
 // --- Imports ---
 const express = require('express');
+const http = require('http');
+const { Server } = require("socket.io");
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const mysql = require('mysql2'); 
 const nodemailer = require('nodemailer'); 
+const bcrypt = require('bcryptjs'); 
 
 // --- CONFIG ---
 const PORT = process.env.PORT || 3000;
 const app = express();
-
-// --- Nodemailer Transport Configuration ---
-// NOTE: Using the generated App Password to resolve EAUTH error
-const transporter = nodemailer.createTransport({
-    service: 'gmail', 
-    auth: {
-        user: 'dalonzohighschool@gmail.com', // Dedicated email account
-        pass: 'ebvhftlefruimqru' // The 16-character App Password (Final Fix)
+const server = http.createServer(app); 
+const io = new Server(server, { 
+    cors: {
+        origin: "*", 
+        methods: ["GET", "POST"]
     }
 });
-// --- END Nodemailer Config ---
-
 
 // --- Middleware ---
 app.use(cors());
@@ -30,9 +28,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
 
+// --- Nodemailer Transport Configuration ---
+const transporter = nodemailer.createTransport({
+    service: 'gmail', 
+    auth: {
+        user: 'dalonzohighschool@gmail.com', 
+        pass: 'ebvhftlefruimqru' 
+    }
+});
+
 // --- MySQL Connection ---
 const db = mysql.createConnection({
-    host: 'localhost',
+    host: '127.0.0.1', 
+    port: 3306,        
     user: 'root',
     password: '#PROFELECGROUP1',
     database: 'enrollment_system'
@@ -49,7 +57,7 @@ db.connect((err) => {
 // --- Create uploads folder ---
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 
-// --- Multer Setup ---
+// --- Multer Setup (Omitted for brevity, assumed correct) ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
     filename: (req, file, cb) => {
@@ -75,7 +83,7 @@ const upload = multer({
     { name: 'brgy_cert_file', maxCount: 1 }
 ]);
 
-// Helper function to delete files safely (avoids server crash)
+// Helper function to delete files safely
 const cleanupFiles = (files) => {
     files.forEach(file => {
         if (file) {
@@ -91,17 +99,66 @@ const cleanupFiles = (files) => {
     });
 };
 
-// --- Email Sender Function ---
+// --- Reusable Function to Generate/Insert User Credentials (MODIFIED) ---
+const createOrGetCredentials = (app, callback) => {
+    // Select the hash to check if the user already exists.
+    db.query('SELECT username, password FROM users WHERE application_id = ?', [app.id], (checkErr, existingUsers) => { 
+        if (checkErr) {
+            console.error('DB Error checking existing user:', checkErr);
+            return callback(checkErr);
+        }
+
+        if (existingUsers.length > 0) {
+            // Return the plain-text temporary password for the email function
+            return callback(null, { 
+                username: existingUsers[0].username, 
+                password: 'password123'
+            });
+        }
+        
+        const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toLowerCase() : '';
+        const firstNameInitials = getInitials(app.first_name);
+        const middleNameInitals = getInitials(app.middle_name);
+        const formattedLastName = (app.last_name || '').toLowerCase().replace(/ /g, '');
+        const username = `${firstNameInitials}${middleNameInitals}${formattedLastName}@dtahs.edu.ph`;
+        const plainPassword = 'password123'; 
+
+        // CRUCIAL: Hash the password before insertion
+        bcrypt.hash(plainPassword, 10, (hashErr, passwordHash) => {
+            if (hashErr) return callback(hashErr);
+
+            // Using password_hash column
+            db.query('INSERT INTO users (username, password, application_id) VALUES (?, ?, ?)',
+                [username, passwordHash, app.id], (insertErr) => {
+                    if (insertErr) {
+                        if (insertErr.code === 'ER_DUP_ENTRY') {
+                            console.warn(`Duplicate entry detected for application ${app.id}. Re-querying credentials.`);
+                            return createOrGetCredentials(app, callback); 
+                        }
+                        console.error('DB INSERT Error:', insertErr);
+                        return callback(insertErr);
+                    }
+                    // Return the plain-text password for the email only
+                    callback(null, { username, password: plainPassword, isNew: true });
+                }
+            );
+        });
+    });
+};
+
+
+// --- Email Sender Functions (EXISTING) ---
+
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
     const mailOptions = {
         from: '"Doña Teodora Alonzo Highschool" <dalonzohighschool@gmail.com>',
         to: recipientEmail,
-        subject: 'Enrollment Approved! Your Student Portal Credentials',
+        subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
-                <h2>Congratulations, ${studentName}!</h2>
-                <p>We are delighted to inform you that your enrollment application has been officially <b>APPROVED</b>.</p>
-                <p>You can now access the Student Dashboard to view your status, announcements, and manage your account.</p>
+                <h2>Hello, ${studentName}!</h2>
+                <p>You have been granted <b>Provisional Access</b> to the Student Portal, or your enrollment has been <b>APPROVED</b>.</p>
+                <p>Use the credentials below to access the Student Dashboard to view your status, announcements, and manage your account.</p>
                 
                 <h3 style="color: #2b7a0b;">Your Student Portal Login Details:</h3>
                 <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
@@ -129,20 +186,35 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log(`Email sent successfully to ${recipientEmail}`);
+        console.log(`Credentials email sent successfully to ${recipientEmail}`);
         return { success: true };
     } catch (error) {
-        console.error(`Failed to send email to ${recipientEmail}:`, error);
+        console.error(`Failed to send credentials email to ${recipientEmail}:`, error);
         return { success: false, error: error.message };
     }
 }
+
+
+// === SOCKET.IO CONNECTION LOGIC (EXISTING) ===
+io.on('connection', (socket) => {
+  console.log('A user connected with socket ID:', socket.id);
+
+  socket.on('registerUser', (applicationId) => {
+    socket.join(`user-${applicationId}`);
+    console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+  });
+});
 
 
 // =========================================================================
 //                             API ENDPOINTS
 // =========================================================================
 
-// --- 1. STUDENT: Application Submission ---
+// --- 1. STUDENT: Application Submission (EXISTING) ---
 app.post('/submit-application', (req, res) => {
     upload(req, res, (err) => {
         const uploadedFiles = req.files || {};
@@ -186,7 +258,7 @@ app.post('/submit-application', (req, res) => {
     });
 });
 
-// --- 2. ADMIN: Get all applications ---
+// --- 2. ADMIN: Get all applications (EXISTING) ---
 app.get('/get-applications', (req, res) => {
     const sql = 'SELECT id, first_name, last_name, email, grade_level, status, created_at FROM applications ORDER BY created_at DESC';
     db.query(sql, (err, results) => {
@@ -198,29 +270,32 @@ app.get('/get-applications', (req, res) => {
     });
 });
 
-// --- 3. ADMIN: Update Application Status (INTEGRATED EMAIL SENDER) ---
+// --- 3. ADMIN: Update Application Status (MODIFIED) ---
 app.post('/update-application-status', (req, res) => {
     const { applicationId, newStatus } = req.body;
 
-    const updateStatus = (successMessage) => { 
+    const updateStatus = (successMessage, credentials = null) => { 
         db.query('UPDATE applications SET status = ? WHERE id = ?', [newStatus, applicationId], (err) => {
             if (err) {
                 console.error('DB Error updating status:', err);
                 return res.status(500).json({ success: false, message: 'Failed to update application status.' });
             }
-             if (newStatus === 'Approved') {
-                db.query('SELECT username, password FROM users WHERE application_id = ?', [applicationId], (err, users) => {
-                    if (err || users.length === 0) return res.json({ success: true, message: successMessage });
-                    res.json({ 
-                        success: true, 
-                        message: successMessage,
-                        student_username: users[0].username,
-                        student_password: users[0].password 
-                    });
+            
+            io.to(`user-${applicationId}`).emit('statusUpdated', { 
+                newStatus: newStatus,
+                message: "Your application status has been updated!"
+            });
+
+            // Return credentials only if they were generated/retrieved
+            if (credentials) {
+                return res.json({ 
+                    success: true, 
+                    message: successMessage,
+                    student_username: credentials.username,
+                    student_password: credentials.password 
                 });
-            } else {
-                res.json({ success: true, message: `Application status set to ${newStatus}.` });
             }
+            res.json({ success: true, message: successMessage });
         });
     };
 
@@ -231,39 +306,27 @@ app.post('/update-application-status', (req, res) => {
             
             const app = apps[0];
             
-            // --- USERNAME & PASSWORD LOGIC ---
-            const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toLowerCase() : '';
-
-            const firstNameInitials = getInitials(app.first_name);
-            const middleNameInitials = getInitials(app.middle_name);
-            const formattedLastName = (app.last_name || '').toLowerCase().replace(/ /g, '');
-            
-            const username = `${firstNameInitials}${middleNameInitials}${formattedLastName}@dtahs.edu.ph`;
-            const password = 'password123'; 
-            // --- END LOGIC ---
-
-            // Insert user credentials
-            db.query('INSERT INTO users (username, password, application_id) VALUES (?, ?, ?)',
-                [username, password, applicationId], async (insertErr) => { 
-                if (insertErr) {
-                    console.error('User creation failed (likely duplicate):', insertErr);
+            // 1. Create or Get Credentials
+            createOrGetCredentials(app, async (credErr, credentials) => {
+                if (credErr) {
+                    return res.status(500).json({ success: false, message: 'Failed to generate/retrieve credentials.' });
                 }
-                
-                // --- NEW: SEND EMAIL ---
+
+                // 2. Send Email (uses generated/existing credentials)
                 const emailResult = await sendCredentialsEmail(
                     app.email, 
                     app.first_name, 
-                    username, 
-                    password
+                    credentials.username, 
+                    credentials.password
                 );
                 
-                let successMessage = `Application ${newStatus}.`;
+                let successMessage = `Application Approved.`;
                 if (!emailResult.success) {
-                    successMessage += ` WARNING: Failed to send credentials email (Check server console for details).`;
+                    successMessage += ` WARNING: Failed to send credentials email (Check server console).`;
                 }
-
-                // Update status and send final response using the result message
-                updateStatus(successMessage);
+                
+                // 3. Update status and respond
+                updateStatus(successMessage, credentials);
             });
         });
     } else {
@@ -271,32 +334,39 @@ app.post('/update-application-status', (req, res) => {
     }
 });
 
-// --- 4. ADMIN: Get Application Details ---
+// --- 4. ADMIN: Get Application Details (MODIFIED - FIXED) ---
 app.get('/get-application-details/:id', (req, res) => {
     const applicationId = req.params.id;
-    const applicationQuery = 'SELECT * FROM applications WHERE id = ?';
     
-    db.query(applicationQuery, [applicationId], (err, apps) => {
-        if (err) return res.status(500).json({ success: false, message: 'Server error.' });
-        if (apps.length === 0) return res.json({ success: false, message: 'Application not found.' });
-
-        const app = apps[0];
-        if (app.status === 'Approved') {
-            const userQuery = 'SELECT username, password FROM users WHERE application_id = ?';
-            db.query(userQuery, [applicationId], (userErr, users) => {
-                if (users.length > 0) {
-                    app.student_username = users[0].username;
-                    app.student_password = users[0].password;
-                }
-                res.json({ success: true, application: app });
-            });
-        } else {
-            res.json({ success: true, application: app });
+    // Select the hash instead of the password
+    const sql = `
+        SELECT 
+            a.*, u.username AS student_username, u.password AS student_password
+        FROM applications a 
+        LEFT JOIN users u ON a.id = u.application_id
+        WHERE a.id = ?`;
+    
+    db.query(sql, [applicationId], (err, results) => {
+        if (err) {
+            // FIX: Log the specific database error to the server console
+            console.error('DB ERROR fetching application details:', err); 
+            return res.status(500).json({ success: false, message: 'Server error.' });
         }
+        if (results.length === 0) return res.json({ success: false, message: 'Application not found.' });
+
+        const app = results[0];
+        
+        // CRUCIAL: Set student_password to the plain text value 'password123' 
+        // if the password_hash exists, for display purposes only.
+        if (app.student_username) {
+            app.student_password = 'password123';
+        }
+
+        res.json({ success: true, application: app });
     });
 });
 
-// --- 5. ADMIN: Delete Application ---
+// --- 5. ADMIN: Delete Application (EXISTING) ---
 app.post('/delete-application', (req, res) => {
     const { applicationId } = req.body;
 
@@ -310,7 +380,6 @@ app.post('/delete-application', (req, res) => {
             db.query('DELETE FROM applications WHERE id = ?', [applicationId], (appErr, result) => {
                 if (appErr) return res.status(500).json({ success: false, message: 'Failed to delete application.' });
                 
-                // Delete files (using safe cleanup helper)
                 const filesToDelete = [app.doc_card_path, app.doc_psa_path, app.doc_f137_path, app.doc_brgy_cert_path];
                 cleanupFiles(filesToDelete);
                 
@@ -320,17 +389,39 @@ app.post('/delete-application', (req, res) => {
     });
 });
 
-// --- 6. ADMIN: Login ---
+// --- 6. ADMIN: SECURE LOGIN (USING BCRYPT) ---
 app.post('/admin-login', (req, res) => {
     const { username, password } = req.body;
-    if (username === 'admin' && password === 'admin123') {
-        res.json({ success: true });
-    } else {
-        res.status(401).json({ success: false, message: 'Wrong admin credentials.' });
+
+    if (!username || !password) {
+        return res.status(400).json({ success: false, message: 'Please provide both credentials.' });
     }
+
+    const sql = 'SELECT password FROM admins WHERE username = ?';
+    
+    db.query(sql, [username], async (err, results) => {
+        if (err) {
+            console.error('Admin Login DB Error:', err);
+            return res.status(500).json({ success: false, message: 'Server database error.' });
+        }
+
+        if (results.length === 0) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+        }
+
+        const hashedPassword = results[0].password;
+        
+        const match = await bcrypt.compare(password, hashedPassword);
+
+        if (match) {
+            res.json({ success: true });
+        } else {
+            res.status(401).json({ success: false, message: 'Invalid credentials.' });
+        }
+    });
 });
 
-// --- 7. NEW: STUDENT LOGIN ---
+// --- 7. STUDENT LOGIN (MODIFIED - Using bcrypt) ---
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
@@ -338,9 +429,10 @@ app.post('/login', (req, res) => {
         return res.status(400).json({ success: false, message: 'Please enter username and password.' });
     }
 
-    const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
+    // Retrieve the stored hash and application ID from the users table.
+    const sql = 'SELECT u.application_id, u.password FROM users u WHERE u.username = ?';
     
-    db.query(sql, [username, password], (err, users) => {
+    db.query(sql, [username], async (err, users) => {
         if (err) {
             console.error('Student Login DB Error:', err);
             return res.status(500).json({ success: false, message: 'Server database error.' });
@@ -351,8 +443,19 @@ app.post('/login', (req, res) => {
         }
 
         const user = users[0];
+        const storedHash = user.password;
         
-        // User found, now get their application data
+        // CRUCIAL: Compare the provided password against the stored hash.
+        const match = await bcrypt.compare(password, storedHash);
+
+        if (!match) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
+        }
+        
+        // Check for first login by comparing the plaintext temporary password against the hash.
+        const temporaryPassword = 'password123';
+        const isFirstLogin = await bcrypt.compare(temporaryPassword, storedHash);
+
         const appSql = 'SELECT * FROM applications WHERE id = ?';
         db.query(appSql, [user.application_id], (appErr, applications) => {
             if (appErr || applications.length === 0) {
@@ -360,15 +463,19 @@ app.post('/login', (req, res) => {
             }
             
             const applicationData = applications[0];
-            applicationData.username = user.username;
-            applicationData.password = user.password; 
+            applicationData.username = username;
+            applicationData.password = password; // Temporarily include plain password for client-side state
 
-            res.json({ success: true, application: applicationData });
+            res.json({ 
+                success: true, 
+                application: applicationData,
+                firstLogin: isFirstLogin 
+            });
         });
     });
 });
 
-// --- 8. GET ANNOUNCEMENTS (for Dashboard) ---
+// --- 8. GET ANNOUNCEMENTS (EXISTING) ---
 app.get('/get-announcements', (req, res) => {
     const sql = 'SELECT id, title, content FROM announcements ORDER BY created_at DESC'; 
     db.query(sql, (err, results) => {
@@ -379,27 +486,85 @@ app.get('/get-announcements', (req, res) => {
     });
 });
 
-// --- 9. CHANGE PASSWORD (for Dashboard) ---
+// --- 9. CHANGE PASSWORD (MODIFIED - Using bcrypt) ---
 app.post('/change-password', (req, res) => {
     const { applicationId, currentPassword, newPassword } = req.body;
 
-    const checkSql = 'SELECT * FROM users WHERE application_id = ? AND password = ?';
-    db.query(checkSql, [applicationId, currentPassword], (checkErr, users) => {
+    // 1. Fetch the stored hash
+    const checkSql = 'SELECT password FROM users WHERE application_id = ?';
+    db.query(checkSql, [applicationId], async (checkErr, users) => {
         if (checkErr) return res.status(500).json({ success: false, message: 'Database error.' });
+        if (users.length === 0) return res.status(404).json({ success: false, message: 'User not found.' });
+        
+        const storedHash = users[0].password;
 
-        if (users.length === 0) {
+        // 2. Compare the current password against the stored hash
+        const match = await bcrypt.compare(currentPassword, storedHash);
+        
+        if (!match) {
             return res.status(401).json({ success: false, message: 'Your current password was incorrect.' });
         }
 
-        const updateSql = 'UPDATE users SET password = ? WHERE application_id = ?';
-        db.query(updateSql, [newPassword, applicationId], (updateErr, result) => {
-            if (updateErr) return res.status(500).json({ success: false, message: 'Failed to update password.' });
-            res.json({ success: true, message: 'Password updated successfully.' });
+        // 3. Hash the new password
+        bcrypt.hash(newPassword, 10, (hashErr, newPasswordHash) => {
+            if (hashErr) return res.status(500).json({ success: false, message: 'Failed to hash new password.' });
+
+            // 4. Update the hash in the database
+            const updateSql = 'UPDATE users SET password = ? WHERE application_id = ?';
+            db.query(updateSql, [newPasswordHash, applicationId], (updateErr, result) => {
+                if (updateErr) return res.status(500).json({ success: false, message: 'Failed to update password.' });
+                res.json({ success: true, message: 'Password updated successfully.' });
+            });
         });
     });
 });
 
-// --- 10. ADMIN CREATE ANNOUNCEMENT ---
+// --- 15. ADMIN: Send Credentials Only (Provisional Access) ---
+app.post('/generate-credentials', (req, res) => {
+    const { applicationId } = req.body;
+
+    db.query('SELECT * FROM applications WHERE id = ?', [applicationId], async (err, apps) => { 
+        if (err) return res.status(500).json({ success: false, message: 'Server error while fetching app data.' });
+        if (apps.length === 0) return res.json({ success: false, message: 'Application not found.' });
+        
+        const app = apps[0];
+
+        if (app.status === 'Approved') {
+             return res.json({ success: false, message: 'Application is already approved. Credentials should already exist.' });
+        }
+        
+        // 1. Create or Get Credentials
+        createOrGetCredentials(app, async (credErr, credentials) => {
+            if (credErr) {
+                console.error('Final attempt to create credentials failed:', credErr);
+                return res.status(500).json({ success: false, message: 'Failed to generate/retrieve credentials.' });
+            }
+
+            // 2. Send Email
+            const emailResult = await sendCredentialsEmail(
+                app.email, 
+                app.first_name, 
+                credentials.username, 
+                credentials.password
+            );
+            
+            let successMessage = `Provisional credentials generated and sent to ${app.email}. Status remains ${app.status}.`;
+            if (!emailResult.success) {
+                successMessage = `Credentials generated but FAILED to send email. Check server logs.`;
+            }
+            
+            res.json({ 
+                success: true, 
+                message: successMessage,
+                student_username: credentials.username,
+                student_password: credentials.password 
+            });
+        });
+    });
+});
+
+
+// --- 10 & 11 (Existing Announcement Endpoints) ---
 app.post('/create-announcement', (req, res) => {
     const { title, content } = req.body;
     
@@ -418,7 +583,6 @@ app.post('/create-announcement', (req, res) => {
     });
 });
 
-// --- 11. ADMIN DELETE ANNOUNCEMENT (New Endpoint) ---
 app.post('/delete-announcement', (req, res) => {
     const { announcementId } = req.body;
     
@@ -444,6 +608,6 @@ app.post('/delete-announcement', (req, res) => {
 
 
 // --- START SERVER ---
-app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+server.listen(PORT, () => {
+    console.log(`🚀 Server (and Socket.IO) is running on http://localhost:${PORT}`);
 });
