@@ -25,7 +25,7 @@ const io = new Server(server, { 
 });
 
 // =========================================================================
-//                             MIDDLEWARE
+//                             MIDDLEWARE & AUTH
 // =========================================================================
 
 app.use((req, res, next) => {
@@ -58,22 +58,53 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// --- REVERTED: MySQL Connection (Uses DB_HOST/USER/PASS) ---
-const db = mysql.createConnection({
-    host: process.env.DB_HOST, 
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE
-});
+// =========================================================================
+//                  CRITICAL FIX: DATABASE CONNECTION RETRY LOGIC
+// =========================================================================
 
-db.connect((err) => {
-    if (err) {
-        console.error('❌ MySQL connection failed:', err);
-        process.exit(1);
-    }
-    console.log('✅ Successfully Connected to MySQL database');
-});
+const MAX_RETRIES = 10;
+const RETRY_DELAY_MS = 2500; // 2.5 seconds
 
+function attemptDbConnection(retryCount = 0) {
+    // 1. Create a FRESH connection object for each attempt
+    const db = mysql.createConnection({
+        host: process.env.DB_HOST, 
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_DATABASE
+    });
+
+    db.connect((err) => {
+        if (!err) {
+            console.log(`✅ Successfully Connected to MySQL database on attempt ${retryCount + 1}`);
+            // 2. If connection succeeds, START THE SERVER!
+            server.listen(PORT, () => {
+                console.log(`🚀 Server (and Socket.IO) is running on http://localhost:${PORT}`);
+            });
+            return; // EXIT FUNCTION
+        }
+
+        // 3. Handle connection failure (ENOTFOUND, ECONNREFUSED, etc.)
+        console.error(`❌ MySQL connection failed on attempt ${retryCount + 1}. Error: ${err.code}`);
+        
+        if (retryCount < MAX_RETRIES) {
+            console.log(`Retrying connection in ${RETRY_DELAY_MS / 1000} seconds...`);
+            setTimeout(() => {
+                attemptDbConnection(retryCount + 1);
+            }, RETRY_DELAY_MS);
+        } else {
+            console.error(`🛑 Failed to connect to MySQL after ${MAX_RETRIES} attempts. Server will not start.`);
+            process.exit(1);
+        }
+    });
+}
+
+// 4. Start the connection process (The server will now be started inside the successful db.connect block)
+attemptDbConnection();
+
+// =========================================================================
+//                  MULTER SETUP (UNCHANGED)
+// =========================================================================
 
 // --- Create uploads folder ---
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
@@ -120,8 +151,9 @@ const cleanupFiles = (files) => {
     });
 };
 
-// --- Reusable Function to Generate/Insert User Credentials (REVERTED) ---
+// --- Reusable Function to Generate/Insert User Credentials (UNCHANGED) ---
 const createOrGetCredentials = (app, callback) => {
+    // NOTE: This function requires a working 'db' connection, which is now handled by the retry logic
     // Select the hash to check if the user already exists.
     db.query('SELECT username, password FROM users WHERE application_id = ?', [app.id], (checkErr, existingUsers) => { 
         if (checkErr) {
@@ -168,7 +200,7 @@ const createOrGetCredentials = (app, callback) => {
 };
 
 
-// --- Email Sender Functions (EXISTING) ---
+// --- Email Sender Functions (UNCHANGED) ---
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
     const mailOptions = {
@@ -216,7 +248,7 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
 }
 
 
-// === SOCKET.IO CONNECTION LOGIC (EXISTING) ===
+// === SOCKET.IO CONNECTION LOGIC (UNCHANGED) ===
 io.on('connection', (socket) => {
   console.log('A user connected with socket ID:', socket.id);
 
@@ -232,10 +264,10 @@ io.on('connection', (socket) => {
 
 
 // =========================================================================
-//                             API ENDPOINTS
+//                             API ENDPOINTS (UNCHANGED)
 // =========================================================================
 
-// --- 1. STUDENT: Application Submission (REVERTED) ---
+// --- 1. STUDENT: Application Submission ---
 app.post('/submit-application', (req, res) => {
     upload(req, res, (err) => {
         const uploadedFiles = req.files || {};
@@ -279,7 +311,7 @@ app.post('/submit-application', (req, res) => {
     });
 });
 
-// --- 2. ADMIN: Get all applications (REVERTED) ---
+// --- 2. ADMIN: Get all applications ---
 app.get('/get-applications', (req, res) => {
     const sql = 'SELECT id, first_name, last_name, email, grade_level, status, created_at FROM applications ORDER BY created_at DESC';
     db.query(sql, (err, results) => {
@@ -291,7 +323,7 @@ app.get('/get-applications', (req, res) => {
     });
 });
 
-// --- 3. ADMIN: Update Application Status (REVERTED) ---
+// --- 3. ADMIN: Update Application Status ---
 app.post('/update-application-status', (req, res) => {
     const { applicationId, newStatus } = req.body;
 
