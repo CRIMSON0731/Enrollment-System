@@ -26,10 +26,18 @@ function showNotification(message, type) {
     notification.classList.remove('show');
   }, 3000);
 }
+checkAdminAuthentication(); 
+function loadAdminContent() {
+    // THIS function runs ONLY IF the check passes
+    addLogoutListener();
+    addTabListeners();
+    // ... all other loading functions ...
+    simulateDataLoad();
+}
+
 
 // Run this code when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    checkAdminAuthentication(); // <--- CALLS THE CHECK FIRST
+document.addEventListener('DOMContentLoaded', () => {// <--- CALLS THE CHECK FIRST
     addFilterListeners(); 
     addSortListeners(); 
     addModalListeners(); 
@@ -38,14 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // NEW: Call the animation function after a slight pause
     setTimeout(animateQuickStats, 500); 
 });
-
-function loadAdminContent() {
-    // THIS function runs ONLY IF the check passes
-    addLogoutListener();
-    addTabListeners();
-    // ... all other loading functions ...
-    simulateDataLoad();
-}
 
 // --- NEW: Function to animate stat cards on load ---
 function animateQuickStats() {
