@@ -21,10 +21,30 @@ const io = new Server(server, { 
     }
 });
 
-// --- Middleware ---
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// =========================================================================
+//                             MIDDLEWARE (FIXED)
+// =========================================================================
+
+// CRITICAL FIX 1: Add manual CORS headers to ensure the browser accepts cross-origin requests
+// Allowing the GitHub Pages domain to access the API explicitly
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://crimson0731.github.io'); // Explicitly allows your GitHub Pages domain
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    // Handle pre-flight requests (necessary for POST and file upload requests)
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
+// CRITICAL FIX 2: Increase payload limits for Express/Node.js to handle file uploads
+app.use(express.json({ limit: '50mb' })); // Increased JSON body limit
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Increased URL-encoded body limit
+
+app.use(cors()); // Keep the basic cors call
+
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
 
@@ -39,7 +59,7 @@ const transporter = nodemailer.createTransport({
 
 // --- MySQL Connection ---
 const db = mysql.createConnection({
-    host: process.env.DB_HOST, // <--- THE CRITICAL COMMA IS HERE
+    host: process.env.DB_HOST, 
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE
