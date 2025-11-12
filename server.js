@@ -62,21 +62,25 @@ const transporter = nodemailer.createTransport({
 //                  CRITICAL FIX: DATABASE CONNECTION RETRY LOGIC
 // =========================================================================
 
+// Global variable to hold the active connection once established
+let db; 
 const MAX_RETRIES = 10;
 const RETRY_DELAY_MS = 2500; // 2.5 seconds
 
 function attemptDbConnection(retryCount = 0) {
     // 1. Create a FRESH connection object for each attempt
-    const db = mysql.createConnection({
+    const connection = mysql.createConnection({
         host: process.env.DB_HOST, 
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_DATABASE
     });
 
-    db.connect((err) => {
+    connection.connect((err) => {
         if (!err) {
+            db = connection; // Set the global db object for use in endpoints
             console.log(`✅ Successfully Connected to MySQL database on attempt ${retryCount + 1}`);
+            
             // 2. If connection succeeds, START THE SERVER!
             server.listen(PORT, () => {
                 console.log(`🚀 Server (and Socket.IO) is running on http://localhost:${PORT}`);
@@ -89,6 +93,8 @@ function attemptDbConnection(retryCount = 0) {
         
         if (retryCount < MAX_RETRIES) {
             console.log(`Retrying connection in ${RETRY_DELAY_MS / 1000} seconds...`);
+            // Destroy connection object before retrying
+            connection.destroy();
             setTimeout(() => {
                 attemptDbConnection(retryCount + 1);
             }, RETRY_DELAY_MS);
@@ -99,11 +105,11 @@ function attemptDbConnection(retryCount = 0) {
     });
 }
 
-// 4. Start the connection process (The server will now be started inside the successful db.connect block)
+// 4. Start the connection process
 attemptDbConnection();
 
 // =========================================================================
-//                  MULTER SETUP (UNCHANGED)
+//                  MULTER SETUP & API ENDPOINTS (UNCHANGED)
 // =========================================================================
 
 // --- Create uploads folder ---
@@ -153,7 +159,7 @@ const cleanupFiles = (files) => {
 
 // --- Reusable Function to Generate/Insert User Credentials (UNCHANGED) ---
 const createOrGetCredentials = (app, callback) => {
-    // NOTE: This function requires a working 'db' connection, which is now handled by the retry logic
+    // NOTE: This function requires a working 'db' connection, which is now guaranteed by the retry logic
     // Select the hash to check if the user already exists.
     db.query('SELECT username, password FROM users WHERE application_id = ?', [app.id], (checkErr, existingUsers) => { 
         if (checkErr) {
@@ -264,7 +270,7 @@ io.on('connection', (socket) => {
 
 
 // =========================================================================
-//                             API ENDPOINTS (UNCHANGED)
+//                             API ENDPOINTS (REST OF FILE UNCHANGED)
 // =========================================================================
 
 // --- 1. STUDENT: Application Submission ---
@@ -387,7 +393,7 @@ app.post('/update-application-status', (req, res) => {
     }
 });
 
-// --- 4. ADMIN: Get Application Details (REVERTED) ---
+// --- 4. ADMIN: Get Application Details (UNCHANGED) ---
 app.get('/get-application-details/:id', (req, res) => {
     const applicationId = req.params.id;
     
@@ -418,7 +424,7 @@ app.get('/get-application-details/:id', (req, res) => {
     });
 });
 
-// --- 5. ADMIN: Delete Application (REVERTED) ---
+// --- 5. ADMIN: Delete Application (UNCHANGED) ---
 app.post('/delete-application', (req, res) => {
     const { applicationId } = req.body;
 
@@ -441,7 +447,7 @@ app.post('/delete-application', (req, res) => {
     });
 });
 
-// --- 6. ADMIN: SECURE LOGIN (REVERTED) ---
+// --- 6. ADMIN: SECURE LOGIN (UNCHANGED) ---
 app.post('/admin-login', (req, res) => {
     const { username, password } = req.body;
 
@@ -473,7 +479,7 @@ app.post('/admin-login', (req, res) => {
     });
 });
 
-// --- 7. STUDENT LOGIN (REVERTED) ---
+// --- 7. STUDENT LOGIN (UNCHANGED) ---
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
@@ -527,7 +533,7 @@ app.post('/login', (req, res) => {
     });
 });
 
-// --- 8. GET ANNOUNCEMENTS (REVERTED) ---
+// --- 8. GET ANNOUNCEMENTS (UNCHANGED) ---
 app.get('/get-announcements', (req, res) => {
     const sql = 'SELECT id, title, content FROM announcements ORDER BY created_at DESC'; 
     db.query(sql, (err, results) => {
@@ -538,7 +544,7 @@ app.get('/get-announcements', (req, res) => {
     });
 });
 
-// --- 9. CHANGE PASSWORD (REVERTED) ---
+// --- 9. CHANGE PASSWORD (UNCHANGED) ---
 app.post('/change-password', (req, res) => {
     const { applicationId, currentPassword, newPassword } = req.body;
 
@@ -571,7 +577,7 @@ app.post('/change-password', (req, res) => {
     });
 });
 
-// --- 15. ADMIN: Send Credentials Only (REVERTED) ---
+// --- 15. ADMIN: Send Credentials Only (UNCHANGED) ---
 app.post('/generate-credentials', (req, res) => {
     const { applicationId } = req.body;
 
@@ -659,7 +665,4 @@ app.post('/delete-announcement', (req, res) => {
 });
 
 
-// --- START SERVER ---
-server.listen(PORT, () => {
-    console.log(`🚀 Server (and Socket.IO) is running on http://localhost:${PORT}`);
-});
+// --- END OF FILE ---
