@@ -63,38 +63,39 @@ const transporter = nodemailer.createTransport({
 // =========================================================================
 
 // Global variable to hold the active connection once established
-let db; 
-const MAX_RETRIES = 10;
-const RETRY_DELAY_MS = 2500; // 2.5 seconds
-
 function attemptDbConnection(retryCount = 0) {
-    // 1. Create a FRESH connection object for each attempt
-    const connection = mysql.createConnection({
-        host: process.env.DB_HOST, 
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_DATABASE
+    // 1. Create a connection pool
+    const pool = mysql.createPool({
+        host: process.env.MYSQLHOST,
+        port: process.env.MYSQLPORT || 3306,
+        user: process.env.MYSQLUSER,
+        password: process.env.MYSQLPASSWORD,
+        database: process.env.MYSQLDATABASE,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        connectTimeout: 60000
     });
 
-    connection.connect((err) => {
+    // 2. Test the connection
+    pool.query('SELECT 1', (err) => {
         if (!err) {
-            db = connection; // Set the global db object for use in endpoints
+            db = pool; // Set the global db object
             console.log(`✅ Successfully Connected to MySQL database on attempt ${retryCount + 1}`);
             
-            // 2. If connection succeeds, START THE SERVER!
+            // 3. Start the server
             server.listen(PORT, () => {
                 console.log(`🚀 Server (and Socket.IO) is running on http://localhost:${PORT}`);
             });
-            return; // EXIT FUNCTION
+            return;
         }
 
-        // 3. Handle connection failure (ENOTFOUND, ECONNREFUSED, etc.)
+        // 4. Handle connection failure
         console.error(`❌ MySQL connection failed on attempt ${retryCount + 1}. Error: ${err.code}`);
         
         if (retryCount < MAX_RETRIES) {
             console.log(`Retrying connection in ${RETRY_DELAY_MS / 1000} seconds...`);
-            // Destroy connection object before retrying
-            connection.destroy();
+            pool.end(); // Close the pool before retrying
             setTimeout(() => {
                 attemptDbConnection(retryCount + 1);
             }, RETRY_DELAY_MS);
