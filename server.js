@@ -106,6 +106,14 @@ function attemptDbConnection(retryCount = 0) {
     });
 }
 
+console.log('🔍 Connection Config:', {
+    host: process.env.MYSQLHOST,
+    port: process.env.MYSQLPORT,
+    user: process.env.MYSQLUSER,
+    database: process.env.MYSQLDATABASE,
+    hasPassword: !!process.env.MYSQLPASSWORD
+});
+
 // 4. Start the connection process
 attemptDbConnection();
 
