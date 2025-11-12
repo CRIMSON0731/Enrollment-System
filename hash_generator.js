@@ -1,17 +1,17 @@
 const bcrypt = require('bcryptjs');
 
-// --- SET YOUR DESIRED ADMIN PASSWORD HERE ---
-const plainPassword = 'YourSecureAdminPassword'; 
-// -------------------------------------------
+// --- NEW PASSWORD TO USE ---
+const plainPassword = 'admin123'; 
+// ---------------------------
 
-const saltRounds = 10; // The standard number of rounds for security
+const saltRounds = 10; 
 
 bcrypt.hash(plainPassword, saltRounds, (err, hash) => {
     if (err) {
         console.error('Error generating hash:', err);
         return;
     }
-    console.log('--- YOUR NEW ADMIN PASSWORD HASH ---');
+    console.log('--- NEW ADMIN HASH FOR "admin123" ---');
     console.log(hash);
     console.log('------------------------------------');
 });
