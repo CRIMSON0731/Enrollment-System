@@ -35,16 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await response.json();
 
-      if (data.success) {
-        // --- REPLACED! ---
-        // Old: alert('Admin login successful!');
-        showNotification('Admin login successful!', 'success');
-        
-        // Redirect AFTER the notification is seen
-        setTimeout(() => {
-          window.location.href = 'admin.html';
-        }, 1000); // Wait 1 second before redirecting
-
+      // Inside the function that handles the /admin-login POST response:
+if (data.success) {
+    // CRITICAL: Set the token flag upon successful login
+    localStorage.setItem('adminToken', 'true'); 
+    
+    // Then redirect to the admin panel
+    window.location.href = 'admin.html';
+}
       } else {
         // --- REPLACED! ---
         // Old: errorMessage.textContent = data.message;
