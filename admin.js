@@ -31,10 +31,9 @@ function showNotification(message, type) {
 }
 
 // =========================================================================
-//                             SECURITY ENFORCEMENT FUNCTIONS
+//                             SECURITY ENFORCEMENT FUNCTIONS (DEFINED EARLY)
 // =========================================================================
 
-// Must be defined BEFORE being called by DOMContentLoaded (Fixes ReferenceError)
 function getAdminToken() {
     // Retrieves the simple token (or flag) set during login.
     return localStorage.getItem('adminToken');
@@ -67,8 +66,9 @@ function loadAdminContent() {
     setTimeout(animateQuickStats, 500); 
 }
 
+
 // =========================================================================
-//                             EVENT EXECUTION
+//                             EVENT EXECUTION (CALLS SECURITY FIRST)
 // =========================================================================
 
 // This is the first thing that runs; it immediately calls the security check.
@@ -495,7 +495,7 @@ async function showApplicationDetails(appId) {
     modalSendCredentialsBtn.setAttribute('data-id', appId); // NEW: Set ID
 
     try {
-        const response = await fetch(`https://enrollment-system-production-b592.up.railway.app/get-application-details/${appId}`);
+        const response = await fetch(`${SERVER_URL}/get-application-details/${appId}`);
         const data = await response.json();
 
         if (!data.success) {
@@ -505,7 +505,7 @@ async function showApplicationDetails(appId) {
 
         const fullApp = data.application;
         const birthdate = new Date(fullApp.birthdate || fullApp.bday || '2000-01-01').toLocaleDateString();
-        const serverUrl = 'https://enrollment-system-production-b592.up.railway.app'; 
+        const serverUrl = SERVER_URL; 
 
         const isApproved = fullApp.status === 'Approved';
         const hasCredentials = !!fullApp.student_username; // Check if credentials exist
@@ -575,7 +575,7 @@ async function updateStatus(applicationId, newStatus) {
     const originalStatus = allApplications[appIndex].status;
 
     try {
-        const response = await fetch('https://enrollment-system-production-b592.up.railway.app/update-application-status', {
+        const response = await fetch(`${SERVER_URL}/update-application-status`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ applicationId, newStatus })
