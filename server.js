@@ -21,10 +21,6 @@ const io = new Server(server, { 
     }
 });
 
-// =========================================================================
-//                             MIDDLEWARE (FIXED)
-// =========================================================================
-
 // CRITICAL FIX 1: Add manual CORS headers to ensure the browser accepts cross-origin requests
 // Allowing the GitHub Pages domain to access the API explicitly
 app.use((req, res, next) => {
