@@ -1,612 +1,646 @@
-// --- Imports ---
-const express = require('express');
-const http = require('http');
-const { Server } = require("socket.io");
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const cors = require('cors');
-const mysql = require('mysql2'); 
-const nodemailer = require('nodemailer'); 
-const bcrypt = require('bcryptjs'); 
+// Global variable to store all fetched applications
+let allApplications = [];
+let currentGradeLevel = '7'; 
+let currentSortKey = 'created_at'; // Default sort by submission date
+let currentSortDir = 'desc'; // Default direction is descending
 
-// --- CONFIG ---
-const PORT = process.env.PORT || 3000;
-const app = express();
-const server = http.createServer(app); 
-const io = new Server(server, { 
-    cors: {
-        origin: "*", 
-        methods: ["GET", "POST"]
-    }
+// --- SECURITY CONSTANT ---
+const SERVER_URL = 'https://enrollment-system-production-b592.up.railway.app'; // Unified Server URL
+
+// --- MODAL ELEMENTS ---
+// Get the Bootstrap Modal Instance
+const detailsModalEl = document.getElementById('details-modal');
+const detailsModal = new bootstrap.Modal(detailsModalEl); 
+const modalSendCredentialsBtn = document.getElementById('modal-send-credentials-btn'); // NEW BUTTON
+const modalApproveBtn = document.getElementById('modal-approve-btn');
+const modalRejectBtn = document.getElementById('modal-reject-btn');
+const modalDeleteBtn = document.getElementById('modal-delete-btn'); 
+
+// --- NOTIFICATION FUNCTION (EXISTING) ---
+function showNotification(message, type) {
+  const notification = document.getElementById('notification-bar');
+  if (!notification) return;
+  
+  notification.textContent = message;
+  notification.className = `notification-bar ${type}`;
+  notification.classList.add('show');
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+  }, 3000);
+}
+
+// =========================================================================
+//                             SECURITY ENFORCEMENT
+// =========================================================================
+
+function getAdminToken() {
+    // Retrieves the simple token (or flag) set during login.
+    return localStorage.getItem('adminToken');
+}
+
+async function checkAdminAuthentication() {
+    const token = getAdminToken();
+
+    if (!token) {
+        // No token found, redirect immediately
+        console.log("No admin token found. Redirecting to login.");
+        window.location.href = 'admin-login.html';
+        return;
+    }
+
+    // You would typically send the token to the server for validation here:
+    // const response = await fetch(`${SERVER_URL}/check-session`, { headers: { 'Authorization': `Bearer ${token}` } });
+    // If you haven't built a /check-session endpoint, we rely on the absence of 
+    // a successful data load below to trigger the final check. 
+
+    // For now, we rely on the token simply existing and the successful data load to proceed.
+    // If simulateDataLoad() fails later, the error handling will provide the final kick out.
+    
+    // Only proceed to load content if a token exists
+    loadAdminContent(); 
+}
+
+
+// --- RUN ON PAGE LOAD (MODIFIED) ---
+document.addEventListener('DOMContentLoaded', () => {
+    // !!! START HERE: Check authentication before loading anything else !!!
+    checkAdminAuthentication(); 
 });
 
-// --- Middleware ---
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static('uploads')); 
-app.use(express.static(__dirname)); 
 
-// --- Nodemailer Transport Configuration ---
-const transporter = nodemailer.createTransport({
-    service: 'gmail', 
-    auth: {
-        user: 'dalonzohighschool@gmail.com', 
-        pass: 'ebvhftlefruimqru' 
-    }
-});
+function loadAdminContent() {
+    // Only executes if checkAdminAuthentication finds a token
+    addLogoutListener();
+    addTabListeners();
+    addFilterListeners(); 
+    addSortListeners(); 
+    addModalListeners(); 
+    simulateDataLoad(); // This is where the application data is first fetched
+    setupAnnouncementManagement();
+    
+    // NEW: Call the animation function after a slight pause
+    setTimeout(animateQuickStats, 500); 
+}
 
-// --- MySQL Connection ---
-const db = mysql.createConnection({
-    host: process.env.DB_HOST, // COMMA ADDED: Fixes SyntaxError
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE
-});
+// =========================================================================
+//                             APPLICATION LOGIC
+// =========================================================================
 
-db.connect((err) => {
-    if (err) {
-        console.error('❌ MySQL connection failed:', err);
-        process.exit(1);
-    }
-    console.log('✅ Successfully Connected to MySQL database');
-});
 
-// --- Create uploads folder ---
-if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
-
-// --- Multer Setup (Omitted for brevity, assumed correct) ---
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
-    filename: (req, file, cb) => {
-        const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, unique + '-' + file.originalname);
-    }
-});
-
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg' || file.mimetype === 'application/pdf') {
-            cb(null, true);
-        } else {
-            cb(null, false); 
-        }
-    }
-}).fields([
-    { name: 'card_file', maxCount: 1 },
-    { name: 'psa_file', maxCount: 1 },
-    { name: 'f137_file', maxCount: 1 },
-    { name: 'brgy_cert_file', maxCount: 1 }
-]);
-
-// Helper function to delete files safely
-const cleanupFiles = (files) => {
-    files.forEach(file => {
-        if (file) {
-            try {
-                const filePath = path.join(__dirname, 'uploads', file); 
-                fs.unlinkSync(filePath); 
-            } catch (e) {
-                if (e.code !== 'ENOENT') {
-                    console.error('File Cleanup Error (Suppressed):', file, e);
-                }
-            }
-        }
+// --- NEW: Function to animate stat cards on load (EXISTING) ---
+function animateQuickStats() {
+    const statCards = document.querySelectorAll('.quick-stats .stat-card');
+    
+    statCards.forEach((card, index) => {
+        // Use a slight delay based on index for a staggered effect
+        setTimeout(() => {
+            card.classList.add('animate-in');
+        }, 150 * index); 
     });
-};
+}
 
-// --- Reusable Function to Generate/Insert User Credentials (MODIFIED) ---
-const createOrGetCredentials = (app, callback) => {
-    // Select the hash to check if the user already exists.
-    db.query('SELECT username, password FROM users WHERE application_id = ?', [app.id], (checkErr, existingUsers) => { 
-        if (checkErr) {
-            console.error('DB Error checking existing user:', checkErr);
-            return callback(checkErr);
-        }
+// --- Announcement Management Setup (EXISTING) ---
+function setupAnnouncementManagement() {
+    loadCurrentAnnouncements(); 
+    
+    const form = document.getElementById('create-announcement-form');
+    if (form) {
+      form.addEventListener('submit', handleAnnouncementSubmission);
+    }
+}
 
-        if (existingUsers.length > 0) {
-            // Return the plain-text temporary password for the email function
-            return callback(null, { 
-                username: existingUsers[0].username, 
-                password: 'password123'
-            });
-        }
-        
-        const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toLowerCase() : '';
-        const firstNameInitials = getInitials(app.first_name);
-        const middleNameInitals = getInitials(app.middle_name);
-        const formattedLastName = (app.last_name || '').toLowerCase().replace(/ /g, '');
-        const username = `${firstNameInitials}${middleNameInitals}${formattedLastName}@dtahs.edu.ph`;
-        const plainPassword = 'password123'; 
-
-        // CRUCIAL: Hash the password before insertion
-        bcrypt.hash(plainPassword, 10, (hashErr, passwordHash) => {
-            if (hashErr) return callback(hashErr);
-
-            // Using password column
-            db.query('INSERT INTO users (username, password, application_id) VALUES (?, ?, ?)',
-                [username, passwordHash, app.id], (insertErr) => {
-                    if (insertErr) {
-                        if (insertErr.code === 'ER_DUP_ENTRY') {
-                            console.warn(`Duplicate entry detected for application ${app.id}. Re-querying credentials.`);
-                            return createOrGetCredentials(app, callback); 
-                        }
-                        console.error('DB INSERT Error:', insertErr);
-                        return callback(insertErr);
-                    }
-                    // Return the plain-text password for the email only
-                    callback(null, { username, password: plainPassword, isNew: true });
-                }
-            );
-        });
-    });
-};
-
-
-// --- Email Sender Functions (EXISTING) ---
-
-async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
-    const mailOptions = {
-        from: '"Doña Teodora Alonzo Highschool" <dalonzohighschool@gmail.com>',
-        to: recipientEmail,
-        subject: 'Enrollment Status & Portal Credentials',
-        html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
-                <h2>Hello, ${studentName}!</h2>
-                <p>You have been granted <b>Provisional Access</b> to the Student Portal, or your enrollment has been <b>APPROVED</b>.</p>
-                <p>Use the credentials below to access the Student Dashboard to view your status, announcements, and manage your account.</p>
-                
-                <h3 style="color: #2b7a0b;">Your Student Portal Login Details:</h3>
-                <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-                    <tr>
-                        <td style="padding: 10px; border: 1px solid #eee; background-color: #f9f9f9; width: 30%;"><strong>Username (Email):</strong></td>
-                        <td style="padding: 10px; border: 1px solid #eee;"><code>${username}</code></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px; border: 1px solid #eee; background-color: #f9f9f9;"><strong>Temporary Password:</strong></td>
-                        <td style="padding: 10px; border: 1px solid #eee;"><code>${password}</code></td>
-                    </tr>
-                </table>
-
-                <p style="color: #dc3545; font-weight: bold;">IMPORTANT SECURITY INSTRUCTIONS:</p>
-                <ol style="margin-left: 20px;">
-                    <li>Access your dashboard using the credentials above.</li>
-                    <li>You are required to change this temporary password immediately upon your first login.</li>
-                    <li>Do not share these credentials with anyone.</li>
-                </ol>
-                <p>If you have any questions, please contact the school office.</p>
-                <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
-            </div>
-        `
-    };
+// --- Load Current Announcements (EXISTING) ---
+async function loadCurrentAnnouncements() {
+    const listEl = document.getElementById('current-announcements-list');
+    listEl.innerHTML = '<li>Fetching announcements...</li>';
 
     try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Credentials email sent successfully to ${recipientEmail}`);
-        return { success: true };
+        const response = await fetch(`${SERVER_URL}/get-announcements`);
+        const data = await response.json();
+
+        if (data.success && data.announcements.length > 0) {
+            listEl.innerHTML = '';
+            data.announcements.forEach(ann => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div style="flex-grow: 1;">
+                        <strong>${ann.title}</strong>
+                    </div>
+                    <button class="action-btn-danger delete-ann-btn" data-id="${ann.id}">Delete</button>
+                `;
+                li.style.display = 'flex';
+                li.style.justifyContent = 'space-between';
+                li.style.alignItems = 'center';
+                listEl.appendChild(li);
+            });
+            addAnnouncementDeleteListeners(); 
+        } else {
+            listEl.innerHTML = '<li>No announcements have been published yet.</li>';
+        }
     } catch (error) {
-        console.error(`Failed to send credentials email to ${recipientEmail}:`, error);
-        return { success: false, error: error.message };
+        listEl.innerHTML = '<li>Error loading announcements from server.</li>';
+    }
+}
+
+// --- Attaches click listeners to Delete buttons (EXISTING) ---
+function addAnnouncementDeleteListeners() {
+    document.querySelectorAll('.delete-ann-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const annId = e.target.getAttribute('data-id');
+            if (confirm('Are you sure you want to permanently delete this announcement?')) {
+                deleteAnnouncement(annId);
+            }
+        });
+    });
+}
+
+// --- Sends the delete request to the server (EXISTING) ---
+async function deleteAnnouncement(announcementId) {
+    try {
+        const response = await fetch(`${SERVER_URL}/delete-announcement`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ announcementId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            loadCurrentAnnouncements(); 
+        } else {
+            showNotification(`Deletion Error: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Failed to delete announcement.', 'error');
+    }
+}
+
+// --- Handle Announcement Submission (EXISTING) ---
+async function handleAnnouncementSubmission(e) {
+    e.preventDefault();
+    const form = e.target;
+    const title = document.getElementById('announcement-title').value;
+    const content = document.getElementById('announcement-content').value;
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    submitBtn.textContent = 'Publishing...';
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${SERVER_URL}/create-announcement`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            form.reset();
+            loadCurrentAnnouncements(); 
+        } else {
+            showNotification(`Error: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Failed to publish announcement.', 'error');
+    } finally {
+        submitBtn.textContent = 'Publish Announcement';
+        submitBtn.disabled = false;
     }
 }
 
 
-// === SOCKET.IO CONNECTION LOGIC (EXISTING) ===
-io.on('connection', (socket) => {
-  console.log('A user connected with socket ID:', socket.id);
-
-  socket.on('registerUser', (applicationId) => {
-    socket.join(`user-${applicationId}`);
-    console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('A user disconnected');
-  });
-});
-
-
-// =========================================================================
-//                             API ENDPOINTS
-// =========================================================================
-
-// --- 1. STUDENT: Application Submission (EXISTING) ---
-app.post('/submit-application', (req, res) => {
-    upload(req, res, (err) => {
-        const uploadedFiles = req.files || {};
-        const fileNames = Object.values(uploadedFiles).flat().map(f => f.filename).filter(n => n); 
-
-        if (err instanceof multer.MulterError) {
-            console.error('Multer Error:', err.code, err.message);
-            cleanupFiles(fileNames);
-            return res.status(400).json({ success: false, message: 'File upload error: ' + err.message });
-        } else if (err) {
-            console.error('Server Error during upload:', err);
-            cleanupFiles(fileNames);
-            return res.status(500).json({ success: false, message: 'Server error during upload.' });
-        }
-        
-        const { first_name, last_name, middle_name, birthdate, email, phone_num, grade_level } = req.body;
-        
-        const card_file = uploadedFiles['card_file']?.[0]?.filename || null;
-        const psa_file = uploadedFiles['psa_file']?.[0]?.filename || null;
-        const f137_file = uploadedFiles['f137_file']?.[0]?.filename || null;
-        const brgy_cert_file = uploadedFiles['brgy_cert_file']?.[0]?.filename || null;
-        
-        if (!first_name || !email || !card_file || !psa_file || !f137_file || !brgy_cert_file) {
-            cleanupFiles(fileNames);
-            return res.status(400).json({ success: false, message: 'Missing required fields or documents.' });
-        }
-
-        const sql = `INSERT INTO applications 
-                     (first_name, last_name, middle_name, birthdate, email, phone, grade_level, status, doc_card_path, doc_psa_path, doc_f137_path, doc_brgy_cert_path) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?, ?, ?, ?)`;
-        
-        db.query(sql, [first_name, last_name, middle_name, birthdate, email, phone_num, grade_level, card_file, psa_file, f137_file, brgy_cert_file], (dbErr, result) => {
-            if (dbErr) {
-                console.error('DB Insert Error:', dbErr);
-                cleanupFiles(fileNames); 
-                return res.status(500).json({ success: false, message: 'Database error while saving application.' });
-            }
-            
-            res.json({ success: true, message: 'Application submitted successfully with ID: ' + result.insertId });
-        });
-    });
-});
-
-// --- 2. ADMIN: Get all applications (EXISTING) ---
-app.get('/get-applications', (req, res) => {
-    const sql = 'SELECT id, first_name, last_name, email, grade_level, status, created_at FROM applications ORDER BY created_at DESC';
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error('DB Error:', err);
-            return res.status(500).json({ success: false, message: 'Failed to retrieve applications.' });
-        }
-        res.json({ success: true, applications: results });
-    });
-});
-
-// --- 3. ADMIN: Update Application Status (MODIFIED) ---
-app.post('/update-application-status', (req, res) => {
-    const { applicationId, newStatus } = req.body;
-
-    const updateStatus = (successMessage, credentials = null) => { 
-        db.query('UPDATE applications SET status = ? WHERE id = ?', [newStatus, applicationId], (err) => {
-            if (err) {
-                console.error('DB Error updating status:', err);
-                return res.status(500).json({ success: false, message: 'Failed to update application status.' });
-            }
-            
-            io.to(`user-${applicationId}`).emit('statusUpdated', { 
-                newStatus: newStatus,
-                message: "Your application status has been updated!"
-            });
-
-            // Return credentials only if they were generated/retrieved
-            if (credentials) {
-                return res.json({ 
-                    success: true, 
-                    message: successMessage,
-                    student_username: credentials.username,
-                    student_password: credentials.password 
-                });
-            }
-            res.json({ success: true, message: successMessage });
-        });
-    };
-
-    if (newStatus === 'Approved') {
-        db.query('SELECT * FROM applications WHERE id = ?', [applicationId], async (err, apps) => { 
-            if (err) return res.status(500).json({ success: false, message: 'Server error while fetching app data.' });
-            if (apps.length === 0) return res.json({ success: false, message: 'Application not found.' });
-            
-            const app = apps[0];
-            
-            // 1. Create or Get Credentials
-            createOrGetCredentials(app, async (credErr, credentials) => {
-                if (credErr) {
-                    return res.status(500).json({ success: false, message: 'Failed to generate/retrieve credentials.' });
-                }
-
-                // 2. Send Email (uses generated/existing credentials)
-                const emailResult = await sendCredentialsEmail(
-                    app.email, 
-                    app.first_name, 
-                    credentials.username, 
-                    credentials.password
-                );
-                
-                let successMessage = `Application Approved.`;
-                if (!emailResult.success) {
-                    successMessage += ` WARNING: Failed to send credentials email (Check server console).`;
-                }
-                
-                // 3. Update status and respond
-                updateStatus(successMessage, credentials);
-            });
-        });
-    } else {
-        updateStatus(`Application status set to ${newStatus}.`);
-    }
-});
-
-// --- 4. ADMIN: Get Application Details (MODIFIED - FIXED) ---
-app.get('/get-application-details/:id', (req, res) => {
-    const applicationId = req.params.id;
+// --- Modal Listeners (UPDATED) ---
+function addModalListeners() {
+    // Note: Bootstrap handles modal close (click X or outside) automatically via data attributes.
     
-    // Select the hash instead of the password
-    const sql = `
-        SELECT 
-            a.*, u.username AS student_username, u.password AS student_password
-        FROM applications a 
-        LEFT JOIN users u ON a.id = u.application_id
-        WHERE a.id = ?`;
+    // NEW: Send Credentials Button Listener
+    modalSendCredentialsBtn.addEventListener('click', () => {
+        const appId = modalSendCredentialsBtn.getAttribute('data-id');
+        sendCredentialsOnly(appId);
+    });
     
-    db.query(sql, [applicationId], (err, results) => {
-        if (err) {
-            // FIX: Log the specific database error to the server console
-            console.error('DB ERROR fetching application details:', err); 
-            return res.status(500).json({ success: false, message: 'Server error.' });
-        }
-        if (results.length === 0) return res.json({ success: false, message: 'Application not found.' });
-
-        const app = results[0];
-        
-        // CRUCIAL: Set student_password to the plain text value 'password123' 
-        // if the password_hash exists, for display purposes only.
-        if (app.student_username) {
-            app.student_password = 'password123';
-        }
-
-        res.json({ success: true, application: app });
+    modalApproveBtn.addEventListener('click', () => {
+        const appId = modalApproveBtn.getAttribute('data-id');
+        updateStatus(appId, 'Approved');
     });
-});
 
-// --- 5. ADMIN: Delete Application (EXISTING) ---
-app.post('/delete-application', (req, res) => {
-    const { applicationId } = req.body;
-
-    db.query('SELECT * FROM applications WHERE id = ?', [applicationId], (findErr, apps) => {
-        if (findErr || apps.length === 0) return res.status(404).json({ success: false, message: 'Application not found.' });
-        
-        const app = apps[0];
-        db.query('DELETE FROM users WHERE application_id = ?', [applicationId], (userErr) => {
-            if (userErr) console.error('DB Error deleting user:', userErr);
-            
-            db.query('DELETE FROM applications WHERE id = ?', [applicationId], (appErr, result) => {
-                if (appErr) return res.status(500).json({ success: false, message: 'Failed to delete application.' });
-                
-                const filesToDelete = [app.doc_card_path, app.doc_psa_path, app.doc_f137_path, app.doc_brgy_cert_path];
-                cleanupFiles(filesToDelete);
-                
-                res.json({ success: true, message: 'Application and all data permanently deleted.' });
-            });
-        });
+    modalRejectBtn.addEventListener('click', () => {
+        const appId = modalRejectBtn.getAttribute('data-id');
+        updateStatus(appId, 'Rejected');
+        detailsModal.hide(); // Use Bootstrap method
     });
-});
 
-// --- 6. ADMIN: SECURE LOGIN (USING BCRYPT) ---
-app.post('/admin-login', (req, res) => {
-    const { username, password } = req.body;
+    modalDeleteBtn.addEventListener('click', () => {
+        const appId = modalDeleteBtn.getAttribute('data-id');
+        const app = allApplications.find(a => a.id == appId);
+        const appName = app ? `${app.first_name} ${app.last_name}` : `ID: ${appId}`;
 
-    if (!username || !password) {
-        return res.status(400).json({ success: false, message: 'Please provide both credentials.' });
+        if (confirm(`Are you sure you want to PERMANENTLY delete the applicant: ${appName}? This action cannot be undone.`)) {
+            deleteApplicant(appId);
+        }
+    });
+}
+
+// --- NEW: Send Credentials Only Function (Endpoint 15) ---
+async function sendCredentialsOnly(applicationId) {
+    if (!confirm('Are you sure you want to generate and send credentials? The application status will NOT be changed.')) {
+        return;
     }
 
-    const sql = 'SELECT password FROM admins WHERE username = ?';
-    
-    db.query(sql, [username], async (err, results) => {
-        if (err) {
-            console.error('Admin Login DB Error:', err);
-            return res.status(500).json({ success: false, message: 'Server database error.' });
-        }
+    modalSendCredentialsBtn.disabled = true;
+    modalSendCredentialsBtn.textContent = 'Sending...';
 
-        if (results.length === 0) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials.' });
-        }
+    try {
+        const response = await fetch(`${SERVER_URL}/generate-credentials`, { // Endpoint 15
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ applicationId })
+        });
+        const data = await response.json();
 
-        const hashedPassword = results[0].password;
-        
-        const match = await bcrypt.compare(password, hashedPassword);
-
-        if (match) {
-            res.json({ success: true });
+        if (data.success) {
+            showNotification('✅ Provisional credentials sent successfully! Status remains unchanged.', 'info');
+            // Update the local application object with new credentials
+            const appIndex = allApplications.findIndex(app => app.id == applicationId);
+            if (appIndex !== -1 && data.student_username) {
+                allApplications[appIndex].student_username = data.student_username;
+                allApplications[appIndex].student_password = data.student_password;
+            }
+            showApplicationDetails(applicationId); // Re-show modal to display credentials
         } else {
-            res.status(401).json({ success: false, message: 'Invalid credentials.' });
+            showNotification(`Error sending credentials: ${data.message}`, 'error');
         }
-    });
-});
-
-// --- 7. STUDENT LOGIN (MODIFIED - Using bcrypt) ---
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-        return res.status(400).json({ success: false, message: 'Please enter username and password.' });
+    } catch (error) {
+        console.error('Network Error sending credentials:', error);
+        showNotification('Network error. Failed to send credentials.', 'error');
+    } finally {
+        modalSendCredentialsBtn.disabled = false;
+        modalSendCredentialsBtn.textContent = 'Send Credentials (Provisional)';
     }
+}
 
-    // Retrieve the stored hash and application ID from the users table.
-    const sql = 'SELECT u.application_id, u.password FROM users u WHERE u.username = ?';
-    
-    db.query(sql, [username], async (err, users) => {
-        if (err) {
-            console.error('Student Login DB Error:', err);
-            return res.status(500).json({ success: false, message: 'Server database error.' });
-        }
 
-        if (users.length === 0) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
-        }
-
-        const user = users[0];
-        const storedHash = user.password;
+// --- Delete Applicant Function (EXISTING) ---
+async function deleteApplicant(applicationId) {
+    try {
+        const response = await fetch(`${SERVER_URL}/delete-application`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ applicationId })
+        });
         
-        // CRUCIAL: Compare the provided password against the stored hash.
-        const match = await bcrypt.compare(password, storedHash);
-
-        if (!match) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
-        }
+        const data = await response.json();
         
-        // Check for first login by comparing the plaintext temporary password against the hash.
-        const temporaryPassword = 'password123';
-        const isFirstLogin = await bcrypt.compare(temporaryPassword, storedHash);
+        if (data.success) {
+            showNotification(data.message, 'success');
+            detailsModal.hide(); // Use Bootstrap method
+            simulateDataLoad(); 
+        } else {
+            showNotification(`Deletion Error: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Network Error deleting applicant:', error);
+        showNotification('Network error. Failed to delete applicant.', 'error');
+    }
+}
 
-        const appSql = 'SELECT * FROM applications WHERE id = ?';
-        db.query(appSql, [user.application_id], (appErr, applications) => {
-            if (appErr || applications.length === 0) {
-                return res.status(500).json({ success: false, message: 'Could not find application data for this user.' });
-            }
+// --- Logout Functionality (EXISTING) ---
+function addLogoutListener() {
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            showNotification('Logging out of Admin Panel...', 'success');
+            // --- SECURITY FIX: Remove token on logout ---
+            localStorage.removeItem('adminToken');
             
-            const applicationData = applications[0];
-            applicationData.username = username;
-            applicationData.password = password; // Temporarily include plain password for client-side state
+            setTimeout(() => {
+                window.location.href = 'admin-login.html'; 
+            }, 1500);
+        });
+    }
+}
 
-            res.json({ 
-                success: true, 
-                application: applicationData,
-                firstLogin: isFirstLogin 
+// --- Tab Functionality (EXISTING) ---
+function addTabListeners() {
+    // 1. Logic for main content tabs (Application Review / Manage Announcements)
+    document.querySelectorAll('.main-tab-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            document.querySelectorAll('.main-tab-button').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            const targetContentId = `content-${e.target.getAttribute('data-content')}`;
+            document.querySelectorAll('.main-content-section').forEach(section => {
+                section.style.display = 'none';
             });
+            document.getElementById(targetContentId).style.display = 'block';
         });
     });
-});
 
-// --- 8. GET ANNOUNCEMENTS (EXISTING) ---
-app.get('/get-announcements', (req, res) => {
-    const sql = 'SELECT id, title, content FROM announcements ORDER BY created_at DESC'; 
-    db.query(sql, (err, results) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'Failed to retrieve announcements.' });
-        }
-        res.json({ success: true, announcements: results });
-    });
-});
-
-// --- 9. CHANGE PASSWORD (MODIFIED - Using bcrypt) ---
-app.post('/change-password', (req, res) => {
-    const { applicationId, currentPassword, newPassword } = req.body;
-
-    // 1. Fetch the stored hash
-    const checkSql = 'SELECT password FROM users WHERE application_id = ?';
-    db.query(checkSql, [applicationId], async (checkErr, users) => {
-        if (checkErr) return res.status(500).json({ success: false, message: 'Database error.' });
-        if (users.length === 0) return res.status(404).json({ success: false, message: 'User not found.' });
-        
-        const storedHash = users[0].password;
-
-        // 2. Compare the current password against the stored hash
-        const match = await bcrypt.compare(currentPassword, storedHash);
-        
-        if (!match) {
-            return res.status(401).json({ success: false, message: 'Your current password was incorrect.' });
-        }
-
-        // 3. Hash the new password
-        bcrypt.hash(newPassword, 10, (hashErr, newPasswordHash) => {
-            if (hashErr) return res.status(500).json({ success: false, message: 'Failed to hash new password.' });
-
-            // 4. Update the hash in the database
-            const updateSql = 'UPDATE users SET password = ? WHERE application_id = ?';
-            db.query(updateSql, [newPasswordHash, applicationId], (updateErr, result) => {
-                if (updateErr) return res.status(500).json({ success: false, message: 'Failed to update password.' });
-                res.json({ success: true, message: 'Password updated successfully.' });
-            });
+    // 2. Logic for grade level tabs (inside Application Review section)
+    document.querySelectorAll('.grade-tabs .tab-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            document.querySelectorAll('.grade-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            currentGradeLevel = e.target.getAttribute('data-grade');
+            applyFiltersAndDisplay(); 
         });
     });
-});
+}
 
-// --- 15. ADMIN: Send Credentials Only (Provisional Access) ---
-app.post('/generate-credentials', (req, res) => {
-    const { applicationId } = req.body;
+// --- Search and Filter Listeners (EXISTING) ---
+function addFilterListeners() {
+    document.getElementById('name-search').addEventListener('input', applyFiltersAndDisplay);
+    document.getElementById('status-filter').addEventListener('change', applyFiltersAndDisplay);
+}
 
-    db.query('SELECT * FROM applications WHERE id = ?', [applicationId], async (err, apps) => { 
-        if (err) return res.status(500).json({ success: false, message: 'Server error while fetching app data.' });
-        if (apps.length === 0) return res.json({ success: false, message: 'Application not found.' });
-        
-        const app = apps[0];
+// --- Table Sorting Listener and Handler (EXISTING) ---
+function addSortListeners() {
+    document.querySelectorAll('#applications-table .sortable').forEach(header => {
+        header.addEventListener('click', () => {
+            const newKey = header.getAttribute('data-sort');
 
-        if (app.status === 'Approved') {
-             return res.json({ success: false, message: 'Application is already approved. Credentials should already exist.' });
-        }
-        
-        // 1. Create or Get Credentials
-        createOrGetCredentials(app, async (credErr, credentials) => {
-            if (credErr) {
-                console.error('Final attempt to create credentials failed:', credErr);
-                return res.status(500).json({ success: false, message: 'Failed to generate/retrieve credentials.' });
+            if (newKey === currentSortKey) {
+                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortKey = newKey;
+                currentSortDir = 'asc';
             }
 
-            // 2. Send Email
-            const emailResult = await sendCredentialsEmail(
-                app.email, 
-                app.first_name, 
-                credentials.username, 
-                credentials.password
-            );
-            
-            let successMessage = `Provisional credentials generated and sent to ${app.email}. Status remains ${app.status}.`;
-            if (!emailResult.success) {
-                successMessage = `Credentials generated but FAILED to send email. Check server logs.`;
-            }
-            
-            res.json({ 
-                success: true, 
-                message: successMessage,
-                student_username: credentials.username,
-                student_password: credentials.password 
+            document.querySelectorAll('#applications-table th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
             });
+            header.classList.add(`sorted-${currentSortDir}`);
+
+            applyFiltersAndDisplay(); 
         });
     });
-});
+}
 
+// --- Custom Comparison Logic (EXISTING) ---
+function compare(a, b, key, dir) {
+    let valA = a[key];
+    let valB = b[key];
 
-// --- 10 & 11 (Existing Announcement Endpoints) ---
-app.post('/create-announcement', (req, res) => {
-    const { title, content } = req.body;
+    if (typeof valA === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+    }
     
-    if (!title || !content) {
-        return res.status(400).json({ success: false, message: 'Announcement title and content are required.' });
+    if (key === 'grade_level') {
+        valA = parseInt(valA, 10);
+        valB = parseInt(valB, 10);
     }
 
-    const sql = 'INSERT INTO announcements (title, content, created_at) VALUES (?, ?, NOW())';
+    let comparison = 0;
+    if (valA > valB) {
+        comparison = 1;
+    } else if (valA < valB) {
+        comparison = -1;
+    }
+
+    return dir === 'desc' ? comparison * -1 : comparison;
+}
+
+
+// --- Calculate and Update Quick Stats (EXISTING) ---
+function updateQuickStats() {
+    if (allApplications.length === 0) {
+        document.getElementById('stat-total').textContent = 0;
+        document.getElementById('stat-pending').textContent = 0;
+        document.getElementById('stat-approved').textContent = 0;
+        document.getElementById('stat-rejected').textContent = 0;
+        return;
+    }
+
+    const total = allApplications.length;
+    const pending = allApplications.filter(app => app.status === 'Pending Review').length;
+    const approved = allApplications.filter(app => app.status === 'Approved').length;
+    const rejected = allApplications.filter(app => app.status === 'Rejected').length; 
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-approved').textContent = approved;
+    document.getElementById('stat-rejected').textContent = rejected;
+}
+
+// --- Filtering Logic (EXISTING) ---
+function applyFiltersAndDisplay() {
+    const searchName = document.getElementById('name-search').value.toLowerCase();
+    const statusFilter = document.getElementById('status-filter').value;
     
-    db.query(sql, [title, content], (err, result) => {
-        if (err) {
-            console.error('DB Error creating announcement:', err);
-            return res.status(500).json({ success: false, message: 'Failed to save announcement to database.' });
-        }
-        res.json({ success: true, message: `Announcement "${title}" published successfully.` });
+    let filteredApps = allApplications.filter(app => app.grade_level == currentGradeLevel);
+
+    if (statusFilter !== 'All') {
+        filteredApps = filteredApps.filter(app => app.status === statusFilter);
+    }
+    
+    if (searchName) {
+        filteredApps = filteredApps.filter(app => 
+            app.first_name.toLowerCase().includes(searchName) || 
+            app.last_name.toLowerCase().includes(searchName) ||
+            app.email.toLowerCase().includes(searchName)
+        );
+    }
+    
+    filteredApps.sort((a, b) => compare(a, b, currentSortKey, currentSortDir));
+    
+    displayTableContent(filteredApps, currentGradeLevel);
+}
+
+// --- Main function to display table data (EXISTING) ---
+function displayTableContent(applicationsToDisplay, gradeLevel) {
+    const tableBody = document.getElementById('applications-tbody');
+    
+    if (applicationsToDisplay.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6">No matching applications found for Grade ${gradeLevel}.</td></tr>`;
+        return;
+    }
+    
+    tableBody.innerHTML = ''; 
+    
+    applicationsToDisplay.forEach(app => {
+      const row = document.createElement('tr');
+      const formattedDate = new Date(app.created_at || Date.now()).toLocaleDateString(); 
+      
+      row.innerHTML = `
+        <td>${app.first_name} ${app.last_name}</td>
+        <td>${app.email}</td>
+        <td>Grade ${app.grade_level}</td>
+        <td><span class="status-pill status-${app.status.replace(/ /g, '')}">${app.status}</span></td>
+        <td>${formattedDate}</td>
+        <td classs="actions">
+          <button class="action-btn view-details-btn" data-id="${app.id}">View Details</button>
+        </td>
+      `;
+      tableBody.appendChild(row);
     });
-});
 
-app.post('/delete-announcement', (req, res) => {
-    const { announcementId } = req.body;
-    
-    if (!announcementId) {
-        return res.status(400).json({ success: false, message: 'Announcement ID is required for deletion.' });
+    addEventListenersToButtons(); 
+}
+
+// --- Function to add click handlers to View Details buttons (EXISTING) ---
+function addEventListenersToButtons() {
+    document.querySelectorAll('.view-details-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            showApplicationDetails(id);
+        });
+    });
+}
+
+// --- Function to display details in the modal (UPDATED for provisional button logic) ---
+async function showApplicationDetails(appId) {
+    const detailsDiv = document.getElementById('application-details');
+    detailsDiv.innerHTML = '<p>Loading details...</p>'; 
+
+    modalApproveBtn.setAttribute('data-id', appId);
+    modalRejectBtn.setAttribute('data-id', appId);
+    modalDeleteBtn.setAttribute('data-id', appId);
+    modalSendCredentialsBtn.setAttribute('data-id', appId); // NEW: Set ID
+
+    try {
+        const response = await fetch(`${SERVER_URL}/get-application-details/${appId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            detailsDiv.innerHTML = `<p>Error: ${data.message}</p>`;
+            return;
+        }
+
+        const fullApp = data.application;
+        const birthdate = new Date(fullApp.birthdate || fullApp.bday || '2000-01-01').toLocaleDateString();
+        const serverUrl = SERVER_URL; 
+
+        const isApproved = fullApp.status === 'Approved';
+        const hasCredentials = !!fullApp.student_username; // Check if credentials exist
+
+        // Show/Hide main approval buttons
+        modalApproveBtn.style.display = isApproved ? 'none' : 'inline-block';
+        modalRejectBtn.style.display = isApproved ? 'none' : 'inline-block';
+        
+        // Show Send Credentials button if NOT Approved and credentials DO NOT exist yet
+        modalSendCredentialsBtn.style.display = (!isApproved && !hasCredentials) ? 'inline-block' : 'none';
+
+        let loginDetailsHtml = '';
+        if (hasCredentials) {
+            loginDetailsHtml = `
+                <div class="user-credentials">
+                    <p><strong>Student Login Details:</strong></p>
+                    <div><strong>Username (Email):</strong> <code>${fullApp.student_username}</code></div>
+                    <div><strong>Password:</strong> <code>${fullApp.student_password}</code></div>
+                    <p class="note">These credentials have been sent to the student. Advise them to change their password upon first login.</p>
+                </div>
+                <hr style="margin: 20px 0; border-color: #eee;">
+            `;
+        }
+
+        detailsDiv.innerHTML = `
+            <h3>Applicant: ${fullApp.first_name} ${fullApp.middle_name ? fullApp.middle_name + ' ' : ''}${fullApp.last_name} (ID: ${fullApp.id})</h3>
+            <p><strong>Status:</strong> <span class="status-pill status-${fullApp.status.replace(/ /g, '')}">${fullApp.status}</span></p>
+            <hr style="margin: 20px 0; border-color: #eee;">
+
+            <div><strong>Grade Level:</strong> Grade ${fullApp.grade_level}</div>
+            <div><strong>Full Name:</strong> ${fullApp.first_name} ${fullApp.middle_name ? '(' + fullApp.middle_name + ') ' : ''}${fullApp.last_name}</div>
+            <div><strong>Birthdate:</strong> ${birthdate}</div>
+            <div><strong>Email:</strong> ${fullApp.email}</div>
+            <div><strong>Phone Num#:</strong> ${fullApp.phone || 'N/A'}</div>
+            
+            <h4 style="margin-top: 25px; margin-bottom: 15px; color: var(--theme-green);">Required Documents:</h4>
+            
+            <div>
+                <a href="${serverUrl}/uploads/${fullApp.doc_card_path}" target="_blank" class="file-link">View File (School Card)</a>
+            </div>
+            <div>
+                <a href="${serverUrl}/uploads/${fullApp.doc_psa_path}" target="_blank" class="file-link">View File (PSA)</a>
+            </div>
+            <div>
+                <a href="${serverUrl}/uploads/${fullApp.doc_f137_path}" target="_blank" class="file-link">View File (FORM 137)</a>
+            </div>
+            <div>
+                <a href="${serverUrl}/uploads/${fullApp.doc_brgy_cert_path}" target="_blank" class="file-link">View File (BRGY CERT)</a>
+            </div>
+
+            ${loginDetailsHtml}
+        `;
+
+        detailsModal.show(); // Use Bootstrap method
+
+    } catch (error) {
+        console.error('Error fetching details:', error);
+        detailsDiv.innerHTML = '<p>Error loading details. Please check server connection and try again.</p>';
+        detailsModal.show(); // Use Bootstrap method
     }
+}
 
-    const sql = 'DELETE FROM announcements WHERE id = ?';
-    
-    db.query(sql, [announcementId], (err, result) => {
-        if (err) {
-            console.error('DB Error deleting announcement:', err);
-            return res.status(500).json({ success: false, message: 'Failed to delete announcement from database.' });
+
+// --- Approve/Reject Handlers (EXISTING) ---
+async function updateStatus(applicationId, newStatus) {
+    const appIndex = allApplications.findIndex(app => app.id == applicationId);
+    const originalStatus = allApplications[appIndex].status;
+
+    try {
+        const response = await fetch(`${SERVER_URL}/update-application-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ applicationId, newStatus })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            if (appIndex !== -1) {
+                allApplications[appIndex].status = newStatus;
+                if (newStatus === 'Approved') {
+                    // Update credentials only if they were newly generated by the server
+                    if (data.student_username) { 
+                        allApplications[appIndex].student_username = data.student_username;
+                        allApplications[appIndex].student_password = data.student_password;
+                    }
+                    showNotification('✅ Application Approved! Credentials have been sent/reconfirmed.', 'success');
+                    showApplicationDetails(applicationId); // Re-show modal with credentials
+                } else {
+                    showNotification(`Status updated to ${newStatus}.`, 'success');
+                    detailsModal.hide(); // Use Bootstrap method
+                }
+            }
+            updateQuickStats();
+            applyFiltersAndDisplay(); 
+        } else {
+            showNotification(`Error updating status: ${data.message}`, 'error');
+            if (appIndex !== -1) allApplications[appIndex].status = originalStatus;
+        }
+
+    } catch (error) {
+        console.error('Network Error updating status:', error);
+        showNotification('Network error. Status may not have been saved.', 'error');
+        if (appIndex !== -1) allApplications[appIndex].status = originalStatus;
+    }
+}
+
+// --- SIMULATED DATA FETCH (EXISTING) ---
+async function simulateDataLoad() {
+    const tableBody = document.getElementById('applications-tbody');
+    tableBody.innerHTML = '<tr><td colspan="6">Loading applications...</td></tr>';
+
+    try {
+        const response = await fetch(`${SERVER_URL}/get-applications`);
+        const data = await response.json();
+
+        if (data.success) {
+            allApplications = data.applications;
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="6">Error loading applications from server.</td></tr>';
+            return;
         }
         
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Announcement not found.' });
-        }
-
-        res.json({ success: true, message: 'Announcement deleted successfully.' });
-    });
-});
-
-
-// --- START SERVER ---
-server.listen(PORT, () => {
-    console.log(`🚀 Server (and Socket.IO) is running on http://localhost:${PORT}`);
-});
+        updateQuickStats();
+        applyFiltersAndDisplay(); 
+        
+    } catch (error) {
+        console.error('Error connecting to server:', error);
+        tableBody.innerHTML = '<tr><td colspan="6">Connection error. Please ensure Node.js server is running.</td></tr>';
+    }
+}
