@@ -39,7 +39,7 @@ loginForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('student-password').value;
 
   try {
-    const response = await fetch('http://localhost:3000/login', {
+    const response = await fetch('https://enrollment-system-production-b592.up.railway.app/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
