@@ -8,7 +8,6 @@ let currentSortDir = 'desc'; // Default direction is descending
 const SERVER_URL = 'https://enrollment-system-production-b592.up.railway.app'; // Unified Server URL
 
 // --- MODAL ELEMENTS ---
-// Get the Bootstrap Modal Instance
 const detailsModalEl = document.getElementById('details-modal');
 const detailsModal = new bootstrap.Modal(detailsModalEl); 
 const modalSendCredentialsBtn = document.getElementById('modal-send-credentials-btn'); // NEW BUTTON
@@ -40,51 +39,43 @@ function getAdminToken() {
 }
 
 async function checkAdminAuthentication() {
-    const token = getAdminToken();
+    const token = getAdminToken();
 
-    if (!token) {
-        // No token found, redirect immediately
-        console.log("No admin token found. Redirecting to login.");
-        window.location.href = 'admin-login.html';
-        return;
-    }
-
-    // You would typically send the token to the server for validation here:
-    // const response = await fetch(`${SERVER_URL}/check-session`, { headers: { 'Authorization': `Bearer ${token}` } });
-    // If you haven't built a /check-session endpoint, we rely on the absence of 
-    // a successful data load below to trigger the final check. 
-
-    // For now, we rely on the token simply existing and the successful data load to proceed.
-    // If simulateDataLoad() fails later, the error handling will provide the final kick out.
-    
-    // Only proceed to load content if a token exists
-    loadAdminContent(); 
+    if (!token) {
+        // No token found, redirect immediately
+        console.log("No admin token found. Redirecting to login.");
+        window.location.href = 'admin-login.html';
+        return;
+    }
+    
+    // Only proceed to load content if a token exists
+    loadAdminContent(); 
 }
 
 
 // --- RUN ON PAGE LOAD (MODIFIED) ---
 document.addEventListener('DOMContentLoaded', () => {
     // !!! START HERE: Check authentication before loading anything else !!!
-    checkAdminAuthentication(); 
+    checkAdminAuthentication(); 
 });
 
 
 function loadAdminContent() {
     // Only executes if checkAdminAuthentication finds a token
-    addLogoutListener();
-    addTabListeners();
-    addFilterListeners(); 
-    addSortListeners(); 
-    addModalListeners(); 
-    simulateDataLoad(); // This is where the application data is first fetched
-    setupAnnouncementManagement();
-    
-    // NEW: Call the animation function after a slight pause
-    setTimeout(animateQuickStats, 500); 
+    addLogoutListener();
+    addTabListeners();
+    addFilterListeners(); 
+    addSortListeners(); 
+    addModalListeners(); 
+    simulateDataLoad(); // This is where the application data is first fetched
+    setupAnnouncementManagement();
+    
+    // NEW: Call the animation function after a slight pause
+    setTimeout(animateQuickStats, 500); 
 }
 
 // =========================================================================
-//                             APPLICATION LOGIC
+//                             APPLICATION LOGIC
 // =========================================================================
 
 
@@ -314,8 +305,8 @@ function addLogoutListener() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             showNotification('Logging out of Admin Panel...', 'success');
-            // --- SECURITY FIX: Remove token on logout ---
-            localStorage.removeItem('adminToken');
+            // --- SECURITY FIX: Remove token on logout ---
+            localStorage.removeItem('adminToken');
             
             setTimeout(() => {
                 window.location.href = 'admin-login.html'; 
