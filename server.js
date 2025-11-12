@@ -65,37 +65,37 @@ const transporter = nodemailer.createTransport({
 // Global variable to hold the active connection once established
 function attemptDbConnection(retryCount = 0) {
     // 1. Create a connection pool
+    function attemptDbConnection(retryCount = 0) {
+    // Use DB_* variables instead of MYSQL* variables
     const pool = mysql.createPool({
-        host: process.env.MYSQLHOST,
-        port: process.env.MYSQLPORT || 3306,
-        user: process.env.MYSQLUSER,
-        password: process.env.MYSQLPASSWORD,
-        database: process.env.MYSQLDATABASE,
+        host: process.env.DB_HOST,           // maglev.proxy.rlwy.net
+        port: process.env.DB_PORT || 3306,   // 22293
+        user: process.env.DB_USER,           // root
+        password: process.env.DB_PASSWORD,   // your password
+        database: process.env.DB_DATABASE,   // railway
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
         connectTimeout: 60000
     });
 
-    // 2. Test the connection
+    // Test the connection
     pool.query('SELECT 1', (err) => {
         if (!err) {
-            db = pool; // Set the global db object
+            db = pool;
             console.log(`✅ Successfully Connected to MySQL database on attempt ${retryCount + 1}`);
             
-            // 3. Start the server
             server.listen(PORT, () => {
                 console.log(`🚀 Server (and Socket.IO) is running on http://localhost:${PORT}`);
             });
             return;
         }
 
-        // 4. Handle connection failure
         console.error(`❌ MySQL connection failed on attempt ${retryCount + 1}. Error: ${err.code}`);
         
         if (retryCount < MAX_RETRIES) {
             console.log(`Retrying connection in ${RETRY_DELAY_MS / 1000} seconds...`);
-            pool.end(); // Close the pool before retrying
+            pool.end();
             setTimeout(() => {
                 attemptDbConnection(retryCount + 1);
             }, RETRY_DELAY_MS);
