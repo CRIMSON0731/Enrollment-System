@@ -10,61 +10,6 @@ const mysql = require('mysql2'); 
 const nodemailer = require('nodemailer'); 
 const bcrypt = require('bcryptjs'); 
 
-<<<<<<< HEAD
-// --- SECURITY CONSTANT ---
-const SERVER_URL = 'https://enrollment-system-production-b592.up.railway.app'; // Unified Server URL
-
-// --- MODAL ELEMENTS ---
-const detailsModalEl = document.getElementById('details-modal');
-const detailsModal = new bootstrap.Modal(detailsModalEl); 
-const modalSendCredentialsBtn = document.getElementById('modal-send-credentials-btn'); // NEW BUTTON
-const modalApproveBtn = document.getElementById('modal-approve-btn');
-const modalRejectBtn = document.getElementById('modal-reject-btn');
-const modalDeleteBtn = document.getElementById('modal-delete-btn'); 
-
-// --- NOTIFICATION FUNCTION (EXISTING) ---
-function showNotification(message, type) {
-  const notification = document.getElementById('notification-bar');
-  if (!notification) return;
-  
-  notification.textContent = message;
-  notification.className = `notification-bar ${type}`;
-  notification.classList.add('show');
-  
-  setTimeout(() => {
-    notification.classList.remove('show');
-  }, 3000);
-}
-
-<<<<<<< Updated upstream
-// =========================================================================
-//                             SECURITY ENFORCEMENT
-// =========================================================================
-=======
-// --- MySQL Connection ---
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    port: process.env.PORT
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE
-});
->>>>>>> Stashed changes
-
-function getAdminToken() {
-    // Retrieves the simple token (or flag) set during login.
-    return localStorage.getItem('adminToken');
-}
-
-async function checkAdminAuthentication() {
-    const token = getAdminToken();
-
-    if (!token) {
-        // No token found, redirect immediately
-        console.log("No admin token found. Redirecting to login.");
-        window.location.href = 'admin-login.html';
-        return;
-=======
 // --- CONFIG ---
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -76,23 +21,27 @@ const io = new Server(server, { 
     }
 });
 
-// CRITICAL FIX 1: Add manual CORS headers to ensure the browser accepts cross-origin requests
-// Allowing the GitHub Pages domain to access the API explicitly
+// =========================================================================
+//                             MIDDLEWARE (FINAL FIXES)
+// =========================================================================
+
+// CRITICAL FIX 1: Add manual CORS headers for security and browser compatibility
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://crimson0731.github.io'); // Explicitly allows your GitHub Pages domain
+    // Allows your GitHub Pages domain to access the API
+    res.setHeader('Access-Control-Allow-Origin', 'https://crimson0731.github.io'); 
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    // Handle pre-flight requests (necessary for POST and file upload requests)
+    // Handle pre-flight requests
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
     next();
 });
 
-// CRITICAL FIX 2: Increase payload limits for Express/Node.js to handle file uploads
-app.use(express.json({ limit: '50mb' })); // Increased JSON body limit
-app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Increased URL-encoded body limit
+// CRITICAL FIX 2: Increase payload limits for Express to handle file uploads
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); 
 
 app.use(cors()); // Keep the basic cors call
 
@@ -261,7 +210,6 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     } catch (error) {
         console.error(`Failed to send credentials email to ${recipientEmail}:`, error);
         return { success: false, error: error.message };
->>>>>>> 764b89cf8d2ea33008740a666351bac985d9776f
     }
 }
 
@@ -468,7 +416,7 @@ app.post('/admin-login', (req, res) => {
         return res.status(400).json({ success: false, message: 'Please provide both credentials.' });
     }
 
-    const sql = 'SELECT password FROM admins WHERE username = ?';
+    const sql = 'SELECT password_hash FROM admins WHERE username = ?';
     
     db.query(sql, [username], async (err, results) => {
         if (err) {
@@ -480,7 +428,7 @@ app.post('/admin-login', (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
 
-        const hashedPassword = results[0].password;
+        const hashedPassword = results[0].password_hash;
         
         const match = await bcrypt.compare(password, hashedPassword);
 
