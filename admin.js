@@ -69,7 +69,7 @@ async function loadCurrentAnnouncements() {
     listEl.innerHTML = '<li>Fetching announcements...</li>';
 
     try {
-        const response = await fetch('http://localhost:3000/get-announcements');
+        const response = await fetch('https://enrollment-system.railway.internal/get-announcements');
         const data = await response.json();
 
         if (data.success && data.announcements.length > 0) {
@@ -112,7 +112,7 @@ function addAnnouncementDeleteListeners() {
 // --- Sends the delete request to the server (EXISTING) ---
 async function deleteAnnouncement(announcementId) {
     try {
-        const response = await fetch('http://localhost:3000/delete-announcement', {
+        const response = await fetch('https://enrollment-system.railway.internal/delete-announcement', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ announcementId })
@@ -143,7 +143,7 @@ async function handleAnnouncementSubmission(e) {
     submitBtn.disabled = true;
 
     try {
-        const response = await fetch('http://localhost:3000/create-announcement', {
+        const response = await fetch('https://enrollment-system.railway.internal/create-announcement', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, content })
@@ -209,7 +209,7 @@ async function sendCredentialsOnly(applicationId) {
     modalSendCredentialsBtn.textContent = 'Sending...';
 
     try {
-        const response = await fetch('http://localhost:3000/generate-credentials', { // Endpoint 15
+        const response = await fetch('https://enrollment-system.railway.internal/generate-credentials', { // Endpoint 15
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ applicationId })
@@ -241,7 +241,7 @@ async function sendCredentialsOnly(applicationId) {
 // --- Delete Applicant Function (EXISTING) ---
 async function deleteApplicant(applicationId) {
     try {
-        const response = await fetch('http://localhost:3000/delete-application', {
+        const response = await fetch('https://enrollment-system.railway.internal/delete-application', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ applicationId })
@@ -455,7 +455,7 @@ async function showApplicationDetails(appId) {
     modalSendCredentialsBtn.setAttribute('data-id', appId); // NEW: Set ID
 
     try {
-        const response = await fetch(`http://localhost:3000/get-application-details/${appId}`);
+        const response = await fetch(`https://enrollment-system.railway.internal/get-application-details/${appId}`);
         const data = await response.json();
 
         if (!data.success) {
@@ -465,7 +465,7 @@ async function showApplicationDetails(appId) {
 
         const fullApp = data.application;
         const birthdate = new Date(fullApp.birthdate || fullApp.bday || '2000-01-01').toLocaleDateString();
-        const serverUrl = 'http://localhost:3000'; 
+        const serverUrl = 'https://enrollment-system.railway.internal'; 
 
         const isApproved = fullApp.status === 'Approved';
         const hasCredentials = !!fullApp.student_username; // Check if credentials exist
@@ -535,7 +535,7 @@ async function updateStatus(applicationId, newStatus) {
     const originalStatus = allApplications[appIndex].status;
 
     try {
-        const response = await fetch('http://localhost:3000/update-application-status', {
+        const response = await fetch('https://enrollment-system.railway.internal/update-application-status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ applicationId, newStatus })
@@ -578,7 +578,7 @@ async function simulateDataLoad() {
     tableBody.innerHTML = '<tr><td colspan="6">Loading applications...</td></tr>';
 
     try {
-        const response = await fetch('http://localhost:3000/get-applications');
+        const response = await fetch('https://enrollment-system.railway.internal/get-applications');
         const data = await response.json();
 
         if (data.success) {
