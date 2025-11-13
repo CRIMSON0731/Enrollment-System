@@ -196,32 +196,31 @@ const createOrGetCredentials = (app, callback) => {
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
     try {
-        // 1. CREATE TRANSPORTER (Must be done inside the function)
+        // 1. CREATE TRANSPORTER (Must be done first, as a separate variable)
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com', 
             port: 587, 
             secure: false, 
             auth: {
-                user: 'dalonzohighschool@gmail.com', // Using hardcoded value
-                pass: 'sqlavyespyyhphve' // Using hardcoded value
-                    
-             const mailOptions = {
-            from: `"Doña Teodora Alonzo Highschool" <${process.env.EMAIL_USER || 'dalonzohighschool@gmail.com'}>`,
-            to: recipientEmail,
+                user: 'dalonzohighschool@gmail.com',
+                pass: 'sqlavyespyyhphve' // Use your App Password here
+            }
+        });
+
+        // 2. DEFINE MAILOPTIONS (Must be done second, as a separate variable)
+        const mailOptions = {
+            from: `"Doña Teodora Alonzo Highschool" <dalonzohighschool@gmail.com>`
             subject: 'Enrollment Status & Portal Credentials',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
                     <h2>Hello, ${studentName}!</h2>
+                    <p>You have been granted <b>Provisional Access</b> to the Student Portal, or your enrollment has been <b>APPROVED</b>.</p>
                     ... (rest of your email HTML here) ...
                 </div>
             `
         };
 
-            }
-        });
-        
-        // 2. DEFINE MAILOPTIONS (Must be done inside the function)
-
+        // 3. SEND THE EMAIL (This is the final block)
         console.log(`📧 Attempting to send email to: ${recipientEmail}`);
         const info = await transporter.sendMail(mailOptions);
         console.log(`✅ Email sent successfully: ${info.messageId}`);
