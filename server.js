@@ -275,18 +275,45 @@ app.post('/submit-application', (req, res) => {
             return res.status(400).json({ success: false, message: 'Missing required fields or documents.' });
         }
 
-        const sql = `INSERT INTO applications 
-                     (first_name, last_name, middle_name, birthdate, email, phone, grade_level, status, doc_card_path, doc_psa_path, doc_f137_path, doc_brgy_cert_path) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?, ?, ?, ?)`;
-        
-        db.query(sql, [first_name, last_name, middle_name, birthdate, email, phone_num, grade_level, card_file, psa_file, f137_file, brgy_cert_file], (dbErr, result) => {
-            if (dbErr) {
-                console.error('DB Insert Error:', dbErr);
-                cleanupFiles(fileNames); 
-                return res.status(500).json({ success: false, message: 'Database error while saving application.' });
+        // Check if email already exists
+        db.query('SELECT id, email FROM applications WHERE email = ?', [email], (checkErr, existingApps) => {
+            if (checkErr) {
+                console.error('DB Error checking email:', checkErr);
+                cleanupFiles(fileNames);
+                return res.status(500).json({ success: false, message: 'Database error while checking email.' });
             }
+
+            if (existingApps.length > 0) {
+                cleanupFiles(fileNames);
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'An application with this email address already exists. Please use a different email or contact the school administration.' 
+                });
+            }
+
+            // Proceed with insertion if email is unique
+            const sql = `INSERT INTO applications 
+                         (first_name, last_name, middle_name, birthdate, email, phone, grade_level, status, doc_card_path, doc_psa_path, doc_f137_path, doc_brgy_cert_path) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?, ?, ?, ?)`;
             
-            res.json({ success: true, message: 'Application submitted successfully with ID: ' + result.insertId });
+            db.query(sql, [first_name, last_name, middle_name, birthdate, email, phone_num, grade_level, card_file, psa_file, f137_file, brgy_cert_file], (dbErr, result) => {
+                if (dbErr) {
+                    console.error('DB Insert Error:', dbErr);
+                    cleanupFiles(fileNames); 
+                    
+                    // Handle duplicate entry error (in case of race condition)
+                    if (dbErr.code === 'ER_DUP_ENTRY') {
+                        return res.status(400).json({ 
+                            success: false, 
+                            message: 'This email address is already registered. Please use a different email.' 
+                        });
+                    }
+                    
+                    return res.status(500).json({ success: false, message: 'Database error while saving application.' });
+                }
+                
+                res.json({ success: true, message: 'Application submitted successfully with ID: ' + result.insertId });
+            });
         });
     });
 });
