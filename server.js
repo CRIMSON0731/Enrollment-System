@@ -194,17 +194,16 @@ const createOrGetCredentials = (app, callback) => {
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
     try {
         // Configure nodemailer with Gmail SMTP
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER || 'dalonzohighschool@gmail.com',
-                pass: process.env.EMAIL_PASSWORD // App Password from Gmail
-            },
-            // Uncomment below ONLY if you can't use App Password (less secure)
-            // tls: {
-            //     rejectUnauthorized: false
-            // }
-        });
+        return nodemailer.createTransport({
+    host: 'smtp.gmail.com', 
+    port: 587, 
+    secure: false, 
+    auth: {
+        // USE THE ENVIRONMENT VARIABLES YOU SET IN RAILWAY
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASSWORD 
+    }
+});
 
         const mailOptions = {
             from: `"Doña Teodora Alonzo Highschool" <${process.env.EMAIL_USER || 'dalonzohighschool@gmail.com'}>`,
