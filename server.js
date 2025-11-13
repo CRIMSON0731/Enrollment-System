@@ -73,8 +73,8 @@ function attemptDbConnection(retryCount = 0) {
             db = pool;
             console.log(`✅ Successfully Connected to MySQL database on attempt ${retryCount + 1}`);
             
-            server.listen(PORT, () => {
-                console.log(`🚀 Server (and Socket.IO) is running on http://localhost:${PORT}`);
+            server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server (and Socket.IO) is running on port ${PORT}`);
             });
             return;
         }
