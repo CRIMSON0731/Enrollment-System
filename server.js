@@ -60,12 +60,6 @@ app.get('/', (req, res) => {
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
 
-const sgMail = require('@sendgrid/mail');
-
-// Set your API key (replace with your actual key)
-sgMail.setApiKey('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');
-
-
 // Test connection on startup
 transporter.verify(function(error, success) {
     if (error) {
