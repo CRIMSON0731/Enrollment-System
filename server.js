@@ -185,7 +185,7 @@ const createOrGetCredentials = (app, callback) => {
                             return createOrGetCredentials(app, callback); 
                         }
                         console.error('DB INSERT Error:', insertErr);
-      0                 return callback(insertErr);
+                       return callback(insertErr);
                     }
                     callback(null, { username, password: plainPassword, isNew: true });
                 }
