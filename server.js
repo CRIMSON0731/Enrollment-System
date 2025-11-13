@@ -40,6 +40,10 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
+app.get('/', (req, res) => {
+    res.send('<h1>Server is running!</h1><p>If you see this, the deployment is working.</p>');
+});
+
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
 
