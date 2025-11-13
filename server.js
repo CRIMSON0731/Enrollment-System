@@ -9,7 +9,7 @@ const mysql = require('mysql2');
 const nodemailer = require('nodemailer'); 
 const bcrypt = require('bcryptjs'); 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 console.log(`🔍 Attempting to start server on PORT: ${PORT}`);
 const app = express();
 const server = http.createServer(app); 
@@ -62,7 +62,7 @@ const RETRY_DELAY_MS = 2500;
 function attemptDbConnection(retryCount = 0) {
     const pool = mysql.createPool({
         host: process.env.DB_HOST,
-        port: process.env.DB_PORT || 3306,
+        port: process.env.DB_PORT || 8080,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_DATABASE,
