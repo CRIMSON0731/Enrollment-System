@@ -60,16 +60,7 @@ app.get('/', (req, res) => {
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
 
-// --- Nodemailer Transporter Configuration (Using Port 587 Fix) ---
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com', 
-    port: 587, 
-    secure: false, // Use STARTTLS
-    auth: {
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASSWORD 
-    }
-});
+// --- Nodemailer Transporter Configuration (Using Port 587 Fix) --
 // -----------------------------------------------------------------
 
 let db; 
