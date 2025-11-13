@@ -202,8 +202,8 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
             port: 587, 
             secure: false, 
             auth: {
-                user: process.env.EMAIL_USER, 
-                pass: process.env.EMAIL_PASSWORD 
+                user: 'dalonzohighschool@gmail.com', // Using hardcoded value
+                pass: 'ebvhftlefruimqru' // Using hardcoded value
             }
         });
         
