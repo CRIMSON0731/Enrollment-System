@@ -1,3 +1,9 @@
+// Add this line with your other const require statements
+const sgMail = require('@sendgrid/mail');
+
+// Add this line to set the key using the new environment variable
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 // FORCING AN UPDATE - NOV 13
 const express = require('express');
 const http = require('http');
@@ -195,39 +201,26 @@ const createOrGetCredentials = (app, callback) => {
 };
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
+    // Note: The 'from' email must be verified in your SendGrid account!
+    const msg = {
+        to: recipientEmail,
+        from: 'dalonzohighschool@gmail.com', // Must be an email verified in SendGrid
+        subject: 'Enrollment Status & Portal Credentials',
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
+                <h2>Hello, ${studentName}!</h2>
+                <p>You have been granted <b>Provisional Access</b> to the Student Portal, or your enrollment has been <b>APPROVED</b>.</p>
+                ... (rest of your email HTML here) ...
+            </div>
+        `,
+    };
+
     try {
-        // This time, we define it using the hardcoded values to bypass the build check:
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com', 
-            port: 587, 
-            secure: false, 
-            auth: {
-                user: 'dalonzohighschool@gmail.com', // HARDCODE USER
-                pass: 'sqlavyespyyhphve' // HARDCODE PASSWORD
-            }
-        });
-
-        const mailOptions = {
-            from: `"Doña Teodora Alonzo Highschool" <dalonzohighschool@gmail.com>`, // Use hardcoded from address
-            to: recipientEmail,
-            subject: 'Enrollment Status & Portal Credentials',
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
-                    <h2>Hello, ${studentName}!</h2>
-                    <p>You have been granted <b>Provisional Access</b> to the Student Portal, or your enrollment has been <b>APPROVED</b>.</p>
-                    ... (rest of your email HTML is correct) ...
-                </div>
-            `
-        };
-
-        console.log(`📧 Attempting to send email to: ${recipientEmail}`);
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent successfully: ${info.messageId}`);
-        return { success: true, messageId: info.messageId };
-        
+        await sgMail.send(msg); // <--- This is the HTTP API call
+        console.log(`✅ Credentials email sent successfully via SendGrid to: ${recipientEmail}`);
+        return { success: true };
     } catch (error) {
-        console.error('❌ Email sending failed:', error.message);
-        console.error('Full error:', error);
+        console.error('❌ SendGrid API Email failed:', error.response ? error.response.body : error.message);
         return { success: false, error: error.message };
     }
 }
