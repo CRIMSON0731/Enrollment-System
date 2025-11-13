@@ -42,7 +42,7 @@ if (data.success) {
     
     // Then redirect to the admin panel
     window.location.href = 'admin.html';
-}
+  
       } else {
         // --- REPLACED! ---
         // Old: errorMessage.textContent = data.message;
