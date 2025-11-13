@@ -22,7 +22,19 @@ const io = new Server(server, {
 });
 
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://crimson0731.github.io'); 
+    const allowedOrigins = [
+        'https://crimson0731.github.io',
+        'http://localhost:5500',
+        'http://127.0.0.1:5500',
+        'http://localhost:5501',
+        'http://localhost:8080'
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -48,11 +60,22 @@ app.get('/', (req, res) => {
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail', 
-    auth: {
-        user: 'dalonzohighschool@gmail.com', 
-        pass: 'ebvhftlefruimqru' 
+const sgMail = require('@sendgrid/mail');
+
+// Set your API key (replace with your actual key)
+sgMail.setApiKey('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');
+
+
+// Test connection on startup
+transporter.verify(function(error, success) {
+    if (error) {
+        console.error('❌ SMTP Connection Failed:', error.message);
+        console.error('   This usually means:');
+        console.error('   1. Port 465/587 is blocked by your hosting provider');
+        console.error('   2. App password is incorrect or expired');
+        console.error('   3. Firewall is blocking SMTP connections');
+    } else {
+        console.log('✅ SMTP Server is ready to send emails');
     }
 });
 
@@ -188,9 +211,9 @@ const createOrGetCredentials = (app, callback) => {
 };
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
-    const mailOptions = {
-        from: '"Doña Teodora Alonzo Highschool" <dalonzohighschool@gmail.com>',
+    const msg = {
         to: recipientEmail,
+        from: 'dalonzohighschool@gmail.com', // This should be verified in SendGrid
         subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
@@ -223,11 +246,14 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     };
 
     try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Credentials email sent successfully to ${recipientEmail}`);
+        await sgMail.send(msg);
+        console.log(`✅ Credentials email sent successfully to ${recipientEmail} via SendGrid`);
         return { success: true };
     } catch (error) {
-        console.error(`Failed to send credentials email to ${recipientEmail}:`, error);
+        console.error(`❌ SendGrid error:`, error);
+        if (error.response) {
+            console.error(error.response.body);
+        }
         return { success: false, error: error.message };
     }
 }
@@ -425,11 +451,9 @@ app.post('/admin-login', (req, res) => {
         if (results.length === 0) {
             return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
-
-        const hashedPassword = results[0].password_hash;
+        const hashedPassword = results[0].password_hash; // 1. Get the stored hash
         
-        const match = await bcrypt.compare(password, hashedPassword);
-
+        const match = await bcrypt.compare(password, hashedPassword); // 2. Perform the secure comparison
         if (match) {
             res.json({ success: true });
         } else {

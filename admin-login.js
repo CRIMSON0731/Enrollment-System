@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = document.getElementById('password').value;
 
     try {
-      const response = await fetch('https://enrollment-system-production-b592.up.railway.app/admin-login', {
+      const response = await fetch('https://giving-simplicity-production-c27d.up.railway.app/admin-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -42,7 +42,7 @@ if (data.success) {
     
     // Then redirect to the admin panel
     window.location.href = 'admin.html';
-}
+  
       } else {
         // --- REPLACED! ---
         // Old: errorMessage.textContent = data.message;
