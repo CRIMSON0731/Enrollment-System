@@ -5,24 +5,22 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-const mysql = require('mysql2');
-const nodemailer = require('nodemailer');
-const bcrypt = require('bcryptjs');
+const mysql = require('mysql2'); 
+const nodemailer = require('nodemailer'); 
+const bcrypt = require('bcryptjs'); 
 
 const PORT = process.env.PORT || 3000;
-const MAX_RETRIES = 5;
-const RETRY_DELAY_MS = 5000;
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
+const server = http.createServer(app); 
+const io = new Server(server, { 
     cors: {
-        origin: "*",
+        origin: "*", 
         methods: ["GET", "POST"]
     }
 });
 
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://crimson0731.github.io');
+    res.setHeader('Access-Control-Allow-Origin', 'https://crimson0731.github.io'); 
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -32,21 +30,25 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(cors());
-app.use('/uploads', express.static('uploads'));
-app.use(express.static(__dirname));
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); 
+
+app.use(cors()); 
+
+app.use('/uploads', express.static('uploads')); 
+app.use(express.static(__dirname)); 
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: 'gmail', 
     auth: {
-        user: 'dalonzohighschool@gmail.com',
-        pass: 'ebvhftlefruimqru'
+        user: 'dalonzohighschool@gmail.com', 
+        pass: 'ebvhftlefruimqru' 
     }
 });
 
-let db;
+let db; 
+const MAX_RETRIES = 10;
+const RETRY_DELAY_MS = 2500;
 
 function attemptDbConnection(retryCount = 0) {
     const pool = mysql.createPool({
@@ -87,14 +89,6 @@ function attemptDbConnection(retryCount = 0) {
     });
 }
 
-console.log('🔍 Connection Config:', {
-    host: process.env.MYSQLHOST,
-    port: process.env.MYSQLPORT,
-    user: process.env.MYSQLUSER,
-    database: process.env.MYSQLDATABASE,
-    hasPassword: !!process.env.MYSQLPASSWORD
-});
-
 attemptDbConnection();
 
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
@@ -114,7 +108,7 @@ const upload = multer({
         if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg' || file.mimetype === 'application/pdf') {
             cb(null, true);
         } else {
-            cb(null, false);
+            cb(null, false); 
         }
     }
 }).fields([
@@ -128,8 +122,8 @@ const cleanupFiles = (files) => {
     files.forEach(file => {
         if (file) {
             try {
-                const filePath = path.join(__dirname, 'uploads', file);
-                fs.unlinkSync(filePath);
+                const filePath = path.join(__dirname, 'uploads', file); 
+                fs.unlinkSync(filePath); 
             } catch (e) {
                 if (e.code !== 'ENOENT') {
                     console.error('File Cleanup Error (Suppressed):', file, e);
@@ -147,8 +141,8 @@ const createOrGetCredentials = (app, callback) => {
         }
 
         if (existingUsers.length > 0) {
-            return callback(null, {
-                username: existingUsers[0].username,
+            return callback(null, { 
+                username: existingUsers[0].username, 
                 password: 'password123'
             });
         }
@@ -158,7 +152,7 @@ const createOrGetCredentials = (app, callback) => {
         const middleNameInitals = getInitials(app.middle_name);
         const formattedLastName = (app.last_name || '').toLowerCase().replace(/ /g, '');
         const username = `${firstNameInitials}${middleNameInitals}${formattedLastName}@dtahs.edu.ph`;
-        const plainPassword = 'password123';
+        const plainPassword = 'password123'; 
 
         bcrypt.hash(plainPassword, 10, (hashErr, passwordHash) => {
             if (hashErr) return callback(hashErr);
@@ -168,7 +162,7 @@ const createOrGetCredentials = (app, callback) => {
                     if (insertErr) {
                         if (insertErr.code === 'ER_DUP_ENTRY') {
                             console.warn(`Duplicate entry detected for application ${app.id}. Re-querying credentials.`);
-                            return createOrGetCredentials(app, callback);
+                            return createOrGetCredentials(app, callback); 
                         }
                         console.error('DB INSERT Error:', insertErr);
                         return callback(insertErr);
@@ -226,22 +220,22 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
 }
 
 io.on('connection', (socket) => {
-    console.log('A user connected with socket ID:', socket.id);
+  console.log('A user connected with socket ID:', socket.id);
 
-    socket.on('registerUser', (applicationId) => {
-        socket.join(`user-${applicationId}`);
-        console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
-    });
+  socket.on('registerUser', (applicationId) => {
+    socket.join(`user-${applicationId}`);
+    console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
+  });
 
-    socket.on('disconnect', () => {
-        console.log('A user disconnected');
-    });
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
+  });
 });
 
 app.post('/submit-application', (req, res) => {
     upload(req, res, (err) => {
         const uploadedFiles = req.files || {};
-        const fileNames = Object.values(uploadedFiles).flat().map(f => f.filename).filter(n => n);
+        const fileNames = Object.values(uploadedFiles).flat().map(f => f.filename).filter(n => n); 
 
         if (err instanceof multer.MulterError) {
             console.error('Multer Error:', err.code, err.message);
@@ -266,13 +260,13 @@ app.post('/submit-application', (req, res) => {
         }
 
         const sql = `INSERT INTO applications 
-                        (first_name, last_name, middle_name, birthdate, email, phone, grade_level, status, doc_card_path, doc_psa_path, doc_f137_path, doc_brgy_cert_path) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?, ?, ?, ?)`;
+                     (first_name, last_name, middle_name, birthdate, email, phone, grade_level, status, doc_card_path, doc_psa_path, doc_f137_path, doc_brgy_cert_path) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?, ?, ?, ?)`;
         
         db.query(sql, [first_name, last_name, middle_name, birthdate, email, phone_num, grade_level, card_file, psa_file, f137_file, brgy_cert_file], (dbErr, result) => {
             if (dbErr) {
                 console.error('DB Insert Error:', dbErr);
-                cleanupFiles(fileNames);
+                cleanupFiles(fileNames); 
                 return res.status(500).json({ success: false, message: 'Database error while saving application.' });
             }
             
@@ -302,17 +296,17 @@ app.post('/update-application-status', (req, res) => {
                 return res.status(500).json({ success: false, message: 'Failed to update application status.' });
             }
             
-            io.to(`user-${applicationId}`).emit('statusUpdated', {
+            io.to(`user-${applicationId}`).emit('statusUpdated', { 
                 newStatus: newStatus,
                 message: "Your application status has been updated!"
             });
 
             if (credentials) {
-                return res.json({
-                    success: true,
+                return res.json({ 
+                    success: true, 
                     message: successMessage,
                     student_username: credentials.username,
-                    student_password: credentials.password
+                    student_password: credentials.password 
                 });
             }
             res.json({ success: true, message: successMessage });
@@ -332,9 +326,9 @@ app.post('/update-application-status', (req, res) => {
                 }
 
                 const emailResult = await sendCredentialsEmail(
-                    app.email,
-                    app.first_name,
-                    credentials.username,
+                    app.email, 
+                    app.first_name, 
+                    credentials.username, 
                     credentials.password
                 );
                 
@@ -363,7 +357,7 @@ app.get('/get-application-details/:id', (req, res) => {
     
     db.query(sql, [applicationId], (err, results) => {
         if (err) {
-            console.error('DB ERROR fetching application details:', err);
+            console.error('DB ERROR fetching application details:', err); 
             return res.status(500).json({ success: false, message: 'Server error.' });
         }
         if (results.length === 0) return res.json({ success: false, message: 'Application not found.' });
@@ -472,17 +466,17 @@ app.post('/login', (req, res) => {
             applicationData.username = username;
             applicationData.password = password;
 
-            res.json({
-                success: true,
+            res.json({ 
+                success: true, 
                 application: applicationData,
-                firstLogin: isFirstLogin
+                firstLogin: isFirstLogin 
             });
         });
     });
 });
 
 app.get('/get-announcements', (req, res) => {
-    const sql = 'SELECT id, title, content FROM announcements ORDER BY created_at DESC';
+    const sql = 'SELECT id, title, content FROM announcements ORDER BY created_at DESC'; 
     db.query(sql, (err, results) => {
         if (err) {
             return res.status(500).json({ success: false, message: 'Failed to retrieve announcements.' });
@@ -529,9 +523,9 @@ app.post('/generate-credentials', (req, res) => {
         const app = apps[0];
 
         if (app.status === 'Approved') {
-            return res.json({ success: false, message: 'Application is already approved. Credentials should already exist.' });
+             return res.json({ success: false, message: 'Application is already approved. Credentials should already exist.' });
         }
-        
+  
         createOrGetCredentials(app, async (credErr, credentials) => {
             if (credErr) {
                 console.error('Final attempt to create credentials failed:', credErr);
@@ -539,9 +533,9 @@ app.post('/generate-credentials', (req, res) => {
             }
 
             const emailResult = await sendCredentialsEmail(
-                app.email,
-                app.first_name,
-                credentials.username,
+                app.email, 
+                app.first_name, 
+                credentials.username, 
                 credentials.password
             );
             
@@ -550,11 +544,11 @@ app.post('/generate-credentials', (req, res) => {
                 successMessage = `Credentials generated but FAILED to send email. Check server logs.`;
             }
             
-            res.json({
-                success: true,
+            res.json({ 
+                success: true, 
                 message: successMessage,
                 student_username: credentials.username,
-                student_password: credentials.password
+                student_password: credentials.password 
             });
         });
     });
@@ -600,3 +594,4 @@ app.post('/delete-announcement', (req, res) => {
         res.json({ success: true, message: 'Announcement deleted successfully.' });
     });
 });
+
