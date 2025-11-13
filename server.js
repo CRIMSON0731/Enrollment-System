@@ -558,7 +558,6 @@ app.post('/generate-credentials', (req, res) => {
             });
         });
     });
-});
 
 app.post('/create-announcement', (req, res) => {
     const { title, content } = req.body;
@@ -585,6 +584,7 @@ app.post('/delete-announcement', (req, res) => {
         return res.status(400).json({ success: false, message: 'Announcement ID is required for deletion.' });
     }
 
+    
     const sql = 'DELETE FROM announcements WHERE id = ?';
     
     db.query(sql, [announcementId], (err, result) => {
@@ -599,5 +599,4 @@ app.post('/delete-announcement', (req, res) => {
 
         res.json({ success: true, message: 'Announcement deleted successfully.' });
     });
-});
 });
