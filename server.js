@@ -243,11 +243,20 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     };
 
     try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Credentials email sent successfully to ${recipientEmail}`);
+        // Set a timeout for the email sending
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000);
+        });
+        
+        const sendPromise = transporter.sendMail(mailOptions);
+        
+        await Promise.race([sendPromise, timeoutPromise]);
+        
+        console.log(`✅ Credentials email sent successfully to ${recipientEmail}`);
         return { success: true };
     } catch (error) {
-        console.error(`Failed to send credentials email to ${recipientEmail}:`, error);
+        console.error(`❌ Failed to send credentials email to ${recipientEmail}:`, error.message);
+        // Return success but flag the email failure
         return { success: false, error: error.message };
     }
 }
