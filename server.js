@@ -425,8 +425,9 @@ app.post('/admin-login', (req, res) => {
         if (results.length === 0) {
             return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
-
-       const match = password === 'admin123';
+        const hashedPassword = results[0].password_hash; // 1. Get the stored hash
+        
+        const match = await bcrypt.compare(password, hashedPassword); // 2. Perform the secure comparison
         if (match) {
             res.json({ success: true });
         } else {
