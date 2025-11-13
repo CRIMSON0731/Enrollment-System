@@ -5,7 +5,7 @@ let currentSortKey = 'created_at'; // Default sort by submission date
 let currentSortDir = 'desc'; // Default direction is descending
 
 // --- SECURITY CONSTANT ---
-const SERVER_URL = 'https://giving-simplicity-production-c27d.up.railway.app'; // Unified Server URL
+const SERVER_URL = 'https://enrollment-system-production-6820.up.railway.app'; // Unified Server URL
 
 // --- MODAL ELEMENTS ---
 // Get the Bootstrap Modal Instance
@@ -618,7 +618,7 @@ async function simulateDataLoad() {
     tableBody.innerHTML = '<tr><td colspan="6">Loading applications...</td></tr>';
 
     try {
-        const response = await fetch('https://giving-simplicity-production-c27d.up.railway.app/get-applications');
+        const response = await fetch('https://enrollment-system-production-6820.up.railway.app/get-applications');
         const data = await response.json();
 
         if (data.success) {
