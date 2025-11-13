@@ -404,8 +404,7 @@ app.get('/get-application-details/:id', (req, res) => {
     const applicationId = req.params.id;
     
     const sql = `
-        SELECT 
-            a.*, u.username AS student_username, u.password AS student_password
+        SELECT a.*, u.username AS student_username, u.password AS student_password
         FROM applications a 
         LEFT JOIN users u ON a.id = u.application_id
         WHERE a.id = ?`;
