@@ -600,3 +600,4 @@ app.post('/delete-announcement', (req, res) => {
         res.json({ success: true, message: 'Announcement deleted successfully.' });
     });
 });
+});
