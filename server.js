@@ -49,13 +49,19 @@ app.use('/uploads', express.static('uploads'));
 app.use(express.static(__dirname)); 
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com', 
-    port: 465, 
-    secure: true, // Use SSL/TLS
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // use TLS
     auth: {
         user: 'dalonzohighschool@gmail.com', 
-        pass: 'ebvhftlefruimqru' // Your existing App Password
-    }
+        pass: 'ebvhftlefruimqru' 
+    },
+    tls: {
+        rejectUnauthorized: false // This can help with some SSL issues
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
 });
 
 let db; 
