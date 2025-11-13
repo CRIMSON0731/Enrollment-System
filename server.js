@@ -226,18 +226,6 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
         `
     };
 
-    try {
-        await sgMail.send(msg);
-        console.log(`✅ Credentials email sent successfully to ${recipientEmail} via SendGrid`);
-        return { success: true };
-    } catch (error) {
-        console.error(`❌ SendGrid error:`, error);
-        if (error.response) {
-            console.error(error.response.body);
-        }
-        return { success: false, error: error.message };
-    }
-}
 
 io.on('connection', (socket) => {
   console.log('A user connected with socket ID:', socket.id);
