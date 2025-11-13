@@ -50,18 +50,30 @@ app.use(express.static(__dirname));
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // use TLS
+    port: 465, // Try SSL port instead
+    secure: true, // Use SSL
     auth: {
         user: 'dalonzohighschool@gmail.com', 
         pass: 'ebvhftlefruimqru' 
     },
-    tls: {
-        rejectUnauthorized: false // This can help with some SSL issues
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000
+    logger: true, // Enable logging
+    debug: true, // Show debug output
+    connectionTimeout: 30000, // 30 seconds
+    greetingTimeout: 30000,
+    socketTimeout: 30000
+});
+
+// Test connection on startup
+transporter.verify(function(error, success) {
+    if (error) {
+        console.error('❌ SMTP Connection Failed:', error.message);
+        console.error('   This usually means:');
+        console.error('   1. Port 465/587 is blocked by your hosting provider');
+        console.error('   2. App password is incorrect or expired');
+        console.error('   3. Firewall is blocking SMTP connections');
+    } else {
+        console.log('✅ SMTP Server is ready to send emails');
+    }
 });
 
 let db; 
