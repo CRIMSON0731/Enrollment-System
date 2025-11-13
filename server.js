@@ -10,6 +10,7 @@ const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs'); 
 
 const PORT = process.env.PORT || 3000;
+console.log(`🔍 Attempting to start server on PORT: ${PORT}`);
 const app = express();
 const server = http.createServer(app); 
 const io = new Server(server, { 
@@ -34,6 +35,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' })); 
 
 app.use(cors()); 
+
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
 
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
