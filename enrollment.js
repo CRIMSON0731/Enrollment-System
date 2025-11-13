@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(enrollmentForm);
 
             // API Call: Application submission
-            const response = await fetch('https://giving-simplicity-production-c27d.up.railway.app/submit-application', {
+            const response = await fetch('https://enrollment-system-production-6820.up.railway.app/submit-application', {
                 method: 'POST',
                 body: formData
             });
