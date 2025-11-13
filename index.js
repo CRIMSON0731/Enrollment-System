@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // API Call 1: Attempt login. 
-            const response = await fetch('https://giving-simplicity-production-c27d.up.railway.app/login', {
+            const response = await fetch('https://enrollment-system-production-6820.up.railway.app/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: currentUsername, password })
