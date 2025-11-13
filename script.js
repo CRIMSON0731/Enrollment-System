@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Form is valid. Sending data to server with fetch()...");
 
       // --- 4. Send the data to the server (Resilient Fetch) ---
-      fetch("https://giving-simplicity-production-c27d.up.railway.app/submit-application", {
+      fetch("https://enrollment-system-production-6820.up.railway.app/submit-application", {
         method: "POST",
         body: formData, // FormData handles the Content-Type for file uploads
       })
