@@ -76,10 +76,6 @@ function attemptDbConnection(retryCount = 0) {
         if (!err) {
             db = pool;
             console.log(`✅ Successfully Connected to MySQL database on attempt ${retryCount + 1}`);
-            
-            server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server (and Socket.IO) is running on port ${PORT}`);
-            });
             return;
         }
 
@@ -92,12 +88,19 @@ function attemptDbConnection(retryCount = 0) {
                 attemptDbConnection(retryCount + 1);
             }, RETRY_DELAY_MS);
         } else {
-            console.error(`🛑 Failed to connect to MySQL after ${MAX_RETRIES} attempts. Server will not start.`);
-            process.exit(1);
+            console.error(`🛑 Failed to connect to MySQL after ${MAX_RETRIES} attempts.`);
         }
     });
 }
 
+// Start server immediately - NOT waiting for database
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server (and Socket.IO) is running on port ${PORT}`);
+    console.log(`✅ Server is bound to 0.0.0.0:${PORT}`);
+    console.log(`📡 Health check available at /health`);
+});
+
+// Connect to database in background
 attemptDbConnection();
 
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
@@ -603,4 +606,3 @@ app.post('/delete-announcement', (req, res) => {
         res.json({ success: true, message: 'Announcement deleted successfully.' });
     });
 });
-
