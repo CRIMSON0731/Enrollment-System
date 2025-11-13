@@ -192,9 +192,15 @@ const createOrGetCredentials = (app, callback) => {
 };
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
+    // Note: This function needs proper email configuration (SendGrid/SMTP)
+    // For now, returning a mock success response
+    console.log(`Email would be sent to: ${recipientEmail}`);
+    return { success: true };
+    
+    /* Uncomment and configure when ready to use SendGrid or nodemailer
     const msg = {
         to: recipientEmail,
-        from: 'dalonzohighschool@gmail.com', // This should be verified in SendGrid
+        from: 'dalonzohighschool@gmail.com',
         subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
@@ -225,19 +231,21 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
             </div>
         `
     };
-
+    // Add your email sending logic here
+    */
+}
 
 io.on('connection', (socket) => {
-  console.log('A user connected with socket ID:', socket.id);
+    console.log('A user connected with socket ID:', socket.id);
 
-  socket.on('registerUser', (applicationId) => {
-    socket.join(`user-${applicationId}`);
-    console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
-  });
+    socket.on('registerUser', (applicationId) => {
+        socket.join(`user-${applicationId}`);
+        console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
+    });
 
-  socket.on('disconnect', () => {
-    console.log('A user disconnected');
-  });
+    socket.on('disconnect', () => {
+        console.log('A user disconnected');
+    });
 });
 
 app.post('/submit-application', (req, res) => {
@@ -420,9 +428,9 @@ app.post('/admin-login', (req, res) => {
         if (results.length === 0) {
             return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
-        const hashedPassword = results[0].password_hash; // 1. Get the stored hash
+        const hashedPassword = results[0].password_hash;
         
-        const match = await bcrypt.compare(password, hashedPassword); // 2. Perform the secure comparison
+        const match = await bcrypt.compare(password, hashedPassword);
         if (match) {
             res.json({ success: true });
         } else {
@@ -529,7 +537,7 @@ app.post('/generate-credentials', (req, res) => {
         const app = apps[0];
 
         if (app.status === 'Approved') {
-             return res.json({ success: false, message: 'Application is already approved. Credentials should already exist.' });
+            return res.json({ success: false, message: 'Application is already approved. Credentials should already exist.' });
         }
   
         createOrGetCredentials(app, async (credErr, credentials) => {
@@ -558,6 +566,7 @@ app.post('/generate-credentials', (req, res) => {
             });
         });
     });
+});
 
 app.post('/create-announcement', (req, res) => {
     const { title, content } = req.body;
@@ -584,7 +593,6 @@ app.post('/delete-announcement', (req, res) => {
         return res.status(400).json({ success: false, message: 'Announcement ID is required for deletion.' });
     }
 
-    
     const sql = 'DELETE FROM announcements WHERE id = ?';
     
     db.query(sql, [announcementId], (err, result) => {
