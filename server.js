@@ -60,19 +60,6 @@ app.get('/', (req, res) => {
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
 
-// Test connection on startup
-transporter.verify(function(error, success) {
-    if (error) {
-        console.error('❌ SMTP Connection Failed:', error.message);
-        console.error('   This usually means:');
-        console.error('   1. Port 465/587 is blocked by your hosting provider');
-        console.error('   2. App password is incorrect or expired');
-        console.error('   3. Firewall is blocking SMTP connections');
-    } else {
-        console.log('✅ SMTP Server is ready to send emails');
-    }
-});
-
 let db; 
 const MAX_RETRIES = 10;
 const RETRY_DELAY_MS = 2500;
