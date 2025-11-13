@@ -201,22 +201,44 @@ const createOrGetCredentials = (app, callback) => {
 };
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
-    // Note: The 'from' email must be verified in your SendGrid account!
+    
+    // NOTE: The 'from' email is verified and ready to be used by SendGrid.
     const msg = {
         to: recipientEmail,
-        from: 'dalonzohighschool@gmail.com', // Must be an email verified in SendGrid
+        from: 'dalonzohighschool@gmail.com', // Must be the verified SendGrid sender
         subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
                 <h2>Hello, ${studentName}!</h2>
                 <p>You have been granted <b>Provisional Access</b> to the Student Portal, or your enrollment has been <b>APPROVED</b>.</p>
-                ... (rest of your email HTML here) ...
+                <p>Use the credentials below to access the Student Dashboard to view your status, announcements, and manage your account.</p>
+                
+                <h3 style="color: #2b7a0b;">Your Student Portal Login Details:</h3>
+                <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #eee; background-color: #f9f9f9; width: 30%;"><strong>Username (Email):</strong></td>
+                        <td style="padding: 10px; border: 1px solid #eee;"><code>${username}</code></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #eee; background-color: #f9f9f9;"><strong>Temporary Password:</strong></td>
+                        <td style="padding: 10px; border: 1px solid #eee;"><code>${password}</code></td>
+                    </tr>
+                </table>
+
+                <p style="color: #dc3545; font-weight: bold;">IMPORTANT SECURITY INSTRUCTIONS:</p>
+                <ol style="margin-left: 20px;">
+                    <li>Access your dashboard using the credentials above.</li>
+                    <li>You are required to change this temporary password immediately upon your first login.</li>
+                    <li>Do not share these credentials with anyone.</li>
+                </ol>
+                <p>If you have any questions, please contact the school office.</p>
+                <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
             </div>
         `,
     };
 
     try {
-        await sgMail.send(msg); // <--- This is the HTTP API call
+        await sgMail.send(msg); // <--- This is the working HTTP API call
         console.log(`✅ Credentials email sent successfully via SendGrid to: ${recipientEmail}`);
         return { success: true };
     } catch (error) {
