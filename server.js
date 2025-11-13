@@ -402,12 +402,15 @@ app.post('/update-application-status', (req, res) => {
 
 app.get('/get-application-details/:id', (req, res) => {
     const applicationId = req.params.id;
+
+    const sql = `
+    SELECT a.*, u.username AS student_username, u.password AS student_password
+    FROM applications a
+    LEFT JOIN users u ON a.id = u.application_id
+    WHERE a.id = ?`;
     
-    const sql = `
-        SELECT a.*, u.username AS student_username, u.password AS student_password
-        FROM applications a 
-        LEFT JOIN users u ON a.id = u.application_id
-        WHERE a.id = ?`;
+
+
     
     db.query(sql, [applicationId], (err, results) => {
         if (err) {
