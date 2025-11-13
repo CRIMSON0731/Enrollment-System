@@ -15,7 +15,7 @@ function showNotification(message, type) {
 // --- 1. Function to load announcements ---
 async function loadAnnouncements() {
   try {
-    const response = await fetch("https://giving-simplicity-production-c27d.up.railway.app/get-announcements");
+    const response = await fetch("https://enrollment-system-production-6820.up.railway.app/get-announcements");
     const data = await response.json();
     const containerElement = document.getElementById("announcements-list");
     
@@ -183,7 +183,7 @@ function setupPasswordForm(appData) {
     const newPassword = newPasswordInput.value;
 
     try {
-      const response = await fetch('https://giving-simplicity-production-c27d.up.railway.app/change-password', {
+      const response = await fetch('https://enrollment-system-production-6820.up.railway.app/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -299,7 +299,7 @@ function renderEnrollmentChecklist(status) {
 
 // --- Function to load student's submitted file links ---
 async function loadFullApplicationDetails(appData) {
-    const serverUrl = 'https://giving-simplicity-production-c27d.up.railway.app'; 
+    const serverUrl = 'https://enrollment-system-production-6820.up.railway.app'; 
     const documentLinksContainer = document.getElementById('document-links-container');
     documentLinksContainer.innerHTML = '<p>Fetching document links...</p>';
 
