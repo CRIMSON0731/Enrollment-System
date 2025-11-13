@@ -65,6 +65,16 @@ const sgMail = require('@sendgrid/mail');
 // Set your API key (replace with your actual key)
 sgMail.setApiKey('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');
 
+const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com', 
+    port: 587, // <--- Use Port 587
+    secure: false, // <--- Use secure: false (enables STARTTLS)
+    auth: {
+        user: 'dalonzohighschool@gmail.com', 
+        pass: 'ebvhftlefruimqru' 
+    }
+});
+
 
 let db; 
 const MAX_RETRIES = 10;
