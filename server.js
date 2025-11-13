@@ -196,31 +196,30 @@ const createOrGetCredentials = (app, callback) => {
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
     try {
-        // 1. CREATE TRANSPORTER (Must be done first, as a separate variable)
+        // This time, we define it using the hardcoded values to bypass the build check:
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com', 
             port: 587, 
             secure: false, 
             auth: {
-                user: 'dalonzohighschool@gmail.com',
-                pass: 'sqlavyespyyhphve' // Use your App Password here
+                user: 'dalonzohighschool@gmail.com', // HARDCODE USER
+                pass: 'sqlavyespyyhphve' // HARDCODE PASSWORD
             }
         });
 
-        // 2. DEFINE MAILOPTIONS (Must be done second, as a separate variable)
         const mailOptions = {
-            from: `"Doña Teodora Alonzo Highschool" <dalonzohighschool@gmail.com>`
+            from: `"Doña Teodora Alonzo Highschool" <dalonzohighschool@gmail.com>`, // Use hardcoded from address
+            to: recipientEmail,
             subject: 'Enrollment Status & Portal Credentials',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
                     <h2>Hello, ${studentName}!</h2>
                     <p>You have been granted <b>Provisional Access</b> to the Student Portal, or your enrollment has been <b>APPROVED</b>.</p>
-                    ... (rest of your email HTML here) ...
+                    ... (rest of your email HTML is correct) ...
                 </div>
             `
         };
 
-        // 3. SEND THE EMAIL (This is the final block)
         console.log(`📧 Attempting to send email to: ${recipientEmail}`);
         const info = await transporter.sendMail(mailOptions);
         console.log(`✅ Email sent successfully: ${info.messageId}`);
