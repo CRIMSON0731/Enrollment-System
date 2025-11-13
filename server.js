@@ -203,7 +203,7 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
             secure: false, 
             auth: {
                 user: 'dalonzohighschool@gmail.com', // Using hardcoded value
-                pass: 'ebvhftlefruimqru' // Using hardcoded value
+                pass: 'sqlavyespyyhphve' // Using hardcoded value
             }
         });
         
