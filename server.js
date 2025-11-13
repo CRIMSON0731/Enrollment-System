@@ -204,11 +204,8 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
             auth: {
                 user: 'dalonzohighschool@gmail.com', // Using hardcoded value
                 pass: 'sqlavyespyyhphve' // Using hardcoded value
-            }
-        });
-        
-        // 2. DEFINE MAILOPTIONS (Must be done inside the function)
-        const mailOptions = {
+                    
+             const mailOptions = {
             from: `"Doña Teodora Alonzo Highschool" <${process.env.EMAIL_USER || 'dalonzohighschool@gmail.com'}>`,
             to: recipientEmail,
             subject: 'Enrollment Status & Portal Credentials',
@@ -219,6 +216,11 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
                 </div>
             `
         };
+
+            }
+        });
+        
+        // 2. DEFINE MAILOPTIONS (Must be done inside the function)
 
         console.log(`📧 Attempting to send email to: ${recipientEmail}`);
         const info = await transporter.sendMail(mailOptions);
