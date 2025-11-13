@@ -23,7 +23,7 @@
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.9.7",
-    "@sendgrid/mail": "^8.1.0"
+    "@sendgrid/mail": "^8.1.0",
     "nodemailer": "^7.0.10",
     "otp-generator": "^4.0.1",
     "socket.io": "^4.8.1"
