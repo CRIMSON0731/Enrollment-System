@@ -48,20 +48,11 @@ app.get('/', (req, res) => {
 app.use('/uploads', express.static('uploads')); 
 app.use(express.static(__dirname)); 
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465, // Try SSL port instead
-    secure: true, // Use SSL
-    auth: {
-        user: 'dalonzohighschool@gmail.com', 
-        pass: 'ebvhftlefruimqru' 
-    },
-    logger: true, // Enable logging
-    debug: true, // Show debug output
-    connectionTimeout: 30000, // 30 seconds
-    greetingTimeout: 30000,
-    socketTimeout: 30000
-});
+const sgMail = require('@sendgrid/mail');
+
+// Set your API key (replace with your actual key)
+sgMail.setApiKey('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');
+
 
 // Test connection on startup
 transporter.verify(function(error, success) {
@@ -208,9 +199,9 @@ const createOrGetCredentials = (app, callback) => {
 };
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
-    const mailOptions = {
-        from: '"Doña Teodora Alonzo Highschool" <dalonzohighschool@gmail.com>',
+    const msg = {
         to: recipientEmail,
+        from: 'dalonzohighschool@gmail.com', // This should be verified in SendGrid
         subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
@@ -243,20 +234,14 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     };
 
     try {
-        // Set a timeout for the email sending
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000);
-        });
-        
-        const sendPromise = transporter.sendMail(mailOptions);
-        
-        await Promise.race([sendPromise, timeoutPromise]);
-        
-        console.log(`✅ Credentials email sent successfully to ${recipientEmail}`);
+        await sgMail.send(msg);
+        console.log(`✅ Credentials email sent successfully to ${recipientEmail} via SendGrid`);
         return { success: true };
     } catch (error) {
-        console.error(`❌ Failed to send credentials email to ${recipientEmail}:`, error.message);
-        // Return success but flag the email failure
+        console.error(`❌ SendGrid error:`, error);
+        if (error.response) {
+            console.error(error.response.body);
+        }
         return { success: false, error: error.message };
     }
 }
