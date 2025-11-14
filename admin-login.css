@@ -69,3 +69,30 @@ body {
     /* This overrides the default Bootstrap --bs-body-bg */
     background-color: transparent !important;
 }
+
+/* === FIXED: Make Login Card Fully Opaque === */
+.card {
+    background-color: white !important; /* Force white background */
+    opacity: 1 !important; /* Force full opacity */
+    backdrop-filter: none !important; /* Remove any backdrop filters */
+}
+
+.card-body {
+    background-color: white !important; /* Ensure card body is also white */
+    opacity: 1 !important;
+}
+
+/* Ensure form elements are also fully opaque */
+.form-control {
+    background-color: white !important;
+    opacity: 1 !important;
+}
+
+/* Alternative: Semi-transparent white card with blur effect (uncomment if preferred) */
+/*
+.card {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+}
+*/
