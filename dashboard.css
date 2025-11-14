@@ -388,7 +388,7 @@ body::after {
 .doc-status-verified { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 .doc-status-rejected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
-/* === ACCOUNT SECURITY PAGE - Input Styles === */
+/* === ACCOUNT SECURITY PAGE - Input Styles (FIXED) === */
 .security-box-container {
     max-width: 500px;
 }
@@ -404,22 +404,50 @@ body::after {
 .disable-2fa-btn {
     background: var(--rejected-color);
 }
+
+/* FIXED: Password Box Container */
+.password-box-container {
+    max-width: 600px; /* Added max-width */
+}
+
+/* FIXED: Input Group Styling */
+.input-group {
+    margin-bottom: 20px; /* Added spacing between input groups */
+}
+
+.input-group label {
+    display: block; /* Make label block-level */
+    margin-bottom: 8px; /* Space between label and input */
+    font-weight: 600; /* Make labels bold */
+    color: var(--text-color);
+}
+
+/* FIXED: Password Input Wrapper */
 .password-input-wrapper {
     position: relative;
+    width: 100%; /* Ensure full width */
 }
-.input-group input { 
-    width: 100%;
-    padding: 12px 15px;
+
+/* FIXED: Input Field Styling */
+.input-group input,
+.password-input-wrapper input { 
+    width: 100%; /* Full width */
+    padding: 12px 45px 12px 15px; /* Extra right padding for eye icon */
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 1rem;
     transition: border-color 0.3s, box-shadow 0.3s;
+    box-sizing: border-box; /* Include padding in width calculation */
 }
-.input-group input:focus {
+
+.input-group input:focus,
+.password-input-wrapper input:focus {
     border-color: var(--primary-green);
-    box-shadow: 0 0 0 3px rgba(43, 122, 11, 0.4); 
+    box-shadow: 0 0 0 3px rgba(43, 122, 11, 0.2); 
     outline: none;
 }
+
+/* FIXED: Toggle Password Icon */
 .toggle-password {
     position: absolute;
     top: 50%;
@@ -428,7 +456,21 @@ body::after {
     cursor: pointer;
     color: #999;
     z-index: 2; 
+    font-size: 1.1rem; /* Slightly larger icon */
 }
+
+.toggle-password:hover {
+    color: var(--primary-green);
+}
+
+/* Error Message Styling */
+.input-group small.text-danger {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.875rem;
+}
+
+/* Submit Button */
 .submit-btn {
     width: 100%;
     padding: 15px;
@@ -446,6 +488,11 @@ body::after {
     background: #3f8a43;
     transform: translateY(-1px);
 }
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+/* Message Text */
 .message-text {
     margin-top: 15px;
     text-align: center;
@@ -494,5 +541,15 @@ body::after {
     }
     .main-content {
         width: 100%;
+    }
+    
+    /* ADDED: Better mobile input styling */
+    .password-box-container {
+        max-width: 100%;
+    }
+    
+    .input-group input,
+    .password-input-wrapper input {
+        font-size: 16px; /* Prevents zoom on iOS */
     }
 }
