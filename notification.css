@@ -1,8 +1,11 @@
-/* --- Notification Bar Style (Final Attempt at Fix) --- */
+/* --- Notification Bar Style (FIXED - Complete Version) --- */
+
+/* Ensure header stays below notification */
 header {
   z-index: 1000 !important; 
 }
 
+/* Main notification bar styling */
 .notification-bar {
   position: fixed;
   top: -100px; 
@@ -10,29 +13,60 @@ header {
   transform: translateX(-50%);
   padding: 20px 35px;
   border-radius: 10px;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
   font-size: 1.1rem;
   font-weight: 600;
   color: white;
-  z-index: 99999; /* Maxed out Z-index to force it on top */
-  transition: top 0.5s ease-in-out;
+  z-index: 999999; /* Maximum z-index to ensure it's always on top */
+  transition: top 0.5s ease-in-out, opacity 0.3s ease;
   max-width: 600px;
   width: 90%;
   text-align: center;
+  opacity: 1; /* Ensure full opacity by default */
+  pointer-events: auto; /* Ensure it's clickable/interactive */
+  visibility: visible; /* Ensure visibility */
+  background-color: rgba(0, 0, 0, 0.8); /* Default background */
 }
 
-/* The 'show' class to slide it in (Optimized Top Offset) */
+/* The 'show' class to slide it in */
 .notification-bar.show {
-  /* Using 100px here should be plenty if the z-index is respected */
-  top: 100px; 
+  top: 100px; /* Visible position below header */
+  opacity: 1 !important; /* Force full opacity when shown */
+  visibility: visible !important;
 }
 
 /* The 'success' style (green) */
 .notification-bar.success {
-  background-color: #28a745;
+  background-color: #28a745 !important;
+  opacity: 1 !important;
 }
 
 /* The 'error' style (red) */
 .notification-bar.error {
-  background-color: #dc3545;
+  background-color: #dc3545 !important;
+  opacity: 1 !important;
+}
+
+/* The 'info' style (teal/cyan) */
+.notification-bar.info {
+  background-color: #17a2b8 !important;
+  opacity: 1 !important;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .notification-bar {
+    width: 95%;
+    padding: 15px 20px;
+    font-size: 1rem;
+  }
+  
+  .notification-bar.show {
+    top: 80px; /* Adjust for smaller screens */
+  }
+}
+
+/* Additional safety: Ensure no conflicting opacity rules */
+.notification-bar * {
+  opacity: 1;
 }
