@@ -443,7 +443,7 @@ function applyFiltersAndDisplay() {
     displayTableContent(filteredApps, currentGradeLevel);
 }
 
-// --- Main function to display table data (EXISTING) ---
+// --- Main function to display table data (FIXED) ---
 function displayTableContent(applicationsToDisplay, gradeLevel) {
     const tableBody = document.getElementById('applications-tbody');
     
@@ -458,13 +458,15 @@ function displayTableContent(applicationsToDisplay, gradeLevel) {
       const row = document.createElement('tr');
       const formattedDate = new Date(app.created_at || Date.now()).toLocaleDateString(); 
       
+      // FIX: Ensure 6 <td> elements are created in the correct order.
+      // FIX: Corrected typo 'classs' to 'class' in the last <td>.
       row.innerHTML = `
-        <td>${app.first_name} ${app.last_name}</td>
-        <td>${app.email}</td>
-        <td>Grade ${app.grade_level}</td>
-        <td><span class="status-pill status-${app.status.replace(/ /g, '')}">${app.status}</span></td>
+        <td>${app.first_name || ''} ${app.last_name || ''}</td>
+        <td>${app.email || 'N/A'}</td>
+        <td>Grade ${app.grade_level || 'N/A'}</td>
+        <td><span class="status-pill status-${app.status.replace(/ /g, '')}">${app.status || 'N/A'}</span></td>
         <td>${formattedDate}</td>
-        <td classs="actions">
+        <td class="actions">
           <button class="action-btn view-details-btn" data-id="${app.id}">View Details</button>
         </td>
       `;
