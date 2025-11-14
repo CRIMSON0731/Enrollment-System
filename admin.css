@@ -3,7 +3,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Montserrat', sans-serif; /* Unified font */
 }
 
 /* Theme Color Variable */
@@ -55,13 +55,6 @@ body {
   color: #333;
 }
 
-/* === GLOBAL RESET & FONT === */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Montserrat', sans-serif; /* login/body font */
-}
 
 /* === HEADER & LOGOUT (Unified Size) === */
 .admin-header {
@@ -148,7 +141,7 @@ body::after {
 main {
   width: 95%;
   max-width: 1200px;
-  margin: 0 auto; /* remove old top margin */
+  margin: 0 auto; 
   padding: 100px 10px 30px 10px; /* top padding pushes content below header */
 }
 
@@ -247,10 +240,12 @@ h2 {
     overflow-x: auto; 
 }
 
+/* === FIXED TABLE LAYOUT FOR PROPER ALIGNMENT === */
 #applications-table {
   width: 100%;
   min-width: 800px; 
-  border-collapse: collapse; 
+  border-collapse: collapse;
+  table-layout: fixed; /* FIXED: Ensures consistent column widths */
 }
 
 #applications-table th,
@@ -258,46 +253,49 @@ h2 {
   border: 1px solid #eee; 
   padding: 12px;
   text-align: left;
-  vertical-align: middle;
+  vertical-align: middle; /* ADDED: Better vertical alignment */
 }
 
+#applications-table th {
+  background: #f9f9f9; 
+  color: #495057;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+/* === COLUMN WIDTH DEFINITIONS === */
 #applications-table th:nth-child(1),
-#applications-table td:nth-child(1) {
-  width: 150px;
-  min-width: 150px;
+#applications-table td:nth-child(1) { 
+  width: 18%; /* Name */
 }
 
 #applications-table th:nth-child(2),
-#applications-table td:nth-child(2) {
-  width: 220px;
-  min-width: 220px;
+#applications-table td:nth-child(2) { 
+  width: 25%; /* Email */
+  word-break: break-word; /* ADDED: Prevents long emails from breaking layout */
+  overflow-wrap: break-word;
 }
 
 #applications-table th:nth-child(3),
-#applications-table td:nth-child(3) {
-  width: 120px;
-  min-width: 120px;
-  text-align: center;
+#applications-table td:nth-child(3) { 
+  width: 12%; /* Grade Level */
 }
 
 #applications-table th:nth-child(4),
-#applications-table td:nth-child(4) {
-  width: 140px;
-  min-width: 140px;
-  text-align: center;
+#applications-table td:nth-child(4) { 
+  width: 15%; /* Status */
 }
 
 #applications-table th:nth-child(5),
-#applications-table td:nth-child(5) {
-  width: 130px;
-  min-width: 130px;
-  text-align: center;
+#applications-table td:nth-child(5) { 
+  width: 13%; /* Submitted */
 }
 
 #applications-table th:nth-child(6),
-#applications-table td:nth-child(6) {
-  width: auto;
-  text-align: center;
+#applications-table td:nth-child(6) { 
+  width: 17%; /* Actions */
+}
 
 /* --- STATUS PILLS --- */
 .status-pill {
@@ -326,6 +324,23 @@ h2 {
   margin-right: 5px;
   transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
 }
+.action-btn-danger {
+    background: var(--rejected-color);
+    color: white;
+    padding: 10px 20px; 
+    border: none;
+    border-radius: 8px; 
+    cursor: pointer;
+    font-weight: 700; 
+    font-size: 1rem; 
+    transition: background 0.3s ease, transform 0.2s ease; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+}
+.action-btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); 
+}
 .view-details-btn {
   background: var(--accent-blue);
   color: white;
@@ -335,56 +350,13 @@ h2 {
 .reject-btn { background: var(--rejected-color); color: white; }
 
 
-/* === MODAL STYLES (CLEANED UP) === */
-.modal {
-  display: none; 
-  position: fixed; 
-  z-index: 1000; 
-  left: 0;
-  top: 0;
-  width: 100%; 
-  height: 100%; 
-  overflow: auto; 
-  background-color: rgba(0,0,0,0.6); 
-  padding-top: 60px;
-  opacity: 0;
-  transform: translateY(-30px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
+/* === MODAL STYLES (Using Bootstrap Naming) === */
+/* NOTE: The HTML uses Bootstrap .modal.fade, which handles display/transitions */
 
-.modal-content {
-  background-color: #fefefe;
-  margin: 5% auto; 
-  padding: 30px;
-  border-radius: 10px;
-  width: 90%; 
-  max-width: 700px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  position: relative;
-}
-
-.close-btn {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-  position: absolute;
-  top: 15px;
-  right: 25px;
-}
-
-.close-btn:hover,
-.close-btn:focus {
-  color: #000;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-/* Modal Body */
 .details-body {
     max-height: 60vh;
     overflow-y: auto;
-    padding-right: 15px; /* for scrollbar */
+    padding-right: 15px; 
 }
 
 .details-body h2 {
@@ -409,9 +381,9 @@ h2 {
 }
 .file-link:hover { text-decoration: underline; }
 
-/* --- NEW: Credentials Box Style (User/Pass) --- */
+/* --- Credentials Box Style (User/Pass) --- */
 .user-credentials {
-    background: #e9f7ec; /* Light green background for approved credentials */
+    background: #e9f7ec; 
     border: 1px solid #c3e6cb;
     padding: 15px;
     border-radius: 8px;
@@ -421,18 +393,18 @@ h2 {
     animation-delay: 0.5s;
 }
 .user-credentials strong {
-    color: #155724; /* Darker green for labels */
+    color: #155724; 
     width: auto;
-    display: inline-block; /* Keep labels inline with values */
+    display: inline-block; 
     margin-bottom: 5px;
 }
 .user-credentials code {
-    background: #d4edda; /* Slightly darker green for code */
+    background: #d4edda; 
     padding: 3px 8px;
     border-radius: 4px;
     font-weight: 700;
-    color: #0c431d; /* Very dark green for readability */
-    font-family: 'Consolas', 'Monaco', monospace; /* Monospace font for code */
+    color: #0c431d; 
+    font-family: 'Consolas', 'Monaco', monospace; 
 }
 .user-credentials div {
     margin-bottom: 5px;
@@ -442,39 +414,6 @@ h2 {
     color: #0c431d;
     margin-top: 10px;
     font-style: italic;
-}
-
-/* --- FIX: Modal Footer & Delete Button --- */
-.modal-actions {
-    padding-top: 20px;
-    border-top: 1px solid #eee;
-    margin-top: 20px;
-    display: flex;
-    justify-content: space-between; /* This separates the buttons */
-    align-items: center;
-}
-
-.status-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.action-btn-danger {
-  background: var(--rejected-color);
-  color: white;
-  padding: 10px 20px; /* Slightly larger, more prominent */
-  border: none;
-  border-radius: 8px; /* Slightly more rounded corners */
-  cursor: pointer;
-  font-weight: 700; /* Bolder text */
-  font-size: 1rem; /* Clearer font size */
-  transition: background 0.3s ease, transform 0.2s ease; /* Smooth hover effects */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-}
-.action-btn-danger:hover {
-    background: #c82333;
-    transform: translateY(-2px); /* Lift effect */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* Enhanced shadow */
 }
 
 
@@ -490,7 +429,27 @@ h2 {
     .logout-btn { width: 100%; max-width: 200px; margin: 5px auto 0; }
     .filter-controls { flex-direction: column; }
     .search-input, .filter-select { width: 100%; min-width: unset; }
-    .modal-actions { flex-direction: column; gap: 15px; }
-    .status-buttons { width: 100%; justify-content: center; }
-    .action-btn-danger { width: 100%; }
+    
+    /* ADDED: Mobile-responsive table columns */
+    #applications-table th:nth-child(1),
+    #applications-table td:nth-child(1) { width: 20%; }
+    
+    #applications-table th:nth-child(2),
+    #applications-table td:nth-child(2) { width: 30%; }
+    
+    #applications-table th:nth-child(3),
+    #applications-table td:nth-child(3) { width: 15%; }
+    
+    #applications-table th:nth-child(4),
+    #applications-table td:nth-child(4) { width: 15%; }
+    
+    #applications-table th:nth-child(5),
+    #applications-table td:nth-child(5) { width: 10%; }
+    
+    #applications-table th:nth-child(6),
+    #applications-table td:nth-child(6) { width: 10%; }
+    
+    .modal-footer { flex-direction: column; gap: 15px; } /* Use .modal-footer class */
+    .modal-footer > div { width: 100%; justify-content: center; } /* Target the button group */
+    .modal-footer .action-btn, .modal-footer .action-btn-danger, .modal-footer .btn-info { width: 100%; } /* Make all buttons full width */
 }
