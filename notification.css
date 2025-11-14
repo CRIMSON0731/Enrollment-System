@@ -1,72 +1,109 @@
-/* --- Notification Bar Style (FIXED - Complete Version) --- */
+/* --- Notification Bar Style (ULTRA-FIXED - Maximum Visibility) --- */
 
 /* Ensure header stays below notification */
 header {
   z-index: 1000 !important; 
 }
 
-/* Main notification bar styling */
-.notification-bar {
-  position: fixed;
-  top: -100px; 
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 20px 35px;
-  border-radius: 10px;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: white;
-  z-index: 999999; /* Maximum z-index to ensure it's always on top */
-  transition: top 0.5s ease-in-out, opacity 0.3s ease;
-  max-width: 600px;
-  width: 90%;
-  text-align: center;
-  opacity: 1; /* Ensure full opacity by default */
-  pointer-events: auto; /* Ensure it's clickable/interactive */
-  visibility: visible; /* Ensure visibility */
-  background-color: rgba(0, 0, 0, 0.8); /* Default background */
+/* Main notification bar styling with MAXIMUM specificity */
+#notification-bar.notification-bar {
+  position: fixed !important;
+  top: -100px !important; 
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  padding: 20px 35px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5) !important;
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  color: white !important;
+  z-index: 999999 !important;
+  transition: top 0.5s ease-in-out !important;
+  max-width: 600px !important;
+  width: 90% !important;
+  text-align: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  display: block !important;
 }
 
 /* The 'show' class to slide it in */
-.notification-bar.show {
-  top: 100px; /* Visible position below header */
-  opacity: 1 !important; /* Force full opacity when shown */
+#notification-bar.notification-bar.show {
+  top: 100px !important;
+  opacity: 1 !important;
   visibility: visible !important;
 }
 
-/* The 'success' style (green) */
-.notification-bar.success {
+/* The 'success' style (green) - ULTRA SPECIFIC */
+#notification-bar.notification-bar.success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
   background-color: #28a745 !important;
   opacity: 1 !important;
+  color: white !important;
 }
 
-/* The 'error' style (red) */
-.notification-bar.error {
+/* The 'error' style (red) - ULTRA SPECIFIC */
+#notification-bar.notification-bar.error {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
   background-color: #dc3545 !important;
   opacity: 1 !important;
+  color: white !important;
 }
 
-/* The 'info' style (teal/cyan) */
-.notification-bar.info {
+/* The 'info' style (teal/cyan) - ULTRA SPECIFIC */
+#notification-bar.notification-bar.info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
   background-color: #17a2b8 !important;
   opacity: 1 !important;
+  color: white !important;
+}
+
+/* Fallback without ID selector */
+.notification-bar {
+  position: fixed !important;
+  color: white !important;
+  opacity: 1 !important;
+  z-index: 999999 !important;
+}
+
+.notification-bar.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.notification-bar.success {
+  background-color: #28a745 !important;
+  color: white !important;
+}
+
+.notification-bar.error {
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+
+.notification-bar.info {
+  background-color: #17a2b8 !important;
+  color: white !important;
 }
 
 /* Responsive adjustments for mobile */
 @media (max-width: 768px) {
-  .notification-bar {
-    width: 95%;
-    padding: 15px 20px;
-    font-size: 1rem;
+  #notification-bar.notification-bar {
+    width: 95% !important;
+    padding: 15px 20px !important;
+    font-size: 1rem !important;
   }
   
-  .notification-bar.show {
-    top: 80px; /* Adjust for smaller screens */
+  #notification-bar.notification-bar.show {
+    top: 80px !important;
   }
 }
 
-/* Additional safety: Ensure no conflicting opacity rules */
+/* Nuclear option: Force all text to be white and visible */
+#notification-bar.notification-bar *,
 .notification-bar * {
-  opacity: 1;
+  color: white !important;
+  opacity: 1 !important;
 }
