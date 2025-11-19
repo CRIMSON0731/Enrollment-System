@@ -132,7 +132,7 @@ const storage = multer.diskStorage({
     }
 });
 
-// 1. Main Multer Instance (Use this for general configs & .single uploads)
+// 1. Main Multer Instance (Use this for general configs)
 const upload = multer({
     storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
@@ -217,7 +217,7 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     
     const msg = {
         to: recipientEmail,
-        from: 'dalonzohighschool@gmail.com', 
+        from: 'dalonzohighschool@gmail.com', // Verified SendGrid sender
         subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
@@ -236,6 +236,13 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
                         <td style="padding: 10px; border: 1px solid #eee;"><code>${password}</code></td>
                     </tr>
                 </table>
+
+                <p style="color: #dc3545; font-weight: bold;">IMPORTANT SECURITY INSTRUCTIONS:</p>
+                <ol style="margin-left: 20px;">
+                    <li>Access your dashboard using the credentials above.</li>
+                    <li>You are required to change this temporary password immediately upon your first login.</li>
+                    <li>Do not share these credentials with anyone.</li>
+                </ol>
                 <p>If you have any questions, please contact the school office.</p>
                 <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
             </div>
@@ -265,7 +272,7 @@ io.on('connection', (socket) => {
         console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
     });
 
-    // --- NEW: For Inquiry Notifications ---
+    // For Inquiry Notifications
     socket.on('watchInquiry', (inquiryId) => {
         socket.join(`inquiry-${inquiryId}`);
         console.log(`Socket ${socket.id} is watching Inquiry #${inquiryId}`);
@@ -280,7 +287,95 @@ io.on('connection', (socket) => {
 // ROUTES
 // -----------------------------------------------------------------
 
-// === APPLICATION SUBMISSION ===
+// === NEW: FORGOT PASSWORD ENDPOINT ===
+app.post('/request-password-reset', (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    // Check if the email/username exists in the users table
+    // Note: The student's email is the 'username' in your 'users' table, but 
+    // originally came from the 'applications' table.
+    // We check the 'applications' table for the email to get the correct user record.
+    
+    const sql = `
+        SELECT u.id AS user_id, u.username, a.first_name, a.email AS contact_email 
+        FROM users u 
+        JOIN applications a ON u.application_id = a.id 
+        WHERE u.username = ? OR a.email = ?`;
+
+    db.query(sql, [email, email], (err, results) => {
+        if (err) {
+            console.error("Database error during password reset request:", err);
+            return res.status(500).json({ success: false, message: "Database error." });
+        }
+
+        if (results.length === 0) {
+            // Security: Don't reveal if the email doesn't exist.
+            // Return success anyway so attackers can't enumerate emails.
+            return res.json({ success: true, message: "If this email is registered, a reset link has been sent." });
+        }
+
+        const user = results[0];
+        
+        // Generate a temporary password
+        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let tempPassword = "";
+        for (let i = 0; i < 8; i++) {
+            tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        // Hash and update the password
+        bcrypt.hash(tempPassword, 10, (hashErr, hashedPassword) => {
+            if (hashErr) {
+                return res.status(500).json({ success: false, message: "Encryption error." });
+            }
+
+            const updateSql = "UPDATE users SET password = ? WHERE id = ?";
+            db.query(updateSql, [hashedPassword, user.user_id], async (updateErr) => {
+                if (updateErr) {
+                     console.error("Database error updating password:", updateErr);
+                     return res.status(500).json({ success: false, message: "Failed to update password." });
+                }
+
+                // Send Email via SendGrid
+                const msg = {
+                    to: user.contact_email, // Send to their contact email
+                    from: 'dalonzohighschool@gmail.com',
+                    subject: 'Password Reset Request - DTAHS',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #dc3545;">
+                            <h3>Password Reset Request</h3>
+                            <p>Hello ${user.first_name},</p>
+                            <p>We received a request to reset your password for the Student Portal.</p>
+                            <p>Your new <strong>Temporary Password</strong> is:</p>
+                            <div style="background: #f8f9fa; padding: 15px; font-size: 1.2em; font-weight: bold; letter-spacing: 2px; text-align: center; border: 1px dashed #ccc;">
+                                ${tempPassword}
+                            </div>
+                            <p style="margin-top: 20px;">Please log in using this password and change it immediately in your dashboard settings.</p>
+                            <p>If you did not request this, please contact the school administration.</p>
+                        </div>
+                    `,
+                };
+
+                try {
+                    await sgMail.send(msg);
+                    console.log(`✅ Reset password email sent to: ${user.contact_email}`);
+                    res.json({ success: true, message: "Reset email sent." });
+                } catch (emailErr) {
+                    console.error("❌ SendGrid Error:", emailErr);
+                    res.json({ success: false, message: "Failed to send email. Please try again later." });
+                }
+            });
+        });
+    });
+});
+
+// ... (Rest of existing routes: /submit-application, /admin-login, /login, etc.) ...
+// Use the same route definitions as before.
+
 app.post('/submit-application', (req, res) => {
     // Use the SPECIFIC middleware 'uploadApplicationFiles' here
     uploadApplicationFiles(req, res, (err) => {
@@ -670,7 +765,6 @@ app.post('/submit-inquiry', upload.single('attachment'), (req, res) => {
             console.error("Error saving inquiry:", err);
             return res.status(500).json({ success: false, message: "Database error" });
         }
-        // Return inquiryId so frontend can watch for replies
         res.json({ success: true, message: "Inquiry sent successfully!", inquiryId: result.insertId });
     });
 });
