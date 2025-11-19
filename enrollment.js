@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lastName) requiredFields.push({ element: lastName, label: 'Last Name' });
         if (birthdate) requiredFields.push({ element: birthdate, label: 'Birthdate' });
         
-        // Age validation - Check if applicant is at least 10 years old
+        // Age validation - Check if applicant is at least 11 years old
         if (birthdate && birthdate.value) {
             const birthDate = new Date(birthdate.value);
             const today = new Date();
@@ -104,8 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 age--;
             }
             
-            if (age < 10) {
-                showNotification('⚠️ Applicants must be at least 10 years old to enroll. Current age: ' + age + ' years old.', 'error');
+            if (age < 11) {
+                showNotification('⚠️ Age is not valid. Applicants must be at least 11 years old to enroll. Current age: ' + age + ' years old.', 'error');
                 birthdate.classList.add('is-invalid');
                 birthdate.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 birthdate.focus();
@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 
                 // --- CUSTOMIZED SUCCESS MESSAGE ---
-                const customMessage = `Application submitted successfully! Wait for the admin to approve your application and once approved it will notify on your email (including spam/junk) for you to access your login credentials.`;
+                const customMessage = `Application submitted successfully! Wait for the admin to approve your application and once approved it will notify on your personal email (including spam/junk) and you will get you login credentials.`;
                 
                 // --- CRUCIAL CHANGE: Store custom message and redirect ---
                 sessionStorage.setItem('submissionSuccess', customMessage);
