@@ -113,7 +113,7 @@ html {
 
 /* === 6.5 INPUT FIELD STYLING === */
 .right-side .form-control {
-  border: 6px solid #495057;
+  border: 1px solid #ced4da;
   background-color: #ffffff;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
@@ -125,12 +125,12 @@ html {
 }
 
 .right-side .form-control:hover:not(:focus) {
-  border-color: #495057;
+  border-color: #adb5bd;
 }
 
 /* === 6.6 CARD CONTAINER STYLING === */
 .right-side .card {
-  border: 1000px solid #6c757d;
+  border: 4px solid #495057 !important;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
