@@ -180,4 +180,55 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ============================================================
+    // 3. FORGOT PASSWORD LOGIC
+    // ============================================================
+    const forgotPasswordForm = document.getElementById('forgot-password-form');
+
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const emailInput = document.getElementById('reset-email');
+            const submitBtn = forgotPasswordForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
+
+            // UI Feedback
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                // We send a POST request to /forgot-password
+                const response = await fetch('https://enrollment-system-production-6820.up.railway.app/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailInput.value })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Close the modal
+                    const modalEl = document.getElementById('forgotPasswordModal');
+                    // We assume 'bootstrap' global is available since bootstrap.bundle.min.js is included
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+
+                    // Show success message
+                    showNotification('Password reset link sent! Check your email.', 'success');
+                    forgotPasswordForm.reset();
+                } else {
+                    showNotification(data.message || 'Email not found.', 'error');
+                }
+
+            } catch (error) {
+                console.error("Reset Password Error:", error);
+                showNotification('Network error. Please try again later.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            }
+        });
+    }
 });
