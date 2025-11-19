@@ -2,6 +2,42 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     
+    // --- HEADER SCROLL BEHAVIOR ---
+    let lastScrollTop = 0;
+    const navbar = document.querySelector('.navbar');
+    const scrollThreshold = 100; // Pixels to scroll before hiding header
+    
+    window.addEventListener('scroll', () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        if (scrollTop > scrollThreshold) {
+            if (scrollTop > lastScrollTop) {
+                // Scrolling down - hide header
+                navbar.classList.add('hide-header');
+                navbar.classList.remove('show-header');
+            } else {
+                // Scrolling up - show header
+                navbar.classList.remove('hide-header');
+                navbar.classList.add('show-header');
+            }
+        } else {
+            // Near top - always show header
+            navbar.classList.remove('hide-header');
+            navbar.classList.add('show-header');
+        }
+        
+        lastScrollTop = scrollTop;
+    });
+    
+    // Show header when mouse moves to top of screen
+    document.addEventListener('mousemove', (e) => {
+        if (e.clientY < 80) {
+            navbar.classList.remove('hide-header');
+            navbar.classList.add('show-header');
+        }
+    });
+    // --- END HEADER SCROLL BEHAVIOR ---
+    
     const loginForm = document.getElementById('student-login-form'); 
     
     // --- CUSTOM Notification Bar Elements ---
