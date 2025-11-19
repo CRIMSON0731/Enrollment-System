@@ -45,26 +45,22 @@ async function loadAnnouncements() {
   }
 }
 
-// --- 2. Function to handle sidebar navigation (CRITICAL MODIFICATION) ---
+// --- 2. Function to handle sidebar navigation ---
 function setupNavigation(isFirstLogin = false) {
   const links = document.querySelectorAll(".sidebar-links a");
   const contentSections = document.querySelectorAll(".content-section");
   
-  // Default to Home or force Password Change
   const initialTargetId = isFirstLogin ? "content-password" : "content-home";
   const initialNavLinkId = isFirstLogin ? "nav-password" : "nav-home";
 
-  // 1. Set initial active section/link
   document.getElementById(initialTargetId).classList.add("active-section");
   document.getElementById(initialNavLinkId).classList.add("active");
-
 
   links.forEach(link => {
     link.addEventListener("click", (e) => {
       e.preventDefault(); 
       const targetId = "content-" + link.id.split("-")[1]; 
 
-      // 2. Enforcement Check: If first login, block all links except the password change link
       if (isFirstLogin && link.id !== 'nav-password') {
           showNotification("SECURITY ALERT: You must change your temporary password to access the dashboard.", 'error');
           return;
@@ -75,11 +71,9 @@ function setupNavigation(isFirstLogin = false) {
           sidebar.classList.remove('sidebar-open');
       }
 
-      // Update active link class
       links.forEach(l => l.classList.remove("active"));
       link.classList.add("active");
       
-      // Update active content section class
       contentSections.forEach(section => {
         section.classList.remove("active-section");
       });
@@ -110,7 +104,7 @@ function setupPasswordToggle() {
     });
 }
 
-// --- 3. Function to handle the "Change Password" form (CRITICAL MODIFICATION) ---
+// --- 3. Function to handle the "Change Password" form (ENHANCED) ---
 function setupPasswordForm(appData) {
   const form = document.getElementById('change-password-form');
   const messageEl = document.getElementById('password-message');
@@ -118,6 +112,11 @@ function setupPasswordForm(appData) {
   const currentPasswordInput = document.getElementById('current-password');
   const newPasswordInput = document.getElementById('new-password');
   const confirmPasswordInput = document.getElementById('confirm-password');
+  const generateBtn = document.getElementById('generate-password-btn');
+
+  // Elements for Strength Meter
+  const strengthBar = document.getElementById('password-strength-bar');
+  const strengthText = document.getElementById('password-strength-text');
 
   const errorElements = {
       current: document.getElementById('current-password-error'),
@@ -134,6 +133,81 @@ function setupPasswordForm(appData) {
       input.addEventListener('focus', clearErrors);
   });
 
+  // --- Password Strength Logic ---
+  const calculateStrength = (password) => {
+      let strength = 0;
+      if (password.length >= 8) strength++;
+      if (password.match(/[a-z]+/)) strength++;
+      if (password.match(/[A-Z]+/)) strength++;
+      if (password.match(/[0-9]+/)) strength++;
+      if (password.match(/[$@#&!]+/)) strength++;
+      return strength;
+  };
+
+  const updateStrengthMeter = () => {
+      const val = newPasswordInput.value;
+      const strength = calculateStrength(val);
+      
+      if (val.length === 0) {
+          strengthBar.style.width = '0%';
+          strengthBar.className = 'progress-bar';
+          strengthText.textContent = 'Strength: None';
+          return;
+      }
+
+      let width = '0%';
+      let colorClass = 'bg-danger';
+      let text = 'Weak';
+
+      if (strength <= 2) {
+          width = '30%';
+          colorClass = 'bg-danger';
+          text = 'Weak';
+      } else if (strength === 3 || strength === 4) {
+          width = '60%';
+          colorClass = 'bg-warning';
+          text = 'Medium';
+      } else if (strength >= 5) {
+          width = '100%';
+          colorClass = 'bg-success';
+          text = 'Strong';
+      }
+
+      strengthBar.style.width = width;
+      strengthBar.className = `progress-bar ${colorClass}`;
+      strengthText.textContent = `Strength: ${text}`;
+  };
+
+  // --- Random Password Generator ---
+  const generateStrongPassword = () => {
+      const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$@#&!";
+      let password = "";
+      for (let i = 0; i < 12; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+  };
+
+  // Event Listeners for Strength & Generation
+  newPasswordInput.addEventListener('input', updateStrengthMeter);
+
+  generateBtn.addEventListener('click', () => {
+      const strongPass = generateStrongPassword();
+      newPasswordInput.value = strongPass;
+      confirmPasswordInput.value = strongPass;
+      
+      // Show password momentarily
+      newPasswordInput.type = 'text';
+      confirmPasswordInput.type = 'text';
+      
+      // Trigger validation UI update
+      updateStrengthMeter();
+      clearErrors();
+      
+      showNotification("Strong password generated! Please save it.", "info");
+  });
+
+
   const validateForm = () => {
       clearErrors();
       const currentPass = currentPasswordInput.value;
@@ -145,8 +219,20 @@ function setupPasswordForm(appData) {
           errorElements.current.textContent = 'Current password is required.';
           isValid = false;
       }
+
+      // 1. FORCED CHECK: Cannot be 'password123'
+      if (newPass === 'password123') {
+          errorElements.new.textContent = 'You cannot use the default temporary password. Please choose a new one.';
+          isValid = false;
+      }
       
-      if (newPass.length > 0 && newPass.length < 8) {
+      // 2. STRENGTH CHECK: Must be at least Medium strength
+      if (calculateStrength(newPass) < 3) {
+          errorElements.new.textContent = 'Password is too weak. Include uppercase, numbers, or symbols.';
+          isValid = false;
+      }
+
+      if (newPass.length < 8) {
         errorElements.new.textContent = 'Password must be at least 8 characters.';
         isValid = false;
       }
@@ -164,9 +250,10 @@ function setupPasswordForm(appData) {
       return isValid;
   };
 
-  confirmPasswordInput.addEventListener('keyup', validateForm);
-  newPasswordInput.addEventListener('keyup', validateForm);
-  currentPasswordInput.addEventListener('keyup', validateForm);
+  // Real-time validation listeners
+  confirmPasswordInput.addEventListener('keyup', () => {
+      if(newPasswordInput.value === confirmPasswordInput.value) errorElements.confirm.textContent = '';
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -196,19 +283,17 @@ function setupPasswordForm(appData) {
       const data = await response.json();
 
       if (data.success) {
-        // --- CRITICAL FIX: Update localStorage to clear the temporary status ---
-        appData.password = newPassword; // This updates the cached password to the new one
-        // The check in the Main function relies on the password *not* being 'password123'
-        // Since the server successfully updated the password, this locally recorded change 
-        // means on next refresh/relogin, the forced check passes.
+        appData.password = newPassword; 
         localStorage.setItem("applicationData", JSON.stringify(appData));
         
         showNotification(data.message, 'success');
         messageEl.textContent = '';
         form.reset();
         
-        // If the password was successfully changed from the temporary one, reload the dashboard
-        // to re-run setupNavigation and unlock the sidebar.
+        // Reset inputs to password type if generator left them as text
+        newPasswordInput.type = 'password';
+        confirmPasswordInput.type = 'password';
+        
         if (currentPassword === 'password123') { 
             window.location.reload(); 
         }
@@ -315,7 +400,6 @@ async function loadFullApplicationDetails(appData) {
         const fullApp = data.application;
         let linksHtml = '';
         
-        // Mock Status Logic
         const getMockStatus = (docName) => {
             if (appData.status === 'Approved') return 'Verified';
             if (appData.status === 'Rejected') {
@@ -388,7 +472,7 @@ function updateEnrollmentProgress(status) {
     }
 }
 
-// --- Function to handle Mobile Sidebar Toggle (MODIFIED - NO 2FA) ---
+// --- Function to handle Mobile Sidebar Toggle ---
 function setupMobileToggle() {
     const toggleBtn = document.getElementById('mobile-sidebar-toggle');
     const sidebar = document.querySelector(".sidebar");
@@ -401,7 +485,7 @@ function setupMobileToggle() {
 }
 
 
-// --- 5. Main function (CRITICAL FORCED PASSWORD CHECK) ---
+// --- 5. Main function ---
 document.addEventListener("DOMContentLoaded", () => {
   const appDataString = localStorage.getItem("applicationData");
   if (!appDataString) {
@@ -412,13 +496,10 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const appData = JSON.parse(appDataString);
   
-  // Determine if this is the first login (password == 'password123')
   const isFirstLogin = appData.password === 'password123';
   
-  // Initialize navigation, forcing password change if needed
   setupNavigation(isFirstLogin); 
 
-  // Display alert if forced to change password
   if (isFirstLogin) {
       showNotification("SECURITY ALERT: Please change your temporary password immediately.", 'error');
   }
@@ -429,23 +510,17 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLogout();
   loadFullApplicationDetails(appData); 
 
-  // 1. Update Full Name and Status Summary
   document.getElementById("student-name").textContent = appData.first_name;
   document.getElementById("student-name-full").textContent = `${appData.first_name} ${appData.last_name}`;
   document.getElementById("status-summary-text").textContent = appData.status;
 
-  // 2. Update Status Box
   const statusMessageEl = document.getElementById("status-message");
   statusMessageEl.textContent = appData.status;
   statusMessageEl.className = `status-${appData.status.replace(/ /g, '')} mb-4`; 
 
-  // 3. Render the Checklist
   renderEnrollmentChecklist(appData.status);
-
-  // 4. Update Enrollment Progress Bar
   updateEnrollmentProgress(appData.status);
   
-  // Update Information Details
   document.getElementById("detail-name").textContent = `${appData.first_name} ${appData.middle_name || ''} ${appData.last_name}`;
   document.getElementById("detail-grade").textContent = `Grade ${appData.grade_level}`;
   document.getElementById("detail-bday").textContent = appData.birthdate ? new Date(appData.birthdate).toLocaleDateString() : 'N/A';
@@ -453,10 +528,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("detail-phone").textContent = appData.phone;
   document.getElementById("detail-username").textContent = appData.username;
   
-  // Initialize Tilt effect globally after the DOM is fully loaded
   if (window.VanillaTilt) {
       VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {
-          // Default options: speed and max tilt are set on the elements themselves
       });
   }
 });
