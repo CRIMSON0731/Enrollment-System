@@ -57,6 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set the token flag upon successful login
         localStorage.setItem('adminToken', 'true');
         
+        // --- NEW: SAVE USERNAME FOR PASSWORD CHANGE FEATURE ---
+        // This is required so admin.js knows which user is logged in
+        localStorage.setItem('adminUsername', username); 
+
         // Check if password needs updating (backend should provide this)
         if (data.passwordNeedsUpdate) {
           showNotification('Login successful! Please update your default password.', 'warning');
