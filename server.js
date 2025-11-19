@@ -119,7 +119,7 @@ server.listen(PORT, '0.0.0.0', () => {
 attemptDbConnection();
 
 // -----------------------------------------------------------------
-// FILE UPLOAD CONFIGURATION (FIXED)
+// FILE UPLOAD CONFIGURATION
 // -----------------------------------------------------------------
 
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
@@ -132,10 +132,9 @@ const storage = multer.diskStorage({
     }
 });
 
-// 1. Main Multer Instance (Use this for general configs)
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
+    limits: { fileSize: 5 * 1024 * 1024 }, 
     fileFilter: (req, file, cb) => {
         if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg' || file.mimetype === 'application/pdf') {
             cb(null, true);
@@ -145,7 +144,6 @@ const upload = multer({
     }
 });
 
-// 2. Specific Middleware for Applications (Multiple specific fields)
 const uploadApplicationFiles = upload.fields([
     { name: 'card_file', maxCount: 1 },
     { name: 'psa_file', maxCount: 1 },
@@ -214,21 +212,20 @@ const createOrGetCredentials = (app, callback) => {
 };
 
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
-    
     const msg = {
         to: recipientEmail,
-        from: 'dalonzohighschool@gmail.com', // Verified SendGrid sender
+        from: 'dalonzohighschool@gmail.com', 
         subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
                 <h2>Hello, ${studentName}!</h2>
                 <p>You have been granted <b>Provisional Access</b> to the Student Portal, or your enrollment has been <b>APPROVED</b>.</p>
-                <p>Use the credentials below to access the Student Dashboard to view your status, announcements, and manage your account.</p>
+                <p>Use the credentials below to access the Student Dashboard.</p>
                 
                 <h3 style="color: #2b7a0b;">Your Student Portal Login Details:</h3>
                 <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
                     <tr>
-                        <td style="padding: 10px; border: 1px solid #eee; background-color: #f9f9f9; width: 30%;"><strong>Username (Email):</strong></td>
+                        <td style="padding: 10px; border: 1px solid #eee; background-color: #f9f9f9; width: 30%;"><strong>Username:</strong></td>
                         <td style="padding: 10px; border: 1px solid #eee;"><code>${username}</code></td>
                     </tr>
                     <tr>
@@ -236,25 +233,16 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
                         <td style="padding: 10px; border: 1px solid #eee;"><code>${password}</code></td>
                     </tr>
                 </table>
-
-                <p style="color: #dc3545; font-weight: bold;">IMPORTANT SECURITY INSTRUCTIONS:</p>
-                <ol style="margin-left: 20px;">
-                    <li>Access your dashboard using the credentials above.</li>
-                    <li>You are required to change this temporary password immediately upon your first login.</li>
-                    <li>Do not share these credentials with anyone.</li>
-                </ol>
-                <p>If you have any questions, please contact the school office.</p>
-                <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
+                <p>Please change this password immediately upon logging in.</p>
             </div>
         `,
     };
 
     try {
         await sgMail.send(msg); 
-        console.log(`✅ Credentials email sent successfully via SendGrid to: ${recipientEmail}`);
         return { success: true };
     } catch (error) {
-        console.error('❌ SendGrid API Email failed:', error.response ? error.response.body : error.message);
+        console.error('❌ SendGrid API Email failed:', error.message);
         return { success: false, error: error.message };
     }
 }
@@ -266,35 +254,25 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
 io.on('connection', (socket) => {
     console.log('A user connected with socket ID:', socket.id);
 
-    // For enrolled students
     socket.on('registerUser', (applicationId) => {
         socket.join(`user-${applicationId}`);
-        console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
     });
 
-    // For Inquiry Notifications
     socket.on('watchInquiry', (inquiryId) => {
         socket.join(`inquiry-${inquiryId}`);
-        console.log(`Socket ${socket.id} is watching Inquiry #${inquiryId}`);
     });
 
-    socket.on('disconnect', () => {
-        console.log('A user disconnected');
-    });
+    socket.on('disconnect', () => {});
 });
 
 // -----------------------------------------------------------------
 // ROUTES
 // -----------------------------------------------------------------
 
-// === UPDATED: FORGOT PASSWORD ENDPOINT ===
-// Changed from '/request-password-reset' to '/forgot-password'
+// Forgot Password
 app.post('/forgot-password', (req, res) => {
     const { email } = req.body;
-
-    if (!email) {
-        return res.status(400).json({ success: false, message: 'Email is required.' });
-    }
+    if (!email) return res.status(400).json({ success: false, message: 'Email is required.' });
 
     const sql = `
         SELECT u.id AS user_id, u.username, a.first_name, a.email AS contact_email 
@@ -303,91 +281,58 @@ app.post('/forgot-password', (req, res) => {
         WHERE u.username = ? OR a.email = ?`;
 
     db.query(sql, [email, email], (err, results) => {
-        if (err) {
-            console.error("Database error during password reset request:", err);
-            return res.status(500).json({ success: false, message: "Database error." });
-        }
-
-        if (results.length === 0) {
-            // Return success even if not found (security practice)
-            return res.json({ success: true, message: "If this email is registered, a reset link has been sent." });
-        }
+        if (err) return res.status(500).json({ success: false, message: "Database error." });
+        if (results.length === 0) return res.json({ success: true, message: "If this email is registered, a reset link has been sent." });
 
         const user = results[0];
-        
-        // Generate a temporary password
         const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         let tempPassword = "";
-        for (let i = 0; i < 8; i++) {
-            tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+        for (let i = 0; i < 8; i++) tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
 
-        // Hash and update the password
         bcrypt.hash(tempPassword, 10, (hashErr, hashedPassword) => {
-            if (hashErr) {
-                return res.status(500).json({ success: false, message: "Encryption error." });
-            }
+            if (hashErr) return res.status(500).json({ success: false, message: "Encryption error." });
 
             const updateSql = "UPDATE users SET password = ? WHERE id = ?";
             db.query(updateSql, [hashedPassword, user.user_id], async (updateErr) => {
-                if (updateErr) {
-                     console.error("Database error updating password:", updateErr);
-                     return res.status(500).json({ success: false, message: "Failed to update password." });
-                }
+                if (updateErr) return res.status(500).json({ success: false, message: "Failed to update password." });
 
-                // Send Email via SendGrid
                 const msg = {
                     to: user.contact_email, 
                     from: 'dalonzohighschool@gmail.com',
                     subject: 'Password Reset Request - DTAHS',
                     html: `
-                        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #dc3545;">
+                        <div style="font-family: Arial, sans-serif; padding: 20px; border-top: 5px solid #dc3545;">
                             <h3>Password Reset Request</h3>
                             <p>Hello ${user.first_name},</p>
-                            <p>We received a request to reset your password for the Student Portal.</p>
-                            <p>Your new <strong>Temporary Password</strong> is:</p>
-                            <div style="background: #f8f9fa; padding: 15px; font-size: 1.2em; font-weight: bold; letter-spacing: 2px; text-align: center; border: 1px dashed #ccc;">
-                                ${tempPassword}
-                            </div>
-                            <p style="margin-top: 20px;">Please log in using this password and change it immediately in your dashboard settings.</p>
-                            <p>If you did not request this, please contact the school administration.</p>
+                            <p>Your new <strong>Temporary Password</strong> is: <strong>${tempPassword}</strong></p>
+                            <p>Please log in and change it immediately.</p>
                         </div>
                     `,
                 };
 
                 try {
                     await sgMail.send(msg);
-                    console.log(`✅ Reset password email sent to: ${user.contact_email}`);
                     res.json({ success: true, message: "Reset email sent." });
                 } catch (emailErr) {
-                    console.error("❌ SendGrid Error:", emailErr);
-                    res.json({ success: false, message: "Failed to send email. Please try again later." });
+                    res.json({ success: false, message: "Failed to send email." });
                 }
             });
         });
     });
 });
 
-// ... (Rest of existing routes) ...
-
+// Submit Application (New Student)
 app.post('/submit-application', (req, res) => {
-    // Use the SPECIFIC middleware 'uploadApplicationFiles' here
     uploadApplicationFiles(req, res, (err) => {
         const uploadedFiles = req.files || {};
         const fileNames = Object.values(uploadedFiles).flat().map(f => f.filename).filter(n => n); 
 
-        if (err instanceof multer.MulterError) {
-            console.error('Multer Error:', err.code, err.message);
+        if (err) {
             cleanupFiles(fileNames);
-            return res.status(400).json({ success: false, message: 'File upload error: ' + err.message });
-        } else if (err) {
-            console.error('Server Error during upload:', err);
-            cleanupFiles(fileNames);
-            return res.status(500).json({ success: false, message: 'Server error during upload.' });
+            return res.status(500).json({ success: false, message: 'Upload error: ' + err.message });
         }
         
         const { first_name, last_name, middle_name, birthdate, email, phone_num, grade_level } = req.body;
-        
         const card_file = uploadedFiles['card_file']?.[0]?.filename || null;
         const psa_file = uploadedFiles['psa_file']?.[0]?.filename || null;
         const f137_file = uploadedFiles['f137_file']?.[0]?.filename || null;
@@ -395,22 +340,13 @@ app.post('/submit-application', (req, res) => {
         
         if (!first_name || !email || !card_file || !psa_file || !f137_file || !brgy_cert_file) {
             cleanupFiles(fileNames);
-            return res.status(400).json({ success: false, message: 'Missing required fields or documents.' });
+            return res.status(400).json({ success: false, message: 'Missing required fields.' });
         }
 
-        db.query('SELECT id, email FROM applications WHERE email = ?', [email], (checkErr, existingApps) => {
-            if (checkErr) {
-                console.error('DB Error checking email:', checkErr);
-                cleanupFiles(fileNames);
-                return res.status(500).json({ success: false, message: 'Database error while checking email.' });
-            }
-
+        db.query('SELECT id FROM applications WHERE email = ?', [email], (checkErr, existingApps) => {
             if (existingApps.length > 0) {
                 cleanupFiles(fileNames);
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'An application with this email address already exists.' 
-                });
+                return res.status(400).json({ success: false, message: 'Email already registered.' });
             }
 
             const sql = `INSERT INTO applications 
@@ -419,53 +355,69 @@ app.post('/submit-application', (req, res) => {
             
             db.query(sql, [first_name, last_name, middle_name, birthdate, email, phone_num, grade_level, card_file, psa_file, f137_file, brgy_cert_file], (dbErr, result) => {
                 if (dbErr) {
-                    console.error('DB Insert Error:', dbErr);
                     cleanupFiles(fileNames); 
-                    if (dbErr.code === 'ER_DUP_ENTRY') {
-                        return res.status(400).json({ success: false, message: 'This email address is already registered.' });
-                    }
-                    return res.status(500).json({ success: false, message: 'Database error while saving application.' });
+                    return res.status(500).json({ success: false, message: 'Database error.' });
                 }
-                
-                res.json({ success: true, message: 'Application submitted successfully with ID: ' + result.insertId });
+                res.json({ success: true, message: 'Application submitted ID: ' + result.insertId });
             });
         });
     });
 });
 
+// ==========================================
+//      RE-ENROLLMENT ROUTE (NEW FEATURE)
+// ==========================================
+app.post('/student-re-enroll', (req, res) => {
+    const { applicationId, nextGradeLevel } = req.body;
+
+    if (!applicationId || !nextGradeLevel) {
+        return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    }
+
+    // Logic: Update grade, reset status to 'Pending Review', and update timestamp
+    const sql = `
+        UPDATE applications 
+        SET grade_level = ?, status = 'Pending Review', created_at = NOW() 
+        WHERE id = ?`;
+
+    db.query(sql, [nextGradeLevel, applicationId], (err, result) => {
+        if (err) {
+            console.error("Re-enrollment DB Error:", err);
+            return res.status(500).json({ success: false, message: "Database error during re-enrollment." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Student record not found." });
+        }
+
+        // Notify Admin
+        io.emit('newApplicationReceived', { message: `A student has re-enrolled for ${nextGradeLevel}` });
+
+        res.json({ success: true, message: "Re-enrollment successful! Your status is now Pending Review." });
+    });
+});
+
+// Get Applications
 app.get('/get-applications', (req, res) => {
     const sql = 'SELECT id, first_name, last_name, email, grade_level, status, created_at FROM applications ORDER BY created_at DESC';
     db.query(sql, (err, results) => {
-        if (err) {
-            console.error('DB Error:', err);
-            return res.status(500).json({ success: false, message: 'Failed to retrieve applications.' });
-        }
+        if (err) return res.status(500).json({ success: false, message: 'Database error.' });
         res.json({ success: true, applications: results });
     });
 });
 
+// Update Status
 app.post('/update-application-status', (req, res) => {
     const { applicationId, newStatus } = req.body;
 
     const updateStatus = (successMessage, credentials = null) => {
         db.query('UPDATE applications SET status = ? WHERE id = ?', [newStatus, applicationId], (err) => {
-            if (err) {
-                console.error('DB Error updating status:', err);
-                return res.status(500).json({ success: false, message: 'Failed to update application status.' });
-            }
+            if (err) return res.status(500).json({ success: false, message: 'DB Update Error.' });
             
-            io.to(`user-${applicationId}`).emit('statusUpdated', { 
-                newStatus: newStatus,
-                message: "Your application status has been updated!"
-            });
+            io.to(`user-${applicationId}`).emit('statusUpdated', { newStatus: newStatus, message: "Your status has been updated!" });
 
             if (credentials) {
-                return res.json({ 
-                    success: true, 
-                    message: successMessage,
-                    student_username: credentials.username,
-                    student_password: credentials.password 
-                });
+                return res.json({ success: true, message: successMessage, student_username: credentials.username, student_password: credentials.password });
             }
             res.json({ success: true, message: successMessage });
         });
@@ -473,353 +425,93 @@ app.post('/update-application-status', (req, res) => {
 
     if (newStatus === 'Approved') {
         db.query('SELECT * FROM applications WHERE id = ?', [applicationId], async (err, apps) => {
-            if (err) return res.status(500).json({ success: false, message: 'Server error while fetching app data.' });
-            if (apps.length === 0) return res.json({ success: false, message: 'Application not found.' });
+            if (apps.length === 0) return res.json({ success: false, message: 'App not found.' });
             
-            const app = apps[0];
-            
-            createOrGetCredentials(app, async (credErr, credentials) => {
-                if (credErr) {
-                    return res.status(500).json({ success: false, message: 'Failed to generate/retrieve credentials.' });
-                }
-
-                const emailResult = await sendCredentialsEmail(
-                    app.email, 
-                    app.first_name, 
-                    credentials.username, 
-                    credentials.password
-                );
-                
-                let successMessage = `Application Approved.`;
-                if (!emailResult.success) {
-                    successMessage += ` WARNING: Failed to send credentials email (Check server console).`;
-                }
-                
-                updateStatus(successMessage, credentials);
+            createOrGetCredentials(apps[0], async (credErr, credentials) => {
+                if (credErr) return res.status(500).json({ success: false, message: 'Credential error.' });
+                await sendCredentialsEmail(apps[0].email, apps[0].first_name, credentials.username, credentials.password);
+                updateStatus(`Application Approved.`, credentials);
             });
         });
     } else {
-        updateStatus(`Application status set to ${newStatus}.`);
+        updateStatus(`Status set to ${newStatus}.`);
     }
 });
 
+// Get App Details
 app.get('/get-application-details/:id', (req, res) => {
-    const applicationId = req.params.id;
-
-    const sql = `
-    SELECT a.*, u.username AS student_username, u.password AS student_password
-    FROM applications a
-    LEFT JOIN users u ON a.id = u.application_id
-    WHERE a.id = ?`;
-    
-    db.query(sql, [applicationId], (err, results) => {
-        if (err) {
-            console.error('DB ERROR fetching application details:', err); 
-            return res.status(500).json({ success: false, message: 'Server error.' });
-        }
-        if (results.length === 0) return res.json({ success: false, message: 'Application not found.' });
-
+    const sql = `SELECT a.*, u.username AS student_username, u.password AS student_password FROM applications a LEFT JOIN users u ON a.id = u.application_id WHERE a.id = ?`;
+    db.query(sql, [req.params.id], (err, results) => {
+        if (results.length === 0) return res.json({ success: false, message: 'Not found.' });
         const app = results[0];
-        if (app.student_username) {
-            app.student_password = 'password123';
-        }
-
+        if (app.student_username) app.student_password = 'password123';
         res.json({ success: true, application: app });
     });
 });
 
-app.post('/delete-application', (req, res) => {
-    const { applicationId } = req.body;
-
-    db.query('SELECT * FROM applications WHERE id = ?', [applicationId], (findErr, apps) => {
-        if (findErr || apps.length === 0) return res.status(404).json({ success: false, message: 'Application not found.' });
-        
-        const app = apps[0];
-        db.query('DELETE FROM users WHERE application_id = ?', [applicationId], (userErr) => {
-            if (userErr) console.error('DB Error deleting user:', userErr);
-            
-            db.query('DELETE FROM applications WHERE id = ?', [applicationId], (appErr, result) => {
-                if (appErr) return res.status(500).json({ success: false, message: 'Failed to delete application.' });
-                
-                const filesToDelete = [app.doc_card_path, app.doc_psa_path, app.doc_f137_path, app.doc_brgy_cert_path];
-                cleanupFiles(filesToDelete);
-                
-                res.json({ success: true, message: 'Application and all data permanently deleted.' });
-            });
-        });
-    });
-});
-
-app.post('/admin-login', (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ success: false, message: 'Please provide both credentials.' });
-
-    const sql = 'SELECT password_hash FROM admins WHERE username = ?';
-    
-    db.query(sql, [username], async (err, results) => {
-        if (err) {
-            console.error('Admin Login DB Error:', err);
-            return res.status(500).json({ success: false, message: 'Server database error.' });
-        }
-
-        if (results.length === 0) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials.' });
-        }
-        const hashedPassword = results[0].password_hash;
-        
-        const match = await bcrypt.compare(password, hashedPassword);
-        if (match) {
-            res.json({ success: true, username: username });
-        } else {
-            res.status(401).json({ success: false, message: 'Invalid credentials.' });
-        }
-    });
-});
-
-app.post('/admin-change-password', (req, res) => {
-    const { username, currentPassword, newPassword } = req.body;
-    if (!username || !currentPassword || !newPassword) return res.status(400).json({ success: false, message: 'All fields are required.' });
-
-    const checkSql = 'SELECT password_hash FROM admins WHERE username = ?';
-    db.query(checkSql, [username], async (err, results) => {
-        if (err) return res.status(500).json({ success: false, message: 'Database error.' });
-        if (results.length === 0) return res.status(404).json({ success: false, message: 'Admin user not found.' });
-
-        const storedHash = results[0].password_hash;
-        const match = await bcrypt.compare(currentPassword, storedHash);
-
-        if (!match) return res.status(401).json({ success: false, message: 'Incorrect current password.' });
-
-        bcrypt.hash(newPassword, 10, (hashErr, newHash) => {
-            if (hashErr) return res.status(500).json({ success: false, message: 'Encryption error.' });
-
-            const updateSql = 'UPDATE admins SET password_hash = ? WHERE username = ?';
-            db.query(updateSql, [newHash, username], (updateErr) => {
-                if (updateErr) return res.status(500).json({ success: false, message: 'Failed to update password.' });
-                res.json({ success: true, message: 'Admin password updated successfully.' });
-            });
-        });
-    });
-});
-
+// Student Login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ success: false, message: 'Please enter username and password.' });
-
     const sql = 'SELECT u.application_id, u.password FROM users u WHERE u.username = ?';
     
     db.query(sql, [username], async (err, users) => {
-        if (err) return res.status(500).json({ success: false, message: 'Server database error.' });
-        if (users.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
+        if (users.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials.' });
 
         const user = users[0];
         const match = await bcrypt.compare(password, user.password);
-
-        if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
+        if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         
-        const temporaryPassword = 'password123';
-        const isFirstLogin = await bcrypt.compare(temporaryPassword, user.password);
-
-        const appSql = 'SELECT * FROM applications WHERE id = ?';
-        db.query(appSql, [user.application_id], (appErr, applications) => {
-            if (appErr || applications.length === 0) return res.status(500).json({ success: false, message: 'Could not find application data for this user.' });
-            
+        const isFirstLogin = await bcrypt.compare('password123', user.password);
+        db.query('SELECT * FROM applications WHERE id = ?', [user.application_id], (appErr, applications) => {
             const applicationData = applications[0];
             applicationData.username = username;
-            applicationData.password = password;
-
-            res.json({ 
-                success: true, 
-                application: applicationData,
-                firstLogin: isFirstLogin 
-            });
+            res.json({ success: true, application: applicationData, firstLogin: isFirstLogin });
         });
     });
 });
 
-app.get('/get-announcements', (req, res) => {
-    const sql = 'SELECT id, title, content FROM announcements ORDER BY created_at DESC'; 
-    db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ success: false, message: 'Failed to retrieve announcements.' });
-        res.json({ success: true, announcements: results });
+// Admin Login
+app.post('/admin-login', (req, res) => {
+    const { username, password } = req.body;
+    const sql = 'SELECT password_hash FROM admins WHERE username = ?';
+    db.query(sql, [username], async (err, results) => {
+        if (results.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+        const match = await bcrypt.compare(password, results[0].password_hash);
+        if (match) res.json({ success: true, username: username });
+        else res.status(401).json({ success: false, message: 'Invalid credentials.' });
     });
 });
 
+// Change Password
 app.post('/change-password', (req, res) => {
     const { applicationId, currentPassword, newPassword } = req.body;
-
-    const checkSql = 'SELECT password FROM users WHERE application_id = ?';
-    db.query(checkSql, [applicationId], async (checkErr, users) => {
-        if (checkErr) return res.status(500).json({ success: false, message: 'Database error.' });
+    db.query('SELECT password FROM users WHERE application_id = ?', [applicationId], async (checkErr, users) => {
         if (users.length === 0) return res.status(404).json({ success: false, message: 'User not found.' });
         
-        const storedHash = users[0].password;
-        const match = await bcrypt.compare(currentPassword, storedHash);
-        
-        if (!match) return res.status(401).json({ success: false, message: 'Your current password was incorrect.' });
+        const match = await bcrypt.compare(currentPassword, users[0].password);
+        if (!match) return res.status(401).json({ success: false, message: 'Incorrect current password.' });
 
         bcrypt.hash(newPassword, 10, (hashErr, newPasswordHash) => {
-            if (hashErr) return res.status(500).json({ success: false, message: 'Failed to hash new password.' });
-
-            const updateSql = 'UPDATE users SET password = ? WHERE application_id = ?';
-            db.query(updateSql, [newPasswordHash, applicationId], (updateErr, result) => {
-                if (updateErr) return res.status(500).json({ success: false, message: 'Failed to update password.' });
+            db.query('UPDATE users SET password = ? WHERE application_id = ?', [newPasswordHash, applicationId], (updateErr) => {
                 res.json({ success: true, message: 'Password updated successfully.' });
             });
         });
     });
 });
 
-app.post('/generate-credentials', (req, res) => {
-    const { applicationId } = req.body;
-
-    db.query('SELECT * FROM applications WHERE id = ?', [applicationId], async (err, apps) => {
-        if (err) return res.status(500).json({ success: false, message: 'Server error while fetching app data.' });
-        if (apps.length === 0) return res.json({ success: false, message: 'Application not found.' });
-        
-        const app = apps[0];
-        if (app.status === 'Approved') return res.json({ success: false, message: 'Application is already approved. Credentials should already exist.' });
-   
-        createOrGetCredentials(app, async (credErr, credentials) => {
-            if (credErr) return res.status(500).json({ success: false, message: 'Failed to generate/retrieve credentials.' });
-
-            const emailResult = await sendCredentialsEmail(
-                app.email, 
-                app.first_name, 
-                credentials.username, 
-                credentials.password
-            );
-            
-            let successMessage = `Provisional credentials generated and sent to ${app.email}. Status remains ${app.status}.`;
-            if (!emailResult.success) successMessage = `Credentials generated but FAILED to send email. Check server logs.`;
-            
-            res.json({ 
-                success: true, 
-                message: successMessage,
-                student_username: credentials.username,
-                student_password: credentials.password 
-            });
-        });
-    });
-});
-
-app.post('/create-announcement', (req, res) => {
-    const { title, content } = req.body;
-    if (!title || !content) return res.status(400).json({ success: false, message: 'Announcement title and content are required.' });
-
-    const sql = 'INSERT INTO announcements (title, content, created_at) VALUES (?, ?, NOW())';
-    db.query(sql, [title, content], (err, result) => {
-        if (err) {
-            console.error('DB Error creating announcement:', err);
-            return res.status(500).json({ success: false, message: 'Failed to save announcement to database.' });
-        }
-        res.json({ success: true, message: `Announcement "${title}" published successfully.` });
-    });
-});
-
-app.post('/delete-announcement', (req, res) => {
-    const { announcementId } = req.body;
-    if (!announcementId) return res.status(400).json({ success: false, message: 'Announcement ID is required for deletion.' });
-
-    const sql = 'DELETE FROM announcements WHERE id = ?';
-    db.query(sql, [announcementId], (err, result) => {
-        if (err) return res.status(500).json({ success: false, message: 'Failed to delete announcement from database.' });
-        if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Announcement not found.' });
-
-        res.json({ success: true, message: 'Announcement deleted successfully.' });
-    });
-});
-
-
-// ==========================================
-//           INQUIRY SYSTEM ROUTES
-// ==========================================
-
-// 1. GET ALL INQUIRIES (For Admin Panel)
-app.get('/get-inquiries', (req, res) => {
-    const sql = "SELECT * FROM inquiries ORDER BY created_at DESC";
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error("Error fetching inquiries:", err);
-            return res.status(500).json({ success: false, message: "Database error" });
-        }
-        res.json({ success: true, inquiries: results });
-    });
-});
-
-// 2. SUBMIT INQUIRY (For Student Homepage)
+// Inquiry Routes
 app.post('/submit-inquiry', upload.single('attachment'), (req, res) => {
     const { name, email, subject, message } = req.body;
     const attachment = req.file ? req.file.filename : null;
-
     const sql = "INSERT INTO inquiries (sender_name, sender_email, subject, message, attachment_path) VALUES (?, ?, ?, ?, ?)";
-    
     db.query(sql, [name, email, subject, message, attachment], (err, result) => {
-        if (err) {
-            console.error("Error saving inquiry:", err);
-            return res.status(500).json({ success: false, message: "Database error" });
-        }
-        res.json({ success: true, message: "Inquiry sent successfully!", inquiryId: result.insertId });
+        if (err) return res.status(500).json({ success: false, message: "DB Error" });
+        res.json({ success: true, message: "Inquiry sent!", inquiryId: result.insertId });
     });
 });
 
-// 3. REPLY TO INQUIRY (For Admin Panel)
-app.post('/reply-inquiry', (req, res) => {
-    const { inquiryId, replyMessage, status } = req.body;
-
-    // Step 1: Get the student's email from the database first
-    db.query('SELECT * FROM inquiries WHERE id = ?', [inquiryId], async (err, results) => {
-        if (err) {
-            console.error("DB Error fetching inquiry:", err);
-            return res.status(500).json({ success: false, message: "Database error" });
-        }
-        if (results.length === 0) {
-            return res.json({ success: false, message: "Inquiry not found." });
-        }
-
-        const inquiry = results[0];
-
-        // Step 2: Prepare the Email
-        const msg = {
-            to: inquiry.sender_email, // Sends to the student (e.g., alfrancisjuvir@gmail.com)
-            from: 'dalonzohighschool@gmail.com', // Your verified sender
-            subject: `Re: ${inquiry.subject} - DTAHS Admin Reply`,
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
-                    <h3>Hello ${inquiry.sender_name},</h3>
-                    <p>We have received your inquiry regarding: <strong>"${inquiry.subject}"</strong></p>
-                    <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #2b7a0b; margin: 15px 0;">
-                        <strong>Admin Response:</strong><br>
-                        <p style="white-space: pre-wrap; margin-top: 5px;">${replyMessage}</p>
-                    </div>
-                    <p>If you have further questions, please reply to this email or visit our school.</p>
-                    <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
-                </div>
-            `,
-        };
-
-        // Step 3: Send the Email via SendGrid
-        try {
-            await sgMail.send(msg);
-            console.log(`✅ Reply sent to ${inquiry.sender_email}`);
-        } catch (emailErr) {
-            console.error("❌ SendGrid Error:", emailErr.response ? emailErr.response.body : emailErr);
-        }
-
-        // Step 4: Update the status in the database & Notify via Socket
-        const updateSql = "UPDATE inquiries SET status = ? WHERE id = ?";
-        db.query(updateSql, [status, inquiryId], (updateErr) => {
-            if (updateErr) {
-                console.error("Error updating inquiry status:", updateErr);
-                return res.status(500).json({ success: false, message: "Database error updating status" });
-            }
-            
-            // --- Notify the student's screen immediately ---
-            io.to(`inquiry-${inquiryId}`).emit('inquiryReplyReceived', {
-                message: "Admin has replied to your inquiry! Please check your email."
-            });
-
-            res.json({ success: true, message: "Reply sent to student's email and status updated." });
-        });
+app.get('/get-announcements', (req, res) => {
+    db.query('SELECT id, title, content FROM announcements ORDER BY created_at DESC', (err, results) => {
+        res.json({ success: true, announcements: results });
     });
 });
