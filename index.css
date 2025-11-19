@@ -135,6 +135,20 @@ html {
   background-color: #ffffff !important;
 }
 
+/* === 6.7 ABOUT US LINK STYLING === */
+.navbar-nav .nav-link {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+  color: #ffd700 !important;
+  transform: scale(1.05);
+}
+
 /* === 7. RESPONSIVE (FIXED) === */
 @media (max-width: 991px) { /* Bootstrap's 'lg' breakpoint */
   body {
