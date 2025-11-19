@@ -92,6 +92,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lastName) requiredFields.push({ element: lastName, label: 'Last Name' });
         if (birthdate) requiredFields.push({ element: birthdate, label: 'Birthdate' });
         
+        // Age validation - Check if applicant is at least 10 years old
+        if (birthdate && birthdate.value) {
+            const birthDate = new Date(birthdate.value);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            
+            // Adjust age if birthday hasn't occurred yet this year
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            if (age < 10) {
+                showNotification('⚠️ Applicants must be at least 10 years old to enroll. Current age: ' + age + ' years old.', 'error');
+                birthdate.classList.add('is-invalid');
+                birthdate.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                birthdate.focus();
+                return ['Age requirement not met'];
+            }
+        }
+        
         // Target Grade & Contact
         const gradeLevel = enrollmentForm.querySelector('[name="grade_level"]');
         const phoneNumber = enrollmentForm.querySelector('[name="phone_number"]');
@@ -233,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 
                 // --- CUSTOMIZED SUCCESS MESSAGE ---
-                const customMessage = 'Application submitted successfully! Please check your email (including spam/junk) for login credentials once the admin has processed your documents.`;
+                const customMessage = `✅ Application submitted successfully! Please check your **personal email** (including spam/junk) for login credentials once the admin has processed your documents.`;
                 
                 // --- CRUCIAL CHANGE: Store custom message and redirect ---
                 sessionStorage.setItem('submissionSuccess', customMessage);
