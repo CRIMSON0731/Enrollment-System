@@ -1,4 +1,4 @@
-// File: enrollment.js (Script for Enrollment page.html - FINAL GUARANTEED STAY)
+// File: enrollment.js (Script for Enrollment page.html - WITH FIELD VALIDATION)
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Enrollment script loaded."); 
@@ -14,7 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return; 
     }
 
-    // --- Notification Function (TEMPORARY: ONLY FOR ERROR/LOADING ON THIS PAGE) ---
+    // --- Add File Limit Notices ---
+    addFileLimitNotices();
+
+    // --- Notification Function ---
     function showNotification(message, type) {
         // Step 1: Hide previous message immediately
         notificationBarEl.classList.remove('show'); 
@@ -30,17 +33,148 @@ document.addEventListener('DOMContentLoaded', () => {
             notificationBarEl.classList.add('success');
         } else if (type === 'error') {
             notificationBarEl.classList.add('error');
-        } 
+        } else if (type === 'info') {
+            notificationBarEl.classList.add('info');
+        }
         
         // Step 5: Show the bar
         notificationBarEl.classList.add('show');
         
-        // ADDED: Timer to hide notifications on the enrollment page (only errors/loading)
+        // Timer to hide notifications
         if (type !== 'info') {
              setTimeout(() => {
                 notificationBarEl.classList.remove('show');
             }, 5000); 
         }
+    }
+
+    // --- Function to Add File Limit Notices ---
+    function addFileLimitNotices() {
+        const fileInputs = enrollmentForm.querySelectorAll('input[type="file"]');
+        
+        fileInputs.forEach(input => {
+            // Create notice element
+            const notice = document.createElement('small');
+            notice.className = 'text-muted d-block mt-1';
+            notice.style.fontSize = '0.85rem';
+            notice.textContent = '📎 Max file size: 5MB | Accepted formats: PDF, JPG, PNG';
+            
+            // Insert after the file input
+            if (input.parentElement) {
+                input.parentElement.appendChild(notice);
+            }
+            
+            // Add file size validation
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                    if (file.size > maxSize) {
+                        showNotification(`File "${file.name}" exceeds 5MB limit. Please choose a smaller file.`, 'error');
+                        input.value = ''; // Clear the input
+                    }
+                }
+            });
+        });
+    }
+
+    // --- Field Validation Function ---
+    function validateForm() {
+        const requiredFields = [];
+        const emptyFields = [];
+        
+        // Personal Information
+        const firstName = enrollmentForm.querySelector('[name="first_name"]');
+        const lastName = enrollmentForm.querySelector('[name="last_name"]');
+        const birthdate = enrollmentForm.querySelector('[name="birthdate"]');
+        
+        if (firstName) requiredFields.push({ element: firstName, label: 'First Name' });
+        if (lastName) requiredFields.push({ element: lastName, label: 'Last Name' });
+        if (birthdate) requiredFields.push({ element: birthdate, label: 'Birthdate' });
+        
+        // Target Grade & Contact
+        const gradeLevel = enrollmentForm.querySelector('[name="grade_level"]');
+        const phoneNumber = enrollmentForm.querySelector('[name="phone_number"]');
+        const email = enrollmentForm.querySelector('[name="email"]');
+        
+        if (gradeLevel) requiredFields.push({ element: gradeLevel, label: 'Target Grade Level' });
+        if (phoneNumber) requiredFields.push({ element: phoneNumber, label: 'Phone Number' });
+        if (email) requiredFields.push({ element: email, label: 'Email' });
+        
+        // Guardian Information
+        const guardianName = enrollmentForm.querySelector('[name="guardian_name"]');
+        const guardianRelation = enrollmentForm.querySelector('[name="guardian_relation"]');
+        const guardianPhone = enrollmentForm.querySelector('[name="guardian_phone"]');
+        
+        if (guardianName) requiredFields.push({ element: guardianName, label: 'Guardian Name' });
+        if (guardianRelation) requiredFields.push({ element: guardianRelation, label: 'Guardian Relationship' });
+        if (guardianPhone) requiredFields.push({ element: guardianPhone, label: 'Guardian Phone' });
+        
+        // Address
+        const address = enrollmentForm.querySelector('[name="address"]');
+        const city = enrollmentForm.querySelector('[name="city"]');
+        const province = enrollmentForm.querySelector('[name="province"]');
+        const zipCode = enrollmentForm.querySelector('[name="zip_code"]');
+        
+        if (address) requiredFields.push({ element: address, label: 'Street Address' });
+        if (city) requiredFields.push({ element: city, label: 'City' });
+        if (province) requiredFields.push({ element: province, label: 'Province' });
+        if (zipCode) requiredFields.push({ element: zipCode, label: 'Zip Code' });
+        
+        // Required Documents (File inputs)
+        const birthCertificate = enrollmentForm.querySelector('[name="birth_certificate"]');
+        const reportCard = enrollmentForm.querySelector('[name="report_card"]');
+        const goodMoral = enrollmentForm.querySelector('[name="good_moral"]');
+        
+        if (birthCertificate) requiredFields.push({ element: birthCertificate, label: 'Birth Certificate (PSA)' });
+        if (reportCard) requiredFields.push({ element: reportCard, label: 'Report Card (Form 138)' });
+        if (goodMoral) requiredFields.push({ element: goodMoral, label: 'Certificate of Good Moral' });
+        
+        // Check which fields are empty
+        requiredFields.forEach(field => {
+            const value = field.element.value.trim();
+            const isFileInput = field.element.type === 'file';
+            
+            if (isFileInput) {
+                if (!field.element.files || field.element.files.length === 0) {
+                    emptyFields.push(field.label);
+                    field.element.classList.add('is-invalid');
+                } else {
+                    field.element.classList.remove('is-invalid');
+                }
+            } else {
+                if (value === '' || (field.element.tagName === 'SELECT' && value === '')) {
+                    emptyFields.push(field.label);
+                    field.element.classList.add('is-invalid');
+                } else {
+                    field.element.classList.remove('is-invalid');
+                }
+            }
+        });
+        
+        // Email validation
+        if (email && email.value.trim() !== '') {
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(email.value.trim())) {
+                emptyFields.push('Valid Email Address');
+                email.classList.add('is-invalid');
+            }
+        }
+        
+        // Phone number validation (basic)
+        [phoneNumber, guardianPhone].forEach(phone => {
+            if (phone && phone.value.trim() !== '') {
+                const phonePattern = /^[0-9\s\-\+\(\)]{10,}$/;
+                if (!phonePattern.test(phone.value.trim())) {
+                    if (!emptyFields.includes(phone.name === 'phone_number' ? 'Valid Phone Number' : 'Valid Guardian Phone')) {
+                        emptyFields.push(phone.name === 'phone_number' ? 'Valid Phone Number' : 'Valid Guardian Phone');
+                    }
+                    phone.classList.add('is-invalid');
+                }
+            }
+        });
+        
+        return emptyFields;
     }
 
     if (enrollmentForm) {
@@ -53,6 +187,22 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleEnrollmentSubmission(e) {
         // CRITICAL: Must be the first line to stop the page refresh
         e.preventDefault(); 
+        
+        // Validate form before submission
+        const emptyFields = validateForm();
+        
+        if (emptyFields.length > 0) {
+            const fieldList = emptyFields.join(', ');
+            showNotification(`⚠️ Please fill out the following required fields: ${fieldList}`, 'error');
+            
+            // Scroll to the first invalid field
+            const firstInvalid = enrollmentForm.querySelector('.is-invalid');
+            if (firstInvalid) {
+                firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstInvalid.focus();
+            }
+            return;
+        }
         
         const submitBtn = submitEnrollmentBtn || enrollmentForm.querySelector('button[type="submit"]');
         const originalButtonHtml = 'Submit Enrollment Application'; 
@@ -107,4 +257,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+    
+    // Remove invalid class when user starts typing/selecting
+    const allInputs = enrollmentForm.querySelectorAll('input, select, textarea');
+    allInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+        input.addEventListener('change', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
 });
