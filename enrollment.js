@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ... [Keep your existing validation functions: addFileLimitNotices, addAgeValidation, etc.] ...
-    // (For brevity, assuming you keep the exact validation code you pasted previously here)
     // I will include them fully below to ensure copy-paste works.
 
     function addFileLimitNotices() {
@@ -178,16 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 enrollmentForm.parentElement.appendChild(successDiv);
 
                 // --- REAL-TIME SOCKET CONNECTION ---
-                // Extract the ID from the server response message (e.g., "Application submitted... ID: 123")
-                // Ensure your server.js actually sends "insertId" or similar in the JSON to be cleaner.
-                // Based on previous server.js, it sends { message: '... ID: 5' }
-                
-                // OPTIMIZED: I recommend updating server.js to return { success: true, applicationId: 123 }
-                // Assuming you did that, or we parse the string:
+                // Extract the ID from the server response message
+                // Assuming server returns string like: "Application submitted successfully with ID: 123"
                 const appIdMatch = data.message.match(/ID: (\d+)/);
                 const appId = appIdMatch ? appIdMatch[1] : null;
 
                 if (appId) {
+                    // Use the global 'io' object (loaded via script tag in HTML)
                     const socket = io('https://enrollment-system-production-6820.up.railway.app');
                     
                     console.log(`Listening for updates on Application #${appId}`);
