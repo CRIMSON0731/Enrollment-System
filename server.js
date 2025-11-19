@@ -1,7 +1,6 @@
 const sgMail = require('@sendgrid/mail');
 
 // Set the key using the environment variable
-// Make sure SENDGRID_API_KEY is added in your Railway Variables
 if (process.env.SENDGRID_API_KEY) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 } else {
@@ -133,7 +132,7 @@ const storage = multer.diskStorage({
     }
 });
 
-// 1. Main Multer Instance (Use this for general configs)
+// 1. Main Multer Instance (Use this for general configs & .single uploads)
 const upload = multer({
     storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
@@ -218,7 +217,7 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     
     const msg = {
         to: recipientEmail,
-        from: 'dalonzohighschool@gmail.com', // Verified SendGrid sender
+        from: 'dalonzohighschool@gmail.com', 
         subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
@@ -237,13 +236,6 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
                         <td style="padding: 10px; border: 1px solid #eee;"><code>${password}</code></td>
                     </tr>
                 </table>
-
-                <p style="color: #dc3545; font-weight: bold;">IMPORTANT SECURITY INSTRUCTIONS:</p>
-                <ol style="margin-left: 20px;">
-                    <li>Access your dashboard using the credentials above.</li>
-                    <li>You are required to change this temporary password immediately upon your first login.</li>
-                    <li>Do not share these credentials with anyone.</li>
-                </ol>
                 <p>If you have any questions, please contact the school office.</p>
                 <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
             </div>
@@ -261,15 +253,22 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
 }
 
 // -----------------------------------------------------------------
-// SOCKET.IO
+// SOCKET.IO CONFIGURATION
 // -----------------------------------------------------------------
 
 io.on('connection', (socket) => {
     console.log('A user connected with socket ID:', socket.id);
 
+    // For enrolled students
     socket.on('registerUser', (applicationId) => {
         socket.join(`user-${applicationId}`);
         console.log(`User for app ID ${applicationId} joined room: user-${applicationId}`);
+    });
+
+    // --- NEW: For Inquiry Notifications ---
+    socket.on('watchInquiry', (inquiryId) => {
+        socket.join(`inquiry-${inquiryId}`);
+        console.log(`Socket ${socket.id} is watching Inquiry #${inquiryId}`);
     });
 
     socket.on('disconnect', () => {
@@ -660,7 +659,6 @@ app.get('/get-inquiries', (req, res) => {
 });
 
 // 2. SUBMIT INQUIRY (For Student Homepage)
-// Use the GENERIC 'upload' middleware (with .single) for the inquiry attachment
 app.post('/submit-inquiry', upload.single('attachment'), (req, res) => {
     const { name, email, subject, message } = req.body;
     const attachment = req.file ? req.file.filename : null;
@@ -672,7 +670,8 @@ app.post('/submit-inquiry', upload.single('attachment'), (req, res) => {
             console.error("Error saving inquiry:", err);
             return res.status(500).json({ success: false, message: "Database error" });
         }
-        res.json({ success: true, message: "Inquiry sent successfully!" });
+        // Return inquiryId so frontend can watch for replies
+        res.json({ success: true, message: "Inquiry sent successfully!", inquiryId: result.insertId });
     });
 });
 
@@ -717,10 +716,9 @@ app.post('/reply-inquiry', (req, res) => {
             console.log(`✅ Reply sent to ${inquiry.sender_email}`);
         } catch (emailErr) {
             console.error("❌ SendGrid Error:", emailErr.response ? emailErr.response.body : emailErr);
-            // We continue to update the database even if email fails, but we log it.
         }
 
-        // Step 4: Update the status in the database
+        // Step 4: Update the status in the database & Notify via Socket
         const updateSql = "UPDATE inquiries SET status = ? WHERE id = ?";
         db.query(updateSql, [status, inquiryId], (updateErr) => {
             if (updateErr) {
@@ -728,6 +726,11 @@ app.post('/reply-inquiry', (req, res) => {
                 return res.status(500).json({ success: false, message: "Database error updating status" });
             }
             
+            // --- Notify the student's screen immediately ---
+            io.to(`inquiry-${inquiryId}`).emit('inquiryReplyReceived', {
+                message: "Admin has replied to your inquiry! Please check your email."
+            });
+
             res.json({ success: true, message: "Reply sent to student's email and status updated." });
         });
     });
