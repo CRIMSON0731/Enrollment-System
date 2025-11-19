@@ -14,7 +14,7 @@ html {
   --bs-dark: #3b5671;
   --bs-dark-rgb: 59, 86, 113;
   --bs-body-font-family: "Montserrat", sans-serif;
-  --bs-body-bg: #eef3f7;
+  --bs-body-bg: #e8f5e9;
 }
 
 .bg-success-dark {
@@ -113,7 +113,7 @@ html {
 
 /* === 6.5 INPUT FIELD STYLING === */
 .right-side .form-control {
-  border: 1px solid #495057;
+  border: 1px solid #ced4da;
   background-color: #ffffff;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
@@ -130,8 +130,9 @@ html {
 
 /* === 6.6 CARD CONTAINER STYLING === */
 .right-side .card {
-  border: 2px solid #495057 !important;
+  border: 4px solid #495057 !important;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff !important;
 }
 
 /* === 7. RESPONSIVE (FIXED) === */
