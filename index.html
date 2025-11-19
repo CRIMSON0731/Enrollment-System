@@ -60,7 +60,7 @@
     <section class="right-side">
       <div class="right-side-content">
         
-        <button class="btn btn-success btn-success-custom btn-lg px-5 py-3 fs-5 fw-bold w-100 anim-fade-in-up" onclick="window.location.href='Enrollment page.html'">
+        <button class="btn btn-success btn-lg px-5 py-3 fs-5 fw-bold w-100 anim-fade-in-up" onclick="window.location.href='Enrollment page.html'">
           Enroll Now!
         </button>
         
@@ -91,66 +91,97 @@
 
   <section id="inquiry" class="py-5" style="background-color: #f0f7f4; border-top: 5px solid #215c08;">
     <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-lg-8 text-center mb-4">
-          <h2 class="display-6 fw-bold text-success-dark">Inquiry & Document Submission</h2>
+      <div class="row justify-content-center mb-5">
+        <div class="col-lg-8 text-center">
+          <h2 class="display-6 fw-bold text-success-dark">Frequently Asked Questions</h2>
           <p class="lead text-muted">
-             Free send documents, inquiry. Inquiry first before enrollment<br>
-             <span class="fst-italic small">(Register after approval of your inquiries)</span>
+             Please read our common inquiries before proceeding to enrollment.<br>
+             <span class="fst-italic small text-success fw-bold">Note: Document verification is required before official registration.</span>
           </p>
         </div>
       </div>
 
       <div class="row justify-content-center">
-        <div class="col-lg-8">
-          <div class="card shadow border-0">
-            <div class="card-body p-4 p-lg-5">
-              <form id="inquiry-form">
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label for="inquiry-name" class="form-label fw-medium">Full Name</label>
-                    <input type="text" class="form-control" id="inquiry-name" placeholder="Enter your name" required>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="inquiry-email" class="form-label fw-medium">Email Address</label>
-                    <input type="email" class="form-control" id="inquiry-email" placeholder="name@example.com" required>
-                  </div>
-                  <div class="col-12">
-                    <label for="inquiry-subject" class="form-label fw-medium">Subject / Purpose</label>
-                    <select class="form-select" id="inquiry-subject">
-                      <option selected>General Inquiry</option>
-                      <option value="1">Document Submission for Approval</option>
-                      <option value="2">Enrollment Requirements Question</option>
-                      <option value="3">Transfer Student Inquiry</option>
-                    </select>
-                  </div>
-                  <div class="col-12">
-                    <label for="inquiry-message" class="form-label fw-medium">Message</label>
-                    <textarea class="form-control" id="inquiry-message" rows="4" placeholder="Type your questions here..." required></textarea>
-                  </div>
-                  <div class="col-12">
-                    <label for="inquiry-file" class="form-label fw-medium">Upload Documents (Optional)</label>
-                    <input class="form-control" type="file" id="inquiry-file" multiple>
-                    <div class="form-text">Allowed files: PDF, JPG, PNG (Max 5MB)</div>
-                  </div>
-                  <div class="col-12 text-center mt-4">
-                    <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">Submit Inquiry</button>
-                  </div>
+        <div class="col-lg-10">
+          <div class="accordion shadow" id="faqAccordion">
+            
+            <div class="accordion-item border-0 mb-1">
+              <h2 class="accordion-header">
+                <button class="accordion-button fw-bold text-success-dark" type="button" data-bs-toggle="collapse" data-bs-target="#faqOne" aria-expanded="true" aria-controls="faqOne">
+                  <i class="bi bi-info-circle-fill me-2"></i> Why do I need to submit an inquiry first?
+                </button>
+              </h2>
+              <div id="faqOne" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                <div class="accordion-body bg-white text-secondary">
+                  To ensure a smooth process, we verify your documents <strong>before</strong> you officially register. This prevents errors and ensures you are eligible for enrollment. Once your inquiry is approved, you will receive instructions on how to proceed.
                 </div>
-              </form>
+              </div>
             </div>
+
+            <div class="accordion-item border-0 mb-1">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold text-success-dark" type="button" data-bs-toggle="collapse" data-bs-target="#faqTwo" aria-expanded="false" aria-controls="faqTwo">
+                  <i class="bi bi-file-earmark-text-fill me-2"></i> What documents should I prepare?
+                </button>
+              </h2>
+              <div id="faqTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body bg-white text-secondary">
+                  <p>Please scan the following documents (Max 5MB each):</p>
+                  <ul class="mb-0">
+                    <li><strong>Freshmen:</strong> PSA Birth Certificate, Form 138 (Report Card), Certificate of Good Moral Character.</li>
+                    <li><strong>Transferees:</strong> Honorable Dismissal, Transcript of Records (TOR).</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0 mb-1">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold text-success-dark" type="button" data-bs-toggle="collapse" data-bs-target="#faqThree" aria-expanded="false" aria-controls="faqThree">
+                  <i class="bi bi-clock-fill me-2"></i> How long does the verification take?
+                </button>
+              </h2>
+              <div id="faqThree" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body bg-white text-secondary">
+                  Our registrar team typically reviews inquiries and documents within <strong>2-3 business days</strong>. You will receive a notification via email once approved.
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold text-success-dark" type="button" data-bs-toggle="collapse" data-bs-target="#faqFour" aria-expanded="false" aria-controls="faqFour">
+                  <i class="bi bi-cash-coin me-2"></i> Is there a fee for the inquiry?
+                </button>
+              </h2>
+              <div id="faqFour" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body bg-white text-secondary">
+                  No. You can <strong>free send documents</strong> and make inquiries without any charge. Payment details for enrollment (if applicable) will only be provided after your documents are approved.
+                </div>
+              </div>
+            </div>
+
           </div>
+
+          <div class="text-center mt-5">
+            <p class="mb-3 text-muted fw-medium">Ready to submit your documents or have a specific question?</p>
+            <button class="btn btn-success btn-lg px-5 fw-bold shadow-sm anim-fade-in-up" onclick="window.location.href='Inquiry_page.html'">
+              <i class="bi bi-envelope-check-fill me-2"></i>Proceed to Inquiry Form
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
   </section>
+  
   <section class="about-us-section" id="about-us">
     <div class="container py-5">
       
       <h2 class="display-5 fw-bold text-center mb-4">About Our School</h2>
       <p class="lead text-center mb-5">
         Our school is named to honor Doña Teodora Alonzo Realonda, the very smart and strong mother of the Philippines’ national hero, Dr. José Rizal.
-      </p>
+      </T>
 
       <div class="row g-5 mb-5">
         <div class="col-lg-7">
