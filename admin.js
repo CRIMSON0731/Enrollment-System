@@ -117,6 +117,15 @@ function setupPasswordChange() {
 async function handlePasswordChange(e) {
     e.preventDefault();
     const form = e.target;
+
+    // 1. Get the logged-in username from storage (Saved during login)
+    const username = localStorage.getItem('adminUsername');
+
+    if (!username) {
+        showNotification('Session error. Please logout and login again.', 'error');
+        return;
+    }
+
     const currentPassword = document.getElementById('current-password').value;
     const newPassword = document.getElementById('new-password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
@@ -144,7 +153,8 @@ async function handlePasswordChange(e) {
         const response = await fetch(`${SERVER_URL}/admin-change-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ currentPassword, newPassword })
+            // 2. Send the username along with the passwords
+            body: JSON.stringify({ username, currentPassword, newPassword }) 
         });
         
         const data = await response.json();
