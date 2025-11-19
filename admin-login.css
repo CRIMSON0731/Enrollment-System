@@ -20,6 +20,7 @@
   border-color: var(--admin-green-light);
   color: white;
 }
+
 .btn-admin-green:hover {
   background-color: var(--admin-green);
   border-color: var(--admin-green);
@@ -33,7 +34,6 @@
 
 /* === === === === === === === === === === === */
 /* === ADDED BACK: Blurred Background Image === */
-
 /* This wrapper holds the blurred image */
 .bg-image-wrapper {
   content: "";
@@ -86,6 +86,52 @@ body {
 .form-control {
     background-color: white !important;
     opacity: 1 !important;
+}
+
+/* === PASSWORD INPUT WITH EYE ICON === */
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper input {
+  padding-right: 45px; /* Make room for the eye icon */
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  transition: color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+  color: var(--admin-green);
+}
+
+.password-toggle-btn:focus {
+  outline: 2px solid var(--admin-green-light);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* === SECURITY WARNING ALERT === */
+.alert-warning {
+  background-color: #fff3cd;
+  border-color: #ffc107;
+  color: #856404;
+}
+
+.alert-warning svg {
+  color: #ffc107;
 }
 
 /* Alternative: Semi-transparent white card with blur effect (uncomment if preferred) */
