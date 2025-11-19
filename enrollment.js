@@ -22,9 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Add Real-time Name Validation ---
     addNameValidation();
+    
+    // --- Add Real-time Required Field Validation ---
+    addRequiredFieldValidation();
 
     // --- Notification Function ---
-    function showNotification(message, type) {
+    function showNotification(message, type, persistent = false) {
         // Step 1: Hide previous message immediately
         notificationBarEl.classList.remove('show'); 
         
@@ -46,12 +49,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Step 5: Show the bar
         notificationBarEl.classList.add('show');
         
-        // Timer to hide notifications
-        if (type !== 'info') {
+        // Timer to hide notifications - but not if persistent is true
+        if (!persistent && type !== 'info') {
              setTimeout(() => {
                 notificationBarEl.classList.remove('show');
             }, 5000); 
         }
+    }
+    
+    // --- Function to Hide Notification ---
+    function hideNotification() {
+        notificationBarEl.classList.remove('show');
     }
 
     // --- Function to Add File Limit Notices ---
@@ -102,10 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     if (age < 11) {
-                        showNotification('⚠️ Age is not valid. Applicants must be at least 11 years old to enroll. Current age: ' + age + ' years old.', 'error');
+                        showNotification('⚠️ Age is not valid. Applicants must be at least 11 years old to enroll. Current age: ' + age + ' years old.', 'error', true);
                         this.classList.add('is-invalid');
                     } else {
                         this.classList.remove('is-invalid');
+                        hideNotification();
                     }
                 }
             });
@@ -131,10 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!namePattern.test(value)) {
                         // Remove invalid characters
                         this.value = value.replace(/[^a-zA-Z\s\-'\.]/g, '');
-                        showNotification('⚠️ Name fields can only contain letters, spaces, hyphens, apostrophes, and periods.', 'error');
+                        showNotification('⚠️ Name fields can only contain letters, spaces, hyphens, apostrophes, and periods.', 'error', true);
                         this.classList.add('is-invalid');
                     } else if (value.length > 0) {
                         this.classList.remove('is-invalid');
+                        hideNotification();
                     }
                 });
                 
@@ -144,8 +154,86 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Check for numbers or special symbols
                     if (value && !/^[a-zA-Z\s\-'\.]+$/.test(value)) {
-                        showNotification('⚠️ Invalid characters in name field. Please use only letters.', 'error');
+                        showNotification('⚠️ Invalid characters in name field. Please use only letters.', 'error', true);
                         this.classList.add('is-invalid');
+                    }
+                });
+            }
+        });
+    }
+    
+    // --- Function to Add Real-time Required Field Validation ---
+    function addRequiredFieldValidation() {
+        const requiredFields = [
+            { selector: '[name="first_name"]', label: 'First Name' },
+            { selector: '[name="last_name"]', label: 'Last Name' },
+            { selector: '[name="birthdate"]', label: 'Birthdate' },
+            { selector: '[name="grade_level"]', label: 'Target Grade Level' },
+            { selector: '[name="phone_number"]', label: 'Phone Number' },
+            { selector: '[name="email"]', label: 'Email' },
+            { selector: '[name="guardian_name"]', label: 'Guardian Name' },
+            { selector: '[name="guardian_relation"]', label: 'Guardian Relationship' },
+            { selector: '[name="guardian_phone"]', label: 'Guardian Phone' },
+            { selector: '[name="address"]', label: 'Street Address' },
+            { selector: '[name="city"]', label: 'City' },
+            { selector: '[name="province"]', label: 'Province' },
+            { selector: '[name="zip_code"]', label: 'Zip Code' }
+        ];
+        
+        requiredFields.forEach(fieldInfo => {
+            const field = enrollmentForm.querySelector(fieldInfo.selector);
+            
+            if (field) {
+                // Validate on blur (when field loses focus)
+                field.addEventListener('blur', function() {
+                    const value = this.value.trim();
+                    
+                    if (value === '' || (this.tagName === 'SELECT' && value === '')) {
+                        showNotification(`⚠️ ${fieldInfo.label} is required. Please fill out this field.`, 'error', true);
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                        // Only hide notification if no other fields are invalid
+                        if (enrollmentForm.querySelectorAll('.is-invalid').length === 0) {
+                            hideNotification();
+                        }
+                    }
+                });
+                
+                // Remove invalid class when user starts typing
+                field.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        this.classList.remove('is-invalid');
+                        // Only hide notification if no other fields are invalid
+                        if (enrollmentForm.querySelectorAll('.is-invalid').length === 0) {
+                            hideNotification();
+                        }
+                    }
+                });
+            }
+        });
+        
+        // File inputs validation
+        const fileFields = [
+            { selector: '[name="birth_certificate"]', label: 'Birth Certificate (PSA)' },
+            { selector: '[name="report_card"]', label: 'Report Card (Form 138)' },
+            { selector: '[name="good_moral"]', label: 'Certificate of Good Moral' }
+        ];
+        
+        fileFields.forEach(fieldInfo => {
+            const field = enrollmentForm.querySelector(fieldInfo.selector);
+            
+            if (field) {
+                field.addEventListener('change', function() {
+                    if (!this.files || this.files.length === 0) {
+                        showNotification(`⚠️ ${fieldInfo.label} is required. Please upload a file.`, 'error', true);
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                        // Only hide notification if no other fields are invalid
+                        if (enrollmentForm.querySelectorAll('.is-invalid').length === 0) {
+                            hideNotification();
+                        }
                     }
                 });
             }
