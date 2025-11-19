@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const navbar = document.querySelector('.navbar');
     const scrollThreshold = 100; // Pixels to scroll before hiding header
     
+    // Initialize header as visible
+    if (navbar) {
+        navbar.classList.add('show-header');
+    }
+    
     window.addEventListener('scroll', () => {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         
