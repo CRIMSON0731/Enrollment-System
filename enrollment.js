@@ -16,6 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Add File Limit Notices ---
     addFileLimitNotices();
+    
+    // --- Add Real-time Age Validation ---
+    addAgeValidation();
+    
+    // --- Add Real-time Name Validation ---
+    addNameValidation();
 
     // --- Notification Function ---
     function showNotification(message, type) {
@@ -75,6 +81,74 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
+        });
+    }
+    
+    // --- Function to Add Real-time Age Validation ---
+    function addAgeValidation() {
+        const birthdate = enrollmentForm.querySelector('[name="birthdate"]');
+        
+        if (birthdate) {
+            birthdate.addEventListener('change', function() {
+                if (this.value) {
+                    const birthDate = new Date(this.value);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                    
+                    // Adjust age if birthday hasn't occurred yet this year
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+                    
+                    if (age < 11) {
+                        showNotification('⚠️ Age is not valid. Applicants must be at least 11 years old to enroll. Current age: ' + age + ' years old.', 'error');
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                    }
+                }
+            });
+        }
+    }
+    
+    // --- Function to Add Real-time Name Validation ---
+    function addNameValidation() {
+        const firstName = enrollmentForm.querySelector('[name="first_name"]');
+        const middleName = enrollmentForm.querySelector('[name="middle_name"]');
+        const lastName = enrollmentForm.querySelector('[name="last_name"]');
+        
+        const nameFields = [firstName, middleName, lastName];
+        
+        nameFields.forEach(field => {
+            if (field) {
+                // Prevent typing symbols in real-time
+                field.addEventListener('input', function(e) {
+                    const value = this.value;
+                    // Allow only letters, spaces, hyphens, apostrophes, and periods (for names like O'Brien, Mary-Jane, Jr.)
+                    const namePattern = /^[a-zA-Z\s\-'\.]*$/;
+                    
+                    if (!namePattern.test(value)) {
+                        // Remove invalid characters
+                        this.value = value.replace(/[^a-zA-Z\s\-'\.]/g, '');
+                        showNotification('⚠️ Name fields can only contain letters, spaces, hyphens, apostrophes, and periods.', 'error');
+                        this.classList.add('is-invalid');
+                    } else if (value.length > 0) {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+                
+                // Additional validation on blur (when field loses focus)
+                field.addEventListener('blur', function() {
+                    const value = this.value.trim();
+                    
+                    // Check for numbers or special symbols
+                    if (value && !/^[a-zA-Z\s\-'\.]+$/.test(value)) {
+                        showNotification('⚠️ Invalid characters in name field. Please use only letters.', 'error');
+                        this.classList.add('is-invalid');
+                    }
+                });
+            }
         });
     }
 
@@ -254,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 
                 // --- CUSTOMIZED SUCCESS MESSAGE ---
-                const customMessage = `Application submitted successfully! Wait for the admin to approve your application and once approved it will notify on your personal email (including spam/junk) and you will get you login credentials.`;
+                const customMessage = `✅ Application submitted successfully! Please check your **personal email** (including spam/junk) for login credentials once the admin has processed your documents.`;
                 
                 // --- CRUCIAL CHANGE: Store custom message and redirect ---
                 sessionStorage.setItem('submissionSuccess', customMessage);
