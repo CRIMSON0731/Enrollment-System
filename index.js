@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 
                 if (data.success) {
-                    showNotification('Inquiry sent successfully! Please check your email for our reply.', 'success');
+                    showNotification('Inquiry sent successfully! Please check your email (inbox/spam) for our reply.', 'success');
                     inquiryForm.reset();
                     
                     // Watch for this specific inquiry ID
