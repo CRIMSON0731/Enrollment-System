@@ -416,6 +416,65 @@ h2 {
     font-style: italic;
 }
 
+/* === FORM CARD STYLING === */
+.form-card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    max-width: 600px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--theme-green);
+    font-weight: 600;
+}
+
+.input-group input,
+.input-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus,
+.input-group textarea:focus {
+    outline: none;
+    border-color: var(--theme-green);
+}
+
+.message-text {
+    margin-top: 15px;
+    font-weight: 600;
+}
+
+/* === ANNOUNCEMENTS ADMIN LIST === */
+.announcements-admin-list {
+    list-style: none;
+    padding: 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.announcements-admin-list li {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.announcements-admin-list li:last-child {
+    border-bottom: none;
+}
+
 
 /* --- RESPONSIVENESS (Simplified) --- */
 @media (max-width: 768px) {
