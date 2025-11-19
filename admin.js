@@ -1,6 +1,6 @@
 // Global variable to store all fetched applications
 let allApplications = [];
-let currentGradeLevel = '7'; 
+let currentGradeLevel = 'ALL'; // Default to show ALL applicants
 let currentSortKey = 'created_at'; // Default sort by submission date
 let currentSortDir = 'desc'; // Default direction is descending
 
@@ -62,6 +62,7 @@ function loadAdminContent() {
     addModalListeners(); 
     simulateDataLoad(); 
     setupAnnouncementManagement();
+    setupPasswordChange(); // NEW: Setup password change functionality
     
     setTimeout(animateQuickStats, 500); 
 }
@@ -101,6 +102,70 @@ function setupAnnouncementManagement() {
     const form = document.getElementById('create-announcement-form');
     if (form) {
       form.addEventListener('submit', handleAnnouncementSubmission);
+    }
+}
+
+// --- NEW: Password Change Setup ---
+function setupPasswordChange() {
+    const form = document.getElementById('change-password-form');
+    if (form) {
+        form.addEventListener('submit', handlePasswordChange);
+    }
+}
+
+// --- NEW: Handle Password Change Submission ---
+async function handlePasswordChange(e) {
+    e.preventDefault();
+    const form = e.target;
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const messageEl = document.getElementById('password-message');
+
+    // Client-side validation
+    if (newPassword !== confirmPassword) {
+        messageEl.textContent = 'New passwords do not match!';
+        messageEl.style.color = 'red';
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        messageEl.textContent = 'New password must be at least 6 characters long.';
+        messageEl.style.color = 'red';
+        return;
+    }
+
+    submitBtn.textContent = 'Changing Password...';
+    submitBtn.disabled = true;
+    messageEl.textContent = '';
+
+    try {
+        const response = await fetch(`${SERVER_URL}/admin-change-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            messageEl.textContent = '✅ Password changed successfully!';
+            messageEl.style.color = 'green';
+            form.reset();
+        } else {
+            showNotification(`Error: ${data.message}`, 'error');
+            messageEl.textContent = `❌ ${data.message}`;
+            messageEl.style.color = 'red';
+        }
+    } catch (error) {
+        showNotification('Network error. Failed to change password.', 'error');
+        messageEl.textContent = '❌ Network error occurred.';
+        messageEl.style.color = 'red';
+    } finally {
+        submitBtn.textContent = 'Change Password';
+        submitBtn.disabled = false;
     }
 }
 
@@ -318,7 +383,7 @@ function addLogoutListener() {
 
 // --- Tab Functionality (EXISTING) ---
 function addTabListeners() {
-    // 1. Logic for main content tabs (Application Review / Manage Announcements)
+    // 1. Logic for main content tabs (Application Review / Manage Announcements / Change Password)
     document.querySelectorAll('.main-tab-button').forEach(button => {
         button.addEventListener('click', (e) => {
             document.querySelectorAll('.main-tab-button').forEach(btn => btn.classList.remove('active'));
@@ -419,12 +484,15 @@ function updateQuickStats() {
     document.getElementById('stat-rejected').textContent = rejected;
 }
 
-// --- Filtering Logic (EXISTING) ---
+// --- Filtering Logic (UPDATED for ALL grades) ---
 function applyFiltersAndDisplay() {
     const searchName = document.getElementById('name-search').value.toLowerCase();
     const statusFilter = document.getElementById('status-filter').value;
     
-    let filteredApps = allApplications.filter(app => app.grade_level == currentGradeLevel);
+    // Filter by grade level (or show ALL)
+    let filteredApps = currentGradeLevel === 'ALL' 
+        ? allApplications 
+        : allApplications.filter(app => app.grade_level == currentGradeLevel);
 
     if (statusFilter !== 'All') {
         filteredApps = filteredApps.filter(app => app.status === statusFilter);
@@ -443,12 +511,14 @@ function applyFiltersAndDisplay() {
     displayTableContent(filteredApps, currentGradeLevel);
 }
 
-// --- Main function to display table data (CORRECTED) ---
+// --- Main function to display table data (UPDATED for ALL grades) ---
 function displayTableContent(applicationsToDisplay, gradeLevel) {
     const tableBody = document.getElementById('applications-tbody');
     
+    const gradeText = gradeLevel === 'ALL' ? 'all grade levels' : `Grade ${gradeLevel}`;
+    
     if (applicationsToDisplay.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6">No matching applications found for Grade ${gradeLevel}.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6">No matching applications found for ${gradeText}.</td></tr>`;
         return;
     }
     
