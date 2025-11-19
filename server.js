@@ -287,19 +287,15 @@ io.on('connection', (socket) => {
 // ROUTES
 // -----------------------------------------------------------------
 
-// === NEW: FORGOT PASSWORD ENDPOINT ===
-app.post('/request-password-reset', (req, res) => {
+// === UPDATED: FORGOT PASSWORD ENDPOINT ===
+// Changed from '/request-password-reset' to '/forgot-password'
+app.post('/forgot-password', (req, res) => {
     const { email } = req.body;
 
     if (!email) {
         return res.status(400).json({ success: false, message: 'Email is required.' });
     }
 
-    // Check if the email/username exists in the users table
-    // Note: The student's email is the 'username' in your 'users' table, but 
-    // originally came from the 'applications' table.
-    // We check the 'applications' table for the email to get the correct user record.
-    
     const sql = `
         SELECT u.id AS user_id, u.username, a.first_name, a.email AS contact_email 
         FROM users u 
@@ -313,8 +309,7 @@ app.post('/request-password-reset', (req, res) => {
         }
 
         if (results.length === 0) {
-            // Security: Don't reveal if the email doesn't exist.
-            // Return success anyway so attackers can't enumerate emails.
+            // Return success even if not found (security practice)
             return res.json({ success: true, message: "If this email is registered, a reset link has been sent." });
         }
 
@@ -342,7 +337,7 @@ app.post('/request-password-reset', (req, res) => {
 
                 // Send Email via SendGrid
                 const msg = {
-                    to: user.contact_email, // Send to their contact email
+                    to: user.contact_email, 
                     from: 'dalonzohighschool@gmail.com',
                     subject: 'Password Reset Request - DTAHS',
                     html: `
@@ -373,8 +368,7 @@ app.post('/request-password-reset', (req, res) => {
     });
 });
 
-// ... (Rest of existing routes: /submit-application, /admin-login, /login, etc.) ...
-// Use the same route definitions as before.
+// ... (Rest of existing routes) ...
 
 app.post('/submit-application', (req, res) => {
     // Use the SPECIFIC middleware 'uploadApplicationFiles' here
