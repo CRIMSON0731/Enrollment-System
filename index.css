@@ -35,20 +35,9 @@ html {
   transform: translateY(0);
 }
 
-/* Hover zone at top of screen to reveal header */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 80px;
-  z-index: 1029;
-  pointer-events: none;
-}
-
-body:hover .navbar.hide-header {
-  transform: translateY(0);
+/* Adjust split-screen container to account for fixed header */
+.split-screen-container {
+  margin-top: 76px;
 }
 
 .bg-success-dark {
