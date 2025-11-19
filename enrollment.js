@@ -165,19 +165,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Function to Add Real-time Required Field Validation ---
     function addRequiredFieldValidation() {
         const requiredFields = [
-            { selector: '[name="first_name"]', label: 'First Name' },
-            { selector: '[name="last_name"]', label: 'Last Name' },
-            { selector: '[name="birthdate"]', label: 'Birthdate' },
-            { selector: '[name="grade_level"]', label: 'Target Grade Level' },
-            { selector: '[name="phone_number"]', label: 'Phone Number' },
-            { selector: '[name="email"]', label: 'Email' },
-            { selector: '[name="guardian_name"]', label: 'Guardian Name' },
-            { selector: '[name="guardian_relation"]', label: 'Guardian Relationship' },
-            { selector: '[name="guardian_phone"]', label: 'Guardian Phone' },
-            { selector: '[name="address"]', label: 'Street Address' },
-            { selector: '[name="city"]', label: 'City' },
-            { selector: '[name="province"]', label: 'Province' },
-            { selector: '[name="zip_code"]', label: 'Zip Code' }
+            { selector: '[name="first_name"]', label: 'First Name', type: 'text' },
+            { selector: '[name="last_name"]', label: 'Last Name', type: 'text' },
+            { selector: '[name="birthdate"]', label: 'Birthdate', type: 'date' },
+            { selector: '[name="grade_level"]', label: 'Target Grade Level', type: 'select' },
+            { selector: '[name="phone_number"]', label: 'Phone Number', type: 'text' },
+            { selector: '[name="email"]', label: 'Email', type: 'email' },
+            { selector: '[name="guardian_name"]', label: 'Guardian Name', type: 'text' },
+            { selector: '[name="guardian_relation"]', label: 'Guardian Relationship', type: 'text' },
+            { selector: '[name="guardian_phone"]', label: 'Guardian Phone', type: 'text' },
+            { selector: '[name="address"]', label: 'Street Address', type: 'text' },
+            { selector: '[name="city"]', label: 'City', type: 'text' },
+            { selector: '[name="province"]', label: 'Province', type: 'text' },
+            { selector: '[name="zip_code"]', label: 'Zip Code', type: 'text' }
         ];
         
         requiredFields.forEach(fieldInfo => {
@@ -188,10 +188,84 @@ document.addEventListener('DOMContentLoaded', () => {
                 field.addEventListener('blur', function() {
                     const value = this.value.trim();
                     
-                    if (value === '' || (this.tagName === 'SELECT' && value === '')) {
-                        showNotification(`⚠️ ${fieldInfo.label} is required. Please fill out this field.`, 'error', true);
+                    if (value === '' || (this.tagName === 'SELECT' && (value === '' || value.includes('Select')))) {
+                        showNotification(`⚠️ ${fieldInfo.label} is required and cannot be left empty.`, 'error', true);
                         this.classList.add('is-invalid');
-                    } else {
+                        return;
+                    }
+                    
+                    // Additional validation based on field type
+                    if (fieldInfo.type === 'email' && value !== '') {
+                        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailPattern.test(value)) {
+                            showNotification(`⚠️ Please enter a valid Email address (e.g., name@example.com).`, 'error', true);
+                            this.classList.add('is-invalid');
+                            return;
+                        }
+                    }
+                    
+                    if ((fieldInfo.label.includes('Phone')) && value !== '') {
+                        const phonePattern = /^[0-9\s\-\+\(\)]{10,}$/;
+                        if (!phonePattern.test(value)) {
+                            showNotification(`⚠️ ${fieldInfo.label} must be a valid phone number (at least 10 digits).`, 'error', true);
+                            this.classList.add('is-invalid');
+                            return;
+                        }
+                    }
+                    
+                    if (fieldInfo.label === 'Zip Code' && value !== '') {
+                        const zipPattern = /^[0-9]{4,}$/;
+                        if (!zipPattern.test(value)) {
+                            showNotification(`⚠️ Zip Code must contain at least 4 digits.`, 'error', true);
+                            this.classList.add('is-invalid');
+                            return;
+                        }
+                    }
+                    
+                    // If validation passes
+                    this.classList.remove('is-invalid');
+                    // Only hide notification if no other fields are invalid
+                    if (enrollmentForm.querySelectorAll('.is-invalid').length === 0) {
+                        hideNotification();
+                    }
+                });
+                
+                // Real-time validation while typing
+                field.addEventListener('input', function() {
+                    const value = this.value.trim();
+                    
+                    // Remove invalid class when user starts typing
+                    if (value !== '') {
+                        // Email validation while typing
+                        if (fieldInfo.type === 'email' && value.length > 3) {
+                            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                            if (!emailPattern.test(value)) {
+                                showNotification(`⚠️ Email format appears invalid. Please check your entry.`, 'error', true);
+                                this.classList.add('is-invalid');
+                                return;
+                            }
+                        }
+                        
+                        // Phone validation while typing
+                        if (fieldInfo.label.includes('Phone') && value.length > 0) {
+                            const phonePattern = /^[0-9\s\-\+\(\)]*$/;
+                            if (!phonePattern.test(value)) {
+                                showNotification(`⚠️ ${fieldInfo.label} can only contain numbers and phone symbols (+ - ( )).`, 'error', true);
+                                this.classList.add('is-invalid');
+                                return;
+                            }
+                        }
+                        
+                        // Zip code validation while typing
+                        if (fieldInfo.label === 'Zip Code' && value.length > 0) {
+                            const zipPattern = /^[0-9]*$/;
+                            if (!zipPattern.test(value)) {
+                                showNotification(`⚠️ Zip Code can only contain numbers.`, 'error', true);
+                                this.classList.add('is-invalid');
+                                return;
+                            }
+                        }
+                        
                         this.classList.remove('is-invalid');
                         // Only hide notification if no other fields are invalid
                         if (enrollmentForm.querySelectorAll('.is-invalid').length === 0) {
@@ -200,9 +274,64 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 
-                // Remove invalid class when user starts typing
-                field.addEventListener('input', function() {
-                    if (this.value.trim() !== '') {
+                // Select field validation
+                if (this.tagName === 'SELECT') {
+                    field.addEventListener('change', function() {
+                        if (this.value === '' || this.value.includes('Select')) {
+                            showNotification(`⚠️ Please select a ${fieldInfo.label}.`, 'error', true);
+                            this.classList.add('is-invalid');
+                        } else {
+                            this.classList.remove('is-invalid');
+                            if (enrollmentForm.querySelectorAll('.is-invalid').length === 0) {
+                                hideNotification();
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        
+        // File inputs validation with specific field names
+        const fileFields = [
+            { selector: '[name="birth_certificate"]', label: 'PSA (Birth Certificate) Original' },
+            { selector: '[name="report_card"]', label: 'School Card (Previous Grade)' },
+            { selector: '[name="good_moral"]', label: 'Certificate of Good Moral' },
+            { selector: '[name="form_137"]', label: 'FORM 137/SF10 (Academic Records)' },
+            { selector: '[name="barangay_certificate"]', label: 'Barangay Certificate Original' }
+        ];
+        
+        fileFields.forEach(fieldInfo => {
+            const field = enrollmentForm.querySelector(fieldInfo.selector);
+            
+            if (field) {
+                // Validate when file is selected or changed
+                field.addEventListener('change', function() {
+                    if (!this.files || this.files.length === 0) {
+                        showNotification(`⚠️ ${fieldInfo.label} is required. Please upload a document.`, 'error', true);
+                        this.classList.add('is-invalid');
+                    } else {
+                        const file = this.files[0];
+                        const validExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                        const fileExtension = file.name.split('.').pop().toLowerCase();
+                        const maxSize = 5 * 1024 * 1024; // 5MB
+                        
+                        // Check file type
+                        if (!validExtensions.includes(fileExtension)) {
+                            showNotification(`⚠️ ${fieldInfo.label}: Invalid file format. Please upload PDF, JPG, or PNG only.`, 'error', true);
+                            this.classList.add('is-invalid');
+                            this.value = '';
+                            return;
+                        }
+                        
+                        // Check file size
+                        if (file.size > maxSize) {
+                            showNotification(`⚠️ ${fieldInfo.label}: File exceeds 5MB limit. Please upload a smaller file.`, 'error', true);
+                            this.classList.add('is-invalid');
+                            this.value = '';
+                            return;
+                        }
+                        
+                        // If validation passes
                         this.classList.remove('is-invalid');
                         // Only hide notification if no other fields are invalid
                         if (enrollmentForm.querySelectorAll('.is-invalid').length === 0) {
@@ -210,29 +339,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 });
-            }
-        });
-        
-        // File inputs validation
-        const fileFields = [
-            { selector: '[name="birth_certificate"]', label: 'Birth Certificate (PSA)' },
-            { selector: '[name="report_card"]', label: 'Report Card (Form 138)' },
-            { selector: '[name="good_moral"]', label: 'Certificate of Good Moral' }
-        ];
-        
-        fileFields.forEach(fieldInfo => {
-            const field = enrollmentForm.querySelector(fieldInfo.selector);
-            
-            if (field) {
-                field.addEventListener('change', function() {
+                
+                // Also validate on form area focus to catch empty file inputs
+                field.addEventListener('focus', function() {
                     if (!this.files || this.files.length === 0) {
-                        showNotification(`⚠️ ${fieldInfo.label} is required. Please upload a file.`, 'error', true);
-                        this.classList.add('is-invalid');
-                    } else {
-                        this.classList.remove('is-invalid');
-                        // Only hide notification if no other fields are invalid
-                        if (enrollmentForm.querySelectorAll('.is-invalid').length === 0) {
-                            hideNotification();
+                        const parentLabel = this.closest('.mb-3, .mb-4');
+                        if (parentLabel) {
+                            setTimeout(() => {
+                                if (!this.files || this.files.length === 0) {
+                                    showNotification(`⚠️ ${fieldInfo.label} is required. Please upload a document.`, 'error', true);
+                                }
+                            }, 500);
                         }
                     }
                 });
