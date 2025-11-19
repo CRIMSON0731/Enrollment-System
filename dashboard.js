@@ -484,6 +484,76 @@ function setupMobileToggle() {
     }
 }
 
+// --- NEW: Re-enrollment Logic ---
+function setupReEnrollment(appData) {
+    const btn = document.getElementById('btn-re-enroll');
+    const select = document.getElementById('next-grade-select');
+
+    // Only run if the elements exist
+    if (!btn || !select) return;
+
+    // If the student is already pending review, prevent another submission
+    if (appData.status === 'Pending Review') {
+        btn.disabled = true;
+        btn.textContent = 'Application Under Review';
+        btn.className = 'btn btn-secondary fw-bold'; 
+        select.disabled = true;
+        return;
+    }
+
+    btn.addEventListener('click', async () => {
+        const nextGrade = select.value;
+
+        if (nextGrade === "Select Next Grade Level") {
+            alert("Please select the grade level you are enrolling for.");
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to enroll for ${nextGrade}?`)) {
+            return;
+        }
+
+        // UI Feedback
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        try {
+            const response = await fetch('https://enrollment-system-production-6820.up.railway.app/student-re-enroll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    applicationId: appData.id,
+                    nextGradeLevel: nextGrade
+                })
+            });
+            
+            const data = await response.json();
+
+            if (data.success) {
+                alert(data.message);
+                
+                // Update local storage immediately so the dashboard refreshes correctly
+                appData.grade_level = nextGrade;
+                appData.status = "Pending Review";
+                localStorage.setItem("applicationData", JSON.stringify(appData));
+                
+                // Reload to show new status
+                window.location.reload();
+            } else {
+                alert("Error: " + data.message);
+                btn.disabled = false;
+                btn.textContent = "Enroll for Next Year";
+            }
+
+        } catch (error) {
+            console.error("Re-enrollment error:", error);
+            alert("Network error. Please try again later.");
+            btn.disabled = false;
+            btn.textContent = "Enroll for Next Year";
+        }
+    });
+}
+
 
 // --- 5. Main function ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -509,6 +579,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setupPasswordForm(appData);
   setupLogout();
   loadFullApplicationDetails(appData); 
+  
+  // Call new functionality
+  setupReEnrollment(appData);
 
   document.getElementById("student-name").textContent = appData.first_name;
   document.getElementById("student-name-full").textContent = `${appData.first_name} ${appData.last_name}`;
