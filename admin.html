@@ -44,6 +44,7 @@
     <div class="main-tabs">
         <button class="tab-button main-tab-button active" data-content="application">Application Review</button>
         <button class="tab-button main-tab-button" data-content="announcement">Manage Announcements</button>
+        <button class="tab-button main-tab-button" data-content="password">Change Password</button>
     </div>
     
     <section id="content-application" class="main-content-section active">
@@ -60,7 +61,8 @@
         </div>
 
         <div class="tabs grade-tabs">
-          <button class="tab-button active" data-grade="7">Grade 7</button>
+          <button class="tab-button active" data-grade="ALL">All Grades</button>
+          <button class="tab-button" data-grade="7">Grade 7</button>
           <button class="tab-button" data-grade="8">Grade 8</button>
           <button class="tab-button" data-grade="9">Grade 9</button>
           <button class="tab-button" data-grade="10">Grade 10</button>
@@ -106,6 +108,26 @@
         <ul id="current-announcements-list" class="announcements-admin-list">
             <li>Loading current announcements...</li>
         </ul>
+    </section>
+
+    <section id="content-password" class="main-content-section" style="display: none;">
+        <h2>Change Admin Password</h2>
+        <form id="change-password-form" class="form-card">
+            <div class="input-group">
+                <label for="current-password">Current Password</label>
+                <input type="password" id="current-password" required minlength="6">
+            </div>
+            <div class="input-group">
+                <label for="new-password">New Password</label>
+                <input type="password" id="new-password" required minlength="6">
+            </div>
+            <div class="input-group">
+                <label for="confirm-password">Confirm New Password</label>
+                <input type="password" id="confirm-password" required minlength="6">
+            </div>
+            <button type="submit" class="action-btn approve-btn">Change Password</button>
+            <p id="password-message" class="message-text"></p>
+        </form>
     </section>
   </main>
 
