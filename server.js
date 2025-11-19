@@ -1,4 +1,3 @@
-// Add this line with your other const require statements
 const sgMail = require('@sendgrid/mail');
 
 // Add this line to set the key using the new environment variable
@@ -471,14 +470,15 @@ app.post('/admin-login', (req, res) => {
         
         const match = await bcrypt.compare(password, hashedPassword);
         if (match) {
-            res.json({ success: true });
+            // UPDATED: Return the username so the frontend can use it for password changes
+            res.json({ success: true, username: username });
         } else {
             res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
     });
 });
 
-// --- NEW: ADMIN CHANGE PASSWORD ENDPOINT ---
+// --- ADMIN CHANGE PASSWORD ENDPOINT ---
 app.post('/admin-change-password', (req, res) => {
     const { username, currentPassword, newPassword } = req.body;
 
