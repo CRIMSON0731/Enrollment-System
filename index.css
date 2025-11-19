@@ -181,6 +181,102 @@ footer.bg-dark {
   background-color: var(--bs-success-dark) !important;
 }
 
+/* === 7. NOTIFICATION BAR STYLING === */
+/* Ensure header stays below notification */
+header {
+  z-index: 1000 !important; 
+}
+
+/* Main notification bar styling with MAXIMUM specificity */
+#notification-bar.notification-bar {
+  position: fixed !important;
+  top: -100px !important; 
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  padding: 20px 35px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5) !important;
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  color: white !important;
+  z-index: 999999 !important;
+  transition: top 0.5s ease-in-out !important;
+  max-width: 600px !important;
+  width: 90% !important;
+  text-align: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  display: block !important;
+}
+
+/* The 'show' class to slide it in */
+#notification-bar.notification-bar.show {
+  top: 100px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* The 'success' style (green) - ULTRA SPECIFIC */
+#notification-bar.notification-bar.success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+  background-color: #28a745 !important;
+  opacity: 1 !important;
+  color: white !important;
+}
+
+/* The 'error' style (red) - ULTRA SPECIFIC */
+#notification-bar.notification-bar.error {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+  background-color: #dc3545 !important;
+  opacity: 1 !important;
+  color: white !important;
+}
+
+/* The 'info' style (teal/cyan) - ULTRA SPECIFIC */
+#notification-bar.notification-bar.info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+  background-color: #17a2b8 !important;
+  opacity: 1 !important;
+  color: white !important;
+}
+
+/* Fallback without ID selector */
+.notification-bar {
+  position: fixed !important;
+  color: white !important;
+  opacity: 1 !important;
+  z-index: 999999 !important;
+}
+
+.notification-bar.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.notification-bar.success {
+  background-color: #28a745 !important;
+  color: white !important;
+}
+
+.notification-bar.error {
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+
+.notification-bar.info {
+  background-color: #17a2b8 !important;
+  color: white !important;
+}
+
+/* Nuclear option: Force all text to be white and visible */
+#notification-bar.notification-bar *,
+.notification-bar * {
+  color: white !important;
+  opacity: 1 !important;
+}
+
 /* === 7. RESPONSIVE (FIXED) === */
 @media (max-width: 991px) { /* Bootstrap's 'lg' breakpoint */
   body {
