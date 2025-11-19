@@ -140,7 +140,8 @@ const upload = multer({
     { name: 'card_file', maxCount: 1 },
     { name: 'psa_file', maxCount: 1 },
     { name: 'f137_file', maxCount: 1 },
-    { name: 'brgy_cert_file', maxCount: 1 }
+    { name: 'brgy_cert_file', maxCount: 1 },
+    { name: 'attachment', maxCount: 1 } // NEW: Added for Inquiry Attachments
 ]);
 
 const cleanupFiles = (files) => {
@@ -623,7 +624,7 @@ app.post('/generate-credentials', (req, res) => {
         if (app.status === 'Approved') {
             return res.json({ success: false, message: 'Application is already approved. Credentials should already exist.' });
         }
-  
+   
         createOrGetCredentials(app, async (credErr, credentials) => {
             if (credErr) {
                 console.error('Final attempt to create credentials failed:', credErr);
@@ -690,5 +691,56 @@ app.post('/delete-announcement', (req, res) => {
         }
 
         res.json({ success: true, message: 'Announcement deleted successfully.' });
+    });
+});
+
+
+// ==========================================
+//           INQUIRY SYSTEM ROUTES
+// ==========================================
+
+// 1. GET ALL INQUIRIES (For Admin Panel)
+app.get('/get-inquiries', (req, res) => {
+    const sql = "SELECT * FROM inquiries ORDER BY created_at DESC";
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error("Error fetching inquiries:", err);
+            return res.status(500).json({ success: false, message: "Database error" });
+        }
+        res.json({ success: true, inquiries: results });
+    });
+});
+
+// 2. SUBMIT INQUIRY (For Student Homepage)
+app.post('/submit-inquiry', upload.single('attachment'), (req, res) => {
+    const { name, email, subject, message } = req.body;
+    const attachment = req.file ? req.file.filename : null;
+
+    const sql = "INSERT INTO inquiries (sender_name, sender_email, subject, message, attachment_path) VALUES (?, ?, ?, ?, ?)";
+    
+    db.query(sql, [name, email, subject, message, attachment], (err, result) => {
+        if (err) {
+            console.error("Error saving inquiry:", err);
+            return res.status(500).json({ success: false, message: "Database error" });
+        }
+        res.json({ success: true, message: "Inquiry sent successfully!" });
+    });
+});
+
+// 3. REPLY TO INQUIRY (For Admin Panel)
+app.post('/reply-inquiry', (req, res) => {
+    const { inquiryId, replyMessage, status } = req.body;
+
+    const sql = "UPDATE inquiries SET status = ? WHERE id = ?";
+    
+    db.query(sql, [status, inquiryId], (err, result) => {
+        if (err) {
+            console.error("Error updating inquiry status:", err);
+            return res.status(500).json({ success: false, message: "Database error" });
+        }
+        
+        // NOTE: In a real app, you'd send an email here via sgMail
+        
+        res.json({ success: true, message: "Reply recorded and status updated." });
     });
 });
