@@ -172,6 +172,15 @@ html {
   transform: scale(1.05);
 }
 
+/* === 6.8 FOOTER STYLING === */
+footer {
+  background-color: var(--bs-success-dark) !important;
+}
+
+footer.bg-dark {
+  background-color: var(--bs-success-dark) !important;
+}
+
 /* === 7. RESPONSIVE (FIXED) === */
 @media (max-width: 991px) { /* Bootstrap's 'lg' breakpoint */
   body {
