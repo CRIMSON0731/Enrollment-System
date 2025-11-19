@@ -680,13 +680,55 @@ app.post('/submit-inquiry', upload.single('attachment'), (req, res) => {
 app.post('/reply-inquiry', (req, res) => {
     const { inquiryId, replyMessage, status } = req.body;
 
-    const sql = "UPDATE inquiries SET status = ? WHERE id = ?";
-    
-    db.query(sql, [status, inquiryId], (err, result) => {
+    // Step 1: Get the student's email from the database first
+    db.query('SELECT * FROM inquiries WHERE id = ?', [inquiryId], async (err, results) => {
         if (err) {
-            console.error("Error updating inquiry status:", err);
+            console.error("DB Error fetching inquiry:", err);
             return res.status(500).json({ success: false, message: "Database error" });
         }
-        res.json({ success: true, message: "Reply recorded and status updated." });
+        if (results.length === 0) {
+            return res.json({ success: false, message: "Inquiry not found." });
+        }
+
+        const inquiry = results[0];
+
+        // Step 2: Prepare the Email
+        const msg = {
+            to: inquiry.sender_email, // Sends to the student (e.g., alfrancisjuvir@gmail.com)
+            from: 'dalonzohighschool@gmail.com', // Your verified sender
+            subject: `Re: ${inquiry.subject} - DTAHS Admin Reply`,
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
+                    <h3>Hello ${inquiry.sender_name},</h3>
+                    <p>We have received your inquiry regarding: <strong>"${inquiry.subject}"</strong></p>
+                    <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #2b7a0b; margin: 15px 0;">
+                        <strong>Admin Response:</strong><br>
+                        <p style="white-space: pre-wrap; margin-top: 5px;">${replyMessage}</p>
+                    </div>
+                    <p>If you have further questions, please reply to this email or visit our school.</p>
+                    <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
+                </div>
+            `,
+        };
+
+        // Step 3: Send the Email via SendGrid
+        try {
+            await sgMail.send(msg);
+            console.log(`✅ Reply sent to ${inquiry.sender_email}`);
+        } catch (emailErr) {
+            console.error("❌ SendGrid Error:", emailErr.response ? emailErr.response.body : emailErr);
+            // We continue to update the database even if email fails, but we log it.
+        }
+
+        // Step 4: Update the status in the database
+        const updateSql = "UPDATE inquiries SET status = ? WHERE id = ?";
+        db.query(updateSql, [status, inquiryId], (updateErr) => {
+            if (updateErr) {
+                console.error("Error updating inquiry status:", updateErr);
+                return res.status(500).json({ success: false, message: "Database error updating status" });
+            }
+            
+            res.json({ success: true, message: "Reply sent to student's email and status updated." });
+        });
     });
 });
