@@ -40,6 +40,11 @@ html {
   margin-top: 76px;
 }
 
+/* Ensure notification bar is above header */
+#notification-bar {
+  z-index: 999999 !important;
+}
+
 .bg-success-dark {
   background-color: var(--bs-success-dark);
 }
@@ -335,6 +340,17 @@ header {
   }
   .navbar-nav {
     width: 100%;
+  }
+  
+  /* Notification bar mobile adjustments */
+  #notification-bar.notification-bar {
+    width: 95% !important;
+    padding: 15px 20px !important;
+    font-size: 1rem !important;
+  }
+  
+  #notification-bar.notification-bar.show {
+    top: 80px !important;
   }
 }
 
