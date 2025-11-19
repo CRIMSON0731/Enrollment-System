@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     socket.on('statusUpdated', (notification) => {
                         if (notification.newStatus === 'Approved') {
-                            showNotification('🎉 APPROVED! Please check your email for login credentials.', 'success', true);
+                            showNotification('APPROVED! Please check your email (inbox/spam) for login credentials.', 'success', true);
                             successDiv.innerHTML = `
                                 <h2 class="text-success fw-bold">🎉 Application Approved!</h2>
                                 <p class="lead">Congratulations! You have been accepted.</p>
