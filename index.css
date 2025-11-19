@@ -113,7 +113,7 @@ html {
 
 /* === 6.5 INPUT FIELD STYLING === */
 .right-side .form-control {
-  border: 2px solid #6c757d;
+  border: 6px solid #495057;
   background-color: #ffffff;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
