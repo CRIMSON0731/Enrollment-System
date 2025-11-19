@@ -231,4 +231,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ============================================================
+    // 4. TOGGLE PASSWORD VISIBILITY
+    // ============================================================
+    const togglePassword = document.querySelector('#togglePassword');
+    const passwordInput = document.querySelector('#student-password');
+
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function () {
+            // 1. Toggle the type attribute
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // 2. Toggle the eye icon class
+            const icon = this.querySelector('i');
+            if (type === 'text') {
+                icon.classList.remove('bi-eye-fill');
+                icon.classList.add('bi-eye-slash-fill'); // Show "Slash" eye
+            } else {
+                icon.classList.remove('bi-eye-slash-fill');
+                icon.classList.add('bi-eye-fill'); // Show normal eye
+            }
+        });
+    }
 });
