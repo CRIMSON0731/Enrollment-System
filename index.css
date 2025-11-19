@@ -113,17 +113,25 @@ html {
 
 /* === 6.5 INPUT FIELD STYLING === */
 .right-side .form-control {
-  border: 2px solid #ced4da;
+  border: 2px solid #6c757d;
+  background-color: #ffffff;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .right-side .form-control:focus {
   border-color: var(--bs-success);
   box-shadow: 0 0 0 0.25rem rgba(43, 122, 11, 0.25);
+  background-color: #ffffff;
 }
 
 .right-side .form-control:hover:not(:focus) {
-  border-color: #adb5bd;
+  border-color: #495057;
+}
+
+/* === 6.6 CARD CONTAINER STYLING === */
+.right-side .card {
+  border: 2px solid #6c757d;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* === 7. RESPONSIVE (FIXED) === */
