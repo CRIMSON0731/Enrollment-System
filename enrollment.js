@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 
                 // --- CUSTOMIZED SUCCESS MESSAGE ---
-                const customMessage = `✅ Application submitted successfully! Please check your **personal email** (including spam/junk) for login credentials once the admin has processed your documents.`;
+                const customMessage = 'Application submitted successfully! Wait for the admin to approve your application and once approved it will notify on your personal email (including spam/junk) for login credentials.`;
                 
                 // --- CRUCIAL CHANGE: Store custom message and redirect ---
                 sessionStorage.setItem('submissionSuccess', customMessage);
