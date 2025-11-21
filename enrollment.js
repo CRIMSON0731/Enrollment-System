@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Helper Functions (Validation) ---
-    addFileLimitNotices(); // UPDATED for multiple files
+    addFileLimitNotices(); // Handles multiple files
     addAgeValidation();
     addNameValidation();
     addRequiredFieldValidation();
@@ -50,17 +50,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function addPhoneValidation() {
         const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
         if (phoneInput) {
-            
-            // 1. Force type to "text" to allow '+' symbol without browser errors
             phoneInput.type = "text"; 
             phoneInput.removeAttribute('maxlength'); 
 
-            // 2. Set Default Value on Load
             if (!phoneInput.value) {
                 phoneInput.value = "+63";
             }
 
-            // 3. Prevent deleting the "+63" prefix
             phoneInput.addEventListener('keydown', function(e) {
                 const cursorPosition = this.selectionStart;
                 if ((e.key === 'Backspace' || e.key === 'Delete') && cursorPosition <= 3 && this.value.length <= 3) {
@@ -71,29 +67,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // 4. Input Logic
             phoneInput.addEventListener('input', function(e) {
-                this.classList.remove('is-invalid'); // Clear error immediately on type
+                this.classList.remove('is-invalid'); 
 
                 let val = this.value;
-                
-                // Ensure it always starts with +63
                 if (!val.startsWith("+63")) {
                     val = "+63" + val.replace(/^\+63|^63|^\+/, ""); 
                 }
 
                 const prefix = "+63";
                 let rest = val.substring(3);
-                
-                // Remove letters/symbols
                 rest = rest.replace(/[^0-9]/g, '');
 
-                // Remove leading '0' (e.g., +6309 -> +639)
                 if (rest.startsWith('0')) {
                     rest = rest.substring(1);
                 }
                 
-                // Strict Length Limit: 10 digits (Total 13 characters)
                 if (rest.length > 10) {
                     rest = rest.substring(0, 10);
                     showNotification('⚠️ Maximum length reached (13 characters).', 'info', false);
@@ -102,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.value = prefix + rest;
             });
 
-            // 5. Reset on Focus
             phoneInput.addEventListener('focus', function() {
                 if (this.value === '' || this.value === '+') {
                     this.value = "+63";
@@ -122,15 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (input.parentElement) input.parentElement.appendChild(notice);
             
             input.addEventListener('change', function(e) {
-                const files = e.target.files; // Get all selected files
-                
+                const files = e.target.files; 
                 if (files.length > 0) {
                     for (let i = 0; i < files.length; i++) {
-                        // Check size for EACH file
                         if (files[i].size > 5 * 1024 * 1024) {
                             showNotification(`File "${files[i].name}" exceeds 5MB limit.`, 'error');
-                            input.value = ''; // Clear the input if ANY file is too big
-                            return; // Stop checking
+                            input.value = ''; 
+                            return; 
                         }
                     }
                 }
@@ -199,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleEnrollmentSubmission(e) {
         e.preventDefault(); 
         
-        // 1. Manual Validation Check: Required Fields
         let hasError = false;
         const requiredInputs = enrollmentForm.querySelectorAll('[required]');
         requiredInputs.forEach(input => {
@@ -209,7 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 2. Manual Validation Check: Phone Number Length
         const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
         if (phoneInput && phoneInput.value.length < 13) {
             phoneInput.classList.add('is-invalid');
@@ -239,10 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            // CHECK: Is the response actually JSON?
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-                // If server returns HTML (error page), throw text error
                 const text = await response.text(); 
                 console.error("Server returned non-JSON response:", text);
                 throw new Error("Server Error (Backend might not support multiple files).");
@@ -257,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     submitBtn.innerHTML = originalButtonHtml;
                 }
             } else {
-                // --- SUCCESS ---
                 showNotification('✅ Application submitted! Please wait for Admin approval.', 'success', true);
                 
                 enrollmentForm.style.display = 'none';
@@ -290,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.log("Real-time update received:", notification);
 
                         if (notification.newStatus === 'Approved') {
-                            // APPROVED LOGIC
                             showNotification('🎉 APPROVED! Please check your email.', 'success', true);
                             successDiv.innerHTML = `
                                 <div class="animate__animated animate__bounceIn">
@@ -303,10 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             `;
                         } else if (notification.newStatus === 'Rejected') {
-                            // REJECTED LOGIC
+                            // REJECTED LOGIC - UPDATED LINK
                             showNotification('⚠️ Application Rejected. Check your email.', 'error', true);
                             
-                            // FIX: The link below now points to "Enrollment page.html" instead of "enrollment.html"
                             successDiv.innerHTML = `
                                 <div class="animate__animated animate__shakeX">
                                     <h2 class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation"></i> Application Rejected</h2>
@@ -319,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         3. You may need to re-submit with correct documents.
                                     </div>
                                     <br>
-                                    <a href="Enrollment page.html" class="btn btn-outline-danger mt-4">Try Again</a>
+                                    <a href="enrollment.html" class="btn btn-outline-danger mt-4">Try Again</a>
                                     <a href="index.html" class="btn btn-outline-secondary mt-4 ms-2">Return Home</a>
                                 </div>
                             `;
@@ -338,7 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Clear invalid classes on interaction
     const allInputs = enrollmentForm.querySelectorAll('input, select, textarea');
     allInputs.forEach(input => {
         input.addEventListener('input', () => input.classList.remove('is-invalid'));
