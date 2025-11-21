@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     addAgeValidation();
     addNameValidation();
     addRequiredFieldValidation();
+    
+    // CALL THE NEW PHONE VALIDATION FUNCTION HERE
+    addPhoneValidation(); 
 
     function showNotification(message, type, persistent = false) {
         notificationBarEl.classList.remove('show'); 
@@ -40,8 +43,62 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationBarEl.classList.remove('show');
     }
 
-    // ... [Keep your existing validation functions: addFileLimitNotices, addAgeValidation, etc.] ...
-    // I will include them fully below to ensure copy-paste works.
+    // --- NEW FUNCTION: PHONE NUMBER VALIDATION ---
+    function addPhoneValidation() {
+        const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
+        if (phoneInput) {
+            // 1. Set Default Value on Load
+            if (!phoneInput.value) {
+                phoneInput.value = "+63";
+            }
+
+            // 2. Prevent deleting the "+63" prefix
+            phoneInput.addEventListener('keydown', function(e) {
+                const cursorPosition = this.selectionStart;
+                // If trying to backspace the prefix (first 3 chars), stop it
+                if ((e.key === 'Backspace' || e.key === 'Delete') && cursorPosition <= 3 && this.value.length <= 3) {
+                    e.preventDefault();
+                }
+                // Prevent moving cursor before the prefix
+                if (cursorPosition < 3 && e.key !== 'ArrowRight') {
+                   this.setSelectionRange(3, 3);
+                }
+            });
+
+            // 3. Restrict Input to Numbers Only (after the prefix)
+            phoneInput.addEventListener('input', function(e) {
+                let val = this.value;
+                
+                // Ensure it always starts with +63
+                if (!val.startsWith("+63")) {
+                    val = "+63" + val.replace(/^\+63|^63|^\+/, ""); 
+                }
+
+                // Remove any non-digit characters (except the leading +)
+                // We split the string: keep the '+', regex the rest
+                const prefix = "+63";
+                let rest = val.substring(3);
+                
+                // Remove letters/symbols from the rest
+                rest = rest.replace(/[^0-9]/g, '');
+                
+                // Limit to typical mobile length (10 digits after +63, total 13 chars)
+                if (rest.length > 10) {
+                    rest = rest.substring(0, 10);
+                    showNotification('⚠️ Phone number cannot exceed 11 digits (excluding +63).', 'info');
+                }
+
+                this.value = prefix + rest;
+            });
+
+            // 4. Reset on Focus (if empty or messed up)
+            phoneInput.addEventListener('focus', function() {
+                if (this.value === '' || this.value === '+') {
+                    this.value = "+63";
+                }
+            });
+        }
+    }
 
     function addFileLimitNotices() {
         const fileInputs = enrollmentForm.querySelectorAll('input[type="file"]');
@@ -178,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // --- REAL-TIME SOCKET CONNECTION ---
                 // Extract the ID from the server response message
-                // Assuming server returns string like: "Application submitted successfully with ID: 123"
                 const appIdMatch = data.message.match(/ID: (\d+)/);
                 const appId = appIdMatch ? appIdMatch[1] : null;
 
