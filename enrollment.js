@@ -34,8 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         notificationBarEl.classList.add('show');
         
-        if (!persistent && type !== 'info') {
-             setTimeout(() => { notificationBarEl.classList.remove('show'); }, 8000); 
+        // FIX: Allow 'info' messages to auto-hide unless explicitly persistent
+        if (!persistent) {
+             setTimeout(() => { notificationBarEl.classList.remove('show'); }, 4000); 
         }
     }
     
@@ -43,12 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationBarEl.classList.remove('show');
     }
 
-    // --- NEW FUNCTION: STRICT PHONE NUMBER VALIDATION (+63 + 10 digits) ---
+    // --- STRICT PHONE NUMBER VALIDATION (+63 + 10 digits) ---
     function addPhoneValidation() {
         const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
         if (phoneInput) {
             
-            // 0. Remove HTML attribute limits if they exist to let JS handle it
+            // 0. Remove HTML attribute limits so JS can handle the logic perfectly
             phoneInput.removeAttribute('maxlength'); 
 
             // 1. Set Default Value on Load
@@ -85,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Remove letters/symbols from the rest (Keep only numbers)
                 rest = rest.replace(/[^0-9]/g, '');
 
-                // AUTO-CORRECT: If user types '0' at the start (e.g., 09...), remove it
+                // AUTO-CORRECT: If user types '0' at the start (e.g., +6309...), remove the 0
                 if (rest.startsWith('0')) {
                     rest = rest.substring(1);
                 }
@@ -93,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Strict Length Limit: 10 digits (Total 13 characters)
                 if (rest.length > 10) {
                     rest = rest.substring(0, 10);
-                    showNotification('⚠️ Maximum length reached (13 characters).', 'info');
+                    // Show warning but make it temporary
+                    showNotification('⚠️ Maximum length reached (13 characters).', 'info', false);
                 }
 
                 this.value = prefix + rest;
@@ -201,7 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Submitting...';
         }
-        showNotification('Submitting your application...', 'info'); 
+        // FIX: Make "Submitting" message persistent so it doesn't disappear during upload
+        showNotification('Submitting your application...', 'info', true); 
 
         try {
             const formData = new FormData(enrollmentForm);
@@ -242,12 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 enrollmentForm.parentElement.appendChild(successDiv);
 
                 // --- REAL-TIME SOCKET CONNECTION ---
-                // Extract the ID from the server response message
                 const appIdMatch = data.message.match(/ID: (\d+)/);
                 const appId = appIdMatch ? appIdMatch[1] : null;
 
                 if (appId) {
-                    // Use the global 'io' object (loaded via script tag in HTML)
                     const socket = io('https://enrollment-system-production-6820.up.railway.app');
                     
                     console.log(`Listening for updates on Application #${appId}`);
