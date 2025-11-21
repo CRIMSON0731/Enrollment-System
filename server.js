@@ -262,6 +262,38 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     }
 }
 
+// --- NEW HELPER: Send Re-Enrollment Approval Email ---
+async function sendReEnrollmentEmail(recipientEmail, studentName, gradeLevel) {
+    const msg = {
+        to: recipientEmail,
+        from: 'dalonzohighschool@gmail.com', 
+        subject: `Enrollment Approved: Grade ${gradeLevel}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
+                <h2>Hello, ${studentName}!</h2>
+                <p>We are pleased to inform you that your enrollment for <strong>Grade ${gradeLevel}</strong> has been officially <strong>APPROVED</strong>.</p>
+                
+                <div style="background-color: #e9f7ec; padding: 15px; border-left: 4px solid #2b7a0b; margin: 20px 0;">
+                    <p style="color: #155724; margin: 0; font-weight: bold;">
+                        You may continue using your existing Student Portal account.
+                    </p>
+                </div>
+
+                <p>Please log in to your dashboard to view your updated status and access school announcements.</p>
+                <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
+            </div>
+        `,
+    };
+
+    try {
+        await sgMail.send(msg); 
+        return { success: true };
+    } catch (error) {
+        console.error('❌ SendGrid Re-Enrollment Email Failed:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
 // -----------------------------------------------------------------
 // SOCKET.IO CONFIGURATION
 // -----------------------------------------------------------------
@@ -302,7 +334,7 @@ app.post('/toggle-enrollment', (req, res) => {
     res.json({ success: true, message: `Enrollment is now ${isOpen ? 'OPEN' : 'CLOSED'}` });
 });
 
-// === UPDATED: FORGOT PASSWORD ENDPOINT ===
+// === FORGOT PASSWORD ENDPOINT ===
 app.post('/forgot-password', (req, res) => {
     const { email } = req.body;
 
@@ -442,97 +474,82 @@ app.post('/submit-application', (req, res) => {
     });
 });
 
+// --- GET APPLICATIONS (Modified to detect Old vs New) ---
 app.get('/get-applications', (req, res) => {
-    const sql = 'SELECT id, first_name, last_name, email, grade_level, status, created_at FROM applications ORDER BY created_at DESC';
+    // LEFT JOIN users: If u.id is NOT NULL, it means the student has an account (Old Student)
+    const sql = `
+        SELECT a.id, a.first_name, a.last_name, a.email, a.grade_level, a.status, a.created_at,
+               CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END AS is_old_student
+        FROM applications a
+        LEFT JOIN users u ON a.id = u.application_id
+        ORDER BY a.created_at DESC`;
+        
     db.query(sql, (err, results) => {
-        if (err) {
-            console.error('DB Error:', err);
-            return res.status(500).json({ success: false, message: 'Failed to retrieve applications.' });
-        }
+        if (err) return res.status(500).json({ success: false, message: 'Database error.' });
         res.json({ success: true, applications: results });
     });
 });
 
+// --- UPDATE STATUS (Smart Approval) ---
 app.post('/update-application-status', (req, res) => {
     const { applicationId, newStatus } = req.body;
 
-    const updateStatus = (successMessage, credentials = null) => {
-        db.query('UPDATE applications SET status = ? WHERE id = ?', [newStatus, applicationId], (err) => {
-            if (err) {
-                console.error('DB Error updating status:', err);
-                return res.status(500).json({ success: false, message: 'Failed to update application status.' });
-            }
-            
-            io.to(`user-${applicationId}`).emit('statusUpdated', { 
-                newStatus: newStatus,
-                message: "Your application status has been updated!"
-            });
+    // 1. Get Application Data
+    db.query('SELECT * FROM applications WHERE id = ?', [applicationId], (err, apps) => {
+        if (err || apps.length === 0) return res.status(500).json({ success: false, message: 'App not found.' });
+        const appData = apps[0];
 
-            if (credentials) {
-                return res.json({ 
-                    success: true, 
-                    message: successMessage,
-                    student_username: credentials.username,
-                    student_password: credentials.password 
+        // 2. Check if user exists (Old Student Check)
+        db.query('SELECT id FROM users WHERE application_id = ?', [applicationId], (uErr, users) => {
+            const isOldStudent = users.length > 0;
+
+            // 3. Update Status in DB
+            db.query('UPDATE applications SET status = ? WHERE id = ?', [newStatus, applicationId], async (updateErr) => {
+                if (updateErr) return res.status(500).json({ success: false, message: 'Update failed.' });
+
+                // Notify Dashboard via Socket
+                io.to(`user-${applicationId}`).emit('statusUpdated', { 
+                    newStatus: newStatus, 
+                    message: isOldStudent ? `Re-enrollment for Grade ${appData.grade_level} Approved!` : "Status Updated" 
                 });
-            }
-            res.json({ success: true, message: successMessage });
-        });
-    };
 
-    if (newStatus === 'Approved') {
-        db.query('SELECT * FROM applications WHERE id = ?', [applicationId], async (err, apps) => {
-            if (err) return res.status(500).json({ success: false, message: 'Server error while fetching app data.' });
-            if (apps.length === 0) return res.json({ success: false, message: 'Application not found.' });
-            
-            const app = apps[0];
-            
-            createOrGetCredentials(app, async (credErr, credentials) => {
-                if (credErr) {
-                    return res.status(500).json({ success: false, message: 'Failed to generate/retrieve credentials.' });
-                }
+                // 4. Handle Approval Logic
+                if (newStatus === 'Approved') {
+                    if (isOldStudent) {
+                        // --- OLD STUDENT: No new credentials, just notification ---
+                        await sendReEnrollmentEmail(appData.email, appData.first_name, appData.grade_level);
+                        res.json({ success: true, message: "Old student approved. Notification sent (No new credentials)." });
 
-                const emailResult = await sendCredentialsEmail(
-                    app.email, 
-                    app.first_name, 
-                    credentials.username, 
-                    credentials.password
-                );
-                
-                let successMessage = `Application Approved.`;
-                if (!emailResult.success) {
-                    successMessage += ` WARNING: Failed to send credentials email (Check server console).`;
+                    } else {
+                        // --- NEW STUDENT: Generate credentials ---
+                        createOrGetCredentials(appData, async (credErr, credentials) => {
+                            if (credErr) return res.status(500).json({ success: false, message: 'Credential gen failed.' });
+                            await sendCredentialsEmail(appData.email, appData.first_name, credentials.username, credentials.password);
+                            res.json({ success: true, message: "New student approved. Credentials generated & sent." });
+                        });
+                    }
+                } else {
+                    // Rejected or other status
+                    res.json({ success: true, message: `Status updated to ${newStatus}.` });
                 }
-                
-                updateStatus(successMessage, credentials);
             });
         });
-    } else {
-        updateStatus(`Application status set to ${newStatus}.`);
-    }
+    });
 });
 
+// --- GET APP DETAILS (Include is_old_student flag) ---
 app.get('/get-application-details/:id', (req, res) => {
-    const applicationId = req.params.id;
-
     const sql = `
-    SELECT a.*, u.username AS student_username, u.password AS student_password
+    SELECT a.*, u.username AS student_username, 
+           CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END AS is_old_student
     FROM applications a
     LEFT JOIN users u ON a.id = u.application_id
     WHERE a.id = ?`;
     
-    db.query(sql, [applicationId], (err, results) => {
-        if (err) {
-            console.error('DB ERROR fetching application details:', err); 
-            return res.status(500).json({ success: false, message: 'Server error.' });
-        }
-        if (results.length === 0) return res.json({ success: false, message: 'Application not found.' });
-
+    db.query(sql, [req.params.id], (err, results) => {
+        if (err || results.length === 0) return res.json({ success: false, message: 'Not found.' });
         const app = results[0];
-        if (app.student_username) {
-            app.student_password = 'password123';
-        }
-
+        if (app.student_username) app.student_password = '[Hidden]'; 
         res.json({ success: true, application: app });
     });
 });
