@@ -579,12 +579,11 @@ app.post('/generate-credentials', (req, res) => {
     });
 });
 
-// --- SUBMIT APPLICATION (New Students) ---
+// --- UPDATED SUBMIT APPLICATION (HANDLES RE-APPLICATION AFTER REJECTION) ---
 app.post('/submit-application', uploadApplicationFiles, (req, res) => {
     const files = req.files || {};
     const { first_name, last_name, middle_name, birthdate, email, phone_num, grade_level } = req.body;
 
-    // --- FIX: HANDLE MULTIPLE FILES BY JOINING NAMES WITH COMMAS ---
     const getFilenames = (fieldName) => {
         if (files[fieldName] && files[fieldName].length > 0) {
             return files[fieldName].map(f => f.filename).join(',');
@@ -599,10 +598,9 @@ app.post('/submit-application', uploadApplicationFiles, (req, res) => {
 
     if (!first_name || !email) return res.status(400).json({ success: false, message: 'Missing fields.' });
 
-    db.query('SELECT id FROM applications WHERE email = ?', [email], (checkErr, existing) => {
-        if (existing.length > 0) return res.status(400).json({ success: false, message: 'Email already registered.' });
-
-        const sql = `INSERT INTO applications (first_name, last_name, middle_name, birthdate, email, phone, grade_level, status, doc_card_path, doc_psa_path, doc_f137_path, doc_brgy_cert_path) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?, ?, ?, ?)`;
+    // HELPER TO PERFORM INSERT
+    const executeInsert = () => {
+        const sql = `INSERT INTO applications (first_name, last_name, middle_name, birthdate, email, phone, grade_level, status, doc_card_path, doc_psa_path, doc_f137_path, doc_brgy_cert_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?, ?, ?, ?, NOW())`;
         db.query(sql, [first_name, last_name, middle_name, birthdate, email, phone_num, grade_level, card, psa, f137, brgy], (err, result) => {
             if (err) {
                 console.error("DB Insert Error:", err);
@@ -610,6 +608,35 @@ app.post('/submit-application', uploadApplicationFiles, (req, res) => {
             }
             res.json({ success: true, message: 'ID: ' + result.insertId });
         });
+    };
+
+    // CHECK EXISTING EMAIL STATUS
+    db.query('SELECT id, status FROM applications WHERE email = ?', [email], (checkErr, existing) => {
+        if (existing.length > 0) {
+            const existingApp = existing[0];
+            
+            // IF REJECTED: Delete old records and allow new insert
+            if (existingApp.status === 'Rejected') {
+                console.log(`Overwriting rejected application ID: ${existingApp.id}`);
+                
+                // Clean up linked user account first (if any)
+                db.query('DELETE FROM users WHERE application_id = ?', [existingApp.id], () => {
+                    // Then delete the application itself
+                    db.query('DELETE FROM applications WHERE id = ?', [existingApp.id], () => {
+                        // Finally, run the new insert
+                        executeInsert();
+                    });
+                });
+            } 
+            // IF PENDING OR APPROVED: Block duplicate
+            else {
+                return res.status(400).json({ success: false, message: 'Email already registered.' });
+            }
+        } 
+        // IF NEW EMAIL: Proceed
+        else {
+            executeInsert();
+        }
     });
 });
 
