@@ -242,7 +242,8 @@ function displayTableContent(applicationsToDisplay) {
           ? '<span class="badge bg-primary">Old Student</span>' 
           : '<span class="badge bg-info text-dark">New Student</span>';
 
-      // --- SMART GRADE DISPLAY LOGIC ---
+      // --- FIXED: SMART GRADE DISPLAY LOGIC ---
+      // Removes "Grade" string if it exists in data, then rebuilds it
       const gradeNum = parseInt(app.grade_level.toString().replace(/\D/g, ''), 10);
       let gradeDisplay = `Grade ${gradeNum}`; // Default
 
@@ -339,16 +340,30 @@ async function showApplicationDetails(appId) {
                 <hr>`;
         }
 
-        // --- DOCUMENT DISPLAY LOGIC (NEW vs OLD) ---
+        // --- UPDATED: DOCUMENT DISPLAY LOGIC (NEW vs OLD) ---
         let documentsHtml = '';
         
         if (isOldStudent) {
-            // Old Student: Only needs School Card
+            // Old Student: Shows New Report Card AND Old Documents
             documentsHtml = `
-                <h5 class="mt-3 text-primary">Re-Enrollment Requirements:</h5>
-                <div class="mb-2 p-2 border rounded bg-light">
-                    <a href="${SERVER_URL}/uploads/${fullApp.doc_card_path}" target="_blank" class="file-link fw-bold text-decoration-none">
-                        <i class="fa-solid fa-file-pdf me-2"></i> View Previous Grade Report Card
+                <h5 class="mt-3 text-primary border-bottom pb-2">Current Re-Enrollment Requirement:</h5>
+                <div class="mb-3 p-3 border rounded bg-light shadow-sm">
+                    <a href="${SERVER_URL}/uploads/${fullApp.doc_card_path}" target="_blank" class="text-decoration-none fw-bold text-dark d-flex align-items-center">
+                        <i class="fa-solid fa-file-pdf text-danger fs-4 me-2"></i> 
+                        <span>View Latest Report Card (Grade ${fullApp.grade_level - 1})</span>
+                    </a>
+                </div>
+                
+                <h6 class="text-muted mt-4 mb-2">Original Admission Documents (Archive):</h6>
+                <div class="list-group list-group-flush small">
+                    <a href="${SERVER_URL}/uploads/${fullApp.doc_psa_path}" target="_blank" class="list-group-item list-group-item-action text-muted">
+                        <i class="fa-solid fa-file me-2"></i> Original PSA Birth Certificate
+                    </a>
+                    <a href="${SERVER_URL}/uploads/${fullApp.doc_f137_path}" target="_blank" class="list-group-item list-group-item-action text-muted">
+                        <i class="fa-solid fa-file me-2"></i> Original Form 137
+                    </a>
+                    <a href="${SERVER_URL}/uploads/${fullApp.doc_brgy_cert_path}" target="_blank" class="list-group-item list-group-item-action text-muted">
+                        <i class="fa-solid fa-file me-2"></i> Original Barangay Certificate
                     </a>
                 </div>
             `;
