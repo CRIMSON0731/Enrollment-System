@@ -242,8 +242,7 @@ function displayTableContent(applicationsToDisplay) {
           ? '<span class="badge bg-primary">Old Student</span>' 
           : '<span class="badge bg-info text-dark">New Student</span>';
 
-      // --- FIXED: SMART GRADE DISPLAY LOGIC ---
-      // Removes "Grade" string if it exists in data, then rebuilds it
+      // --- SMART GRADE DISPLAY LOGIC ---
       const gradeNum = parseInt(app.grade_level.toString().replace(/\D/g, ''), 10);
       let gradeDisplay = `Grade ${gradeNum}`; // Default
 
@@ -309,18 +308,16 @@ async function showApplicationDetails(appId) {
         const isOldStudent = fullApp.is_old_student === 1; 
         const birthdate = new Date(fullApp.birthdate || fullApp.bday || '2000-01-01').toLocaleDateString();
         
+        // FIX: Extract pure number for calculations to avoid NaN
+        const gradeNum = parseInt(fullApp.grade_level.toString().replace(/\D/g, ''), 10);
+
         const isApproved = fullApp.status === 'Approved';
         const hasCredentials = !!fullApp.student_username; 
 
         // --- BUTTON VISIBILITY LOGIC ---
-        // Approve/Reject only visible if NOT approved yet
         modalApproveBtn.style.display = isApproved ? 'none' : 'inline-block';
         modalRejectBtn.style.display = isApproved ? 'none' : 'inline-block';
         
-        // "Send Credentials" logic:
-        // - Hide if it's an OLD student (they have accounts)
-        // - Hide if already approved (creds sent automatically)
-        // - Hide if they already have username generated
         if (isOldStudent) {
             modalSendCredentialsBtn.style.display = 'none';
         } else {
@@ -340,7 +337,7 @@ async function showApplicationDetails(appId) {
                 <hr>`;
         }
 
-        // --- UPDATED: DOCUMENT DISPLAY LOGIC (NEW vs OLD) ---
+        // --- DOCUMENT DISPLAY LOGIC (NEW vs OLD) ---
         let documentsHtml = '';
         
         if (isOldStudent) {
@@ -350,7 +347,7 @@ async function showApplicationDetails(appId) {
                 <div class="mb-3 p-3 border rounded bg-light shadow-sm">
                     <a href="${SERVER_URL}/uploads/${fullApp.doc_card_path}" target="_blank" class="text-decoration-none fw-bold text-dark d-flex align-items-center">
                         <i class="fa-solid fa-file-pdf text-danger fs-4 me-2"></i> 
-                        <span>View Latest Report Card (Grade ${fullApp.grade_level - 1})</span>
+                        <span>View Latest Report Card (Grade ${gradeNum - 1})</span>
                     </a>
                 </div>
                 
@@ -401,7 +398,7 @@ async function showApplicationDetails(appId) {
             <hr>
 
             <div class="row gy-2">
-                <div class="col-md-6"><strong>Target Grade:</strong> Grade ${fullApp.grade_level}</div>
+                <div class="col-md-6"><strong>Target Grade:</strong> Grade ${gradeNum}</div>
                 <div class="col-md-6"><strong>Birthdate:</strong> ${birthdate}</div>
                 <div class="col-md-6"><strong>Email:</strong> ${fullApp.email}</div>
                 <div class="col-md-6"><strong>Phone:</strong> ${fullApp.phone || 'N/A'}</div>
