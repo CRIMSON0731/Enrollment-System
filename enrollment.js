@@ -34,9 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         notificationBarEl.classList.add('show');
         
-        // FIX: Allow 'info' messages to auto-hide unless explicitly persistent
+        // FIX: Allow 'info' messages to auto-hide quickly
         if (!persistent) {
-             setTimeout(() => { notificationBarEl.classList.remove('show'); }, 4000); 
+             setTimeout(() => { notificationBarEl.classList.remove('show'); }, 3000); 
         }
     }
     
@@ -44,12 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationBarEl.classList.remove('show');
     }
 
-    // --- STRICT PHONE NUMBER VALIDATION (+63 + 10 digits) ---
+    // --- STRICT PHONE NUMBER VALIDATION (+63 + 10 digits ONLY) ---
     function addPhoneValidation() {
         const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
         if (phoneInput) {
             
-            // 0. Remove HTML attribute limits so JS can handle the logic perfectly
+            phoneInput.type = "tel"; 
             phoneInput.removeAttribute('maxlength'); 
 
             // 1. Set Default Value on Load
@@ -60,48 +60,54 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Prevent deleting the "+63" prefix
             phoneInput.addEventListener('keydown', function(e) {
                 const cursorPosition = this.selectionStart;
-                // If trying to backspace the prefix (first 3 chars), stop it
                 if ((e.key === 'Backspace' || e.key === 'Delete') && cursorPosition <= 3 && this.value.length <= 3) {
                     e.preventDefault();
                 }
-                // Prevent moving cursor before the prefix
                 if (cursorPosition < 3 && e.key !== 'ArrowRight') {
                    this.setSelectionRange(3, 3);
                 }
             });
 
-            // 3. Input Logic: Numbers Only, No Leading 0, Max 13 Chars
+            // 3. STRICT INPUT CLEANING
             phoneInput.addEventListener('input', function(e) {
+                this.classList.remove('is-invalid');
+
                 let val = this.value;
-                
-                // Ensure it always starts with +63
+
+                // A. First, strip absolutely anything that isn't a number or a plus sign
+                //    This removes letters, dashes, spaces, parentheses, @, #, etc.
+                val = val.replace(/[^0-9+]/g, '');
+
+                // B. Ensure '+' is only at the start. Remove any '+' that appears later.
+                val = val.replace(/(?!^)\+/g, '');
+
+                // C. Ensure it always starts with +63
                 if (!val.startsWith("+63")) {
+                    // If user messed up the prefix, rebuild it
+                    // Remove any leading +, 6, or 3 fragments to avoid duplication
                     val = "+63" + val.replace(/^\+63|^63|^\+/, ""); 
                 }
 
-                // Separate prefix and the rest
+                // D. Isolate the numbers after +63
                 const prefix = "+63";
-                let rest = val.substring(3);
-                
-                // Remove letters/symbols from the rest (Keep only numbers)
-                rest = rest.replace(/[^0-9]/g, '');
+                let rest = val.substring(3); 
 
-                // AUTO-CORRECT: If user types '0' at the start (e.g., +6309...), remove the 0
+                // E. Auto-Correct: Remove leading '0' if present (e.g. +6309...)
                 if (rest.startsWith('0')) {
                     rest = rest.substring(1);
                 }
                 
-                // Strict Length Limit: 10 digits (Total 13 characters)
+                // F. Length Limit: 10 digits max (Total 13 characters)
                 if (rest.length > 10) {
                     rest = rest.substring(0, 10);
-                    // Show warning but make it temporary
                     showNotification('⚠️ Maximum length reached (13 characters).', 'info', false);
                 }
 
+                // Update value
                 this.value = prefix + rest;
             });
 
-            // 4. Reset on Focus (if empty or messed up)
+            // 4. Reset on Focus (if empty)
             phoneInput.addEventListener('focus', function() {
                 if (this.value === '' || this.value === '+') {
                     this.value = "+63";
