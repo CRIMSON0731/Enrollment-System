@@ -40,7 +40,6 @@ async function loadAnnouncements() {
 // --- 2. Function to handle sidebar navigation ---
 function setupNavigation(isFirstLogin = false) {
   const links = document.querySelectorAll(".sidebar-links a");
-  
   const initialTargetId = isFirstLogin ? "content-password" : "content-home";
   const initialNavLinkId = isFirstLogin ? "nav-password" : "nav-home";
 
@@ -258,7 +257,6 @@ function renderEnrollmentChecklist(status) {
     const checkIcon = '<span class="fa-solid fa-check"></span>'; 
     const pendingIcon = '<span class="fa-solid fa-circle-notch fa-spin"></span>'; 
     const rejectIcon = '<span class="fa-solid fa-xmark"></span>'; 
-    
     const isApproved = status === 'Approved';
     const isPending = status === 'Pending Review';
     const isRejected = status === 'Rejected';
@@ -268,7 +266,7 @@ function renderEnrollmentChecklist(status) {
     if (isApproved) {
         html += `<div class="checklist-item done">${checkIcon} Documents Reviewed</div>`;
         html += `<div class="checklist-item done">${checkIcon} Enrollment Finalized</div>`;
-        html += `<div class="alert alert-success mt-3 small">You are all set!</div>`;
+        html += `<div class="alert alert-success mt-3 small">You are all set! View your information tab.</div>`;
     } else if (isPending) {
          html += `<div class="checklist-item pending">${pendingIcon} Under Review</div>`;
          html += `<div class="checklist-item pending">${pendingIcon} Awaiting Status</div>`;
@@ -325,7 +323,7 @@ async function loadFullApplicationDetails(appData) {
     }
 }
 
-// --- PROGRESS BAR (Updated for 100% Success) ---
+// --- PROGRESS BAR ---
 function updateEnrollmentProgress(status) {
     const progressBar = document.getElementById('enrollment-progress-bar');
     
@@ -372,27 +370,25 @@ async function setupReEnrollment(appData) {
         if (statusData.success && !statusData.isOpen) {
             btn.disabled = true;
             btn.textContent = "Enrollment Closed";
-            btn.classList.remove('btn-success');
-            btn.classList.add('btn-secondary');
+            btn.className = 'btn btn-secondary fw-bold w-100'; 
             select.disabled = true;
             fileInput.disabled = true;
             
-            const notice = document.createElement('p');
-            notice.className = 'text-danger small fw-bold mt-2 mb-0';
-            notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment closed by admin.';
-            actionCenter.querySelector('.d-flex.flex-column').appendChild(notice);
+            // Add visual notice
+            const existingNotice = actionCenter.querySelector('.enrollment-notice');
+            if (!existingNotice) {
+                const notice = document.createElement('p');
+                notice.className = 'text-danger small fw-bold mt-2 mb-0 enrollment-notice';
+                notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment period is currently closed by the admin.';
+                actionCenter.querySelector('.d-flex.flex-column').appendChild(notice);
+            }
             return; 
         }
     } catch(e) { console.error(e); }
 
-    // 2. Grade Logic (Show only next grade)
+    // 2. Grade Logic
     const currentGrade = parseInt(appData.grade_level.replace(/\D/g, '')); 
-    
-    // Hide Action Center if student is already Grade 10
-    if (currentGrade >= 10) { 
-        actionCenter.style.display = 'none'; 
-        return; 
-    }
+    if (currentGrade >= 10) { actionCenter.style.display = 'none'; return; }
 
     const nextGradeLevel = currentGrade + 1;
     const allOptions = select.querySelectorAll('option');
@@ -453,31 +449,23 @@ async function setupReEnrollment(appData) {
     });
 }
 
-// --- UPDATE UI FROM DATA ---
+// --- UPDATE UI ---
 function updateDashboardUI(appData) {
-    // 1. Update Names
-    const nameEl = document.getElementById("student-name");
-    const fullNameEl = document.getElementById("student-name-full");
-    if (nameEl) nameEl.textContent = appData.first_name || "Student";
-    if (fullNameEl) fullNameEl.textContent = `${appData.first_name} ${appData.last_name}`;
+    document.getElementById("student-name").textContent = appData.first_name || "Student";
+    document.getElementById("student-name-full").textContent = `${appData.first_name} ${appData.last_name}`;
     
-    // 2. Update Status Banner
     const formattedGrade = appData.grade_level.includes('Grade') ? appData.grade_level : `Grade ${appData.grade_level}`;
-    const summaryEl = document.getElementById("status-summary-text");
-    if (summaryEl) summaryEl.textContent = `${appData.status} (${formattedGrade})`;
+    document.getElementById("status-summary-text").textContent = `${appData.status} (${formattedGrade})`;
     
-    // 3. Update Status Box
     const statusEl = document.getElementById("status-message");
     if(statusEl) {
         statusEl.textContent = appData.status;
         statusEl.className = `status-${appData.status.replace(/ /g, '')} mb-4`;
     }
 
-    // 4. Update Progress & Checklist
     renderEnrollmentChecklist(appData.status);
     updateEnrollmentProgress(appData.status);
 
-    // 5. Update Info Tab
     document.getElementById("detail-name").textContent = `${appData.first_name} ${appData.last_name}`;
     document.getElementById("detail-grade").textContent = formattedGrade;
     document.getElementById("detail-bday").textContent = appData.birthdate ? new Date(appData.birthdate).toLocaleDateString() : 'N/A';
@@ -485,7 +473,6 @@ function updateDashboardUI(appData) {
     document.getElementById("detail-phone").textContent = appData.phone || "N/A";
     document.getElementById("detail-username").textContent = appData.username || "N/A";
     
-    // 6. Re-run logic for Action Center (hide if approved)
     setupReEnrollment(appData);
 }
 
@@ -493,7 +480,6 @@ function updateDashboardUI(appData) {
 // 5. MAIN INITIALIZATION
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Get Local Data First (Fast Load)
   const appDataString = localStorage.getItem("applicationData");
   if (!appDataString) {
     window.location.href = "index.html";
@@ -506,10 +492,10 @@ document.addEventListener("DOMContentLoaded", () => {
   setupNavigation(isFirstLogin); 
   if (isFirstLogin) showNotification("SECURITY ALERT: Please change your password.", 'error');
 
-  // 2. Initial Render (Might be stale)
+  // Render Initial Data
   updateDashboardUI(appData);
 
-  // 3. Init Features
+  // Init Features
   loadAnnouncements();
   setupPasswordToggle(); 
   setupPasswordForm(appData);
@@ -518,37 +504,34 @@ document.addEventListener("DOMContentLoaded", () => {
   
   if (window.VanillaTilt) VanillaTilt.init(document.querySelectorAll("[data-tilt]"));
 
-  // 4. FETCH FRESH DATA FROM SERVER (CRITICAL FIX)
+  // --- FETCH FRESH DATA ---
   fetch(`https://enrollment-system-production-6820.up.railway.app/get-application-details/${appData.id}`)
     .then(res => res.json())
     .then(data => {
         if(data.success) {
-            console.log("Fresh data loaded:", data.application);
-            // Merge username/password from old data since endpoint might mask it
             const newData = { ...appData, ...data.application };
-            // Save to LocalStorage
             localStorage.setItem("applicationData", JSON.stringify(newData));
-            // Update UI immediately
             updateDashboardUI(newData);
-            // Update global appData reference for other functions
             appData = newData;
         }
     })
-    .catch(err => console.error("Failed to fetch fresh status:", err));
+    .catch(err => console.error(err));
 
-  // 5. SOCKET LISTENER (Real-time Updates)
+  // --- SOCKET LISTENER ---
   const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
   socket.emit('registerUser', appData.id);
   
+  // 1. Status Updates
   socket.on('statusUpdated', (data) => {
-      // Update Data object
       appData.status = data.newStatus;
       localStorage.setItem("applicationData", JSON.stringify(appData));
-      
-      // Show Notification
       showNotification("🔔 Status Update: " + data.newStatus, data.newStatus === 'Approved' ? 'success' : 'info');
-      
-      // Refresh UI
       updateDashboardUI(appData);
+  });
+
+  // 2. Enrollment Toggle (Real-Time)
+  socket.on('enrollmentStatusChanged', (data) => {
+      // Reload page immediately to reflect open/closed state
+      window.location.reload();
   });
 });
