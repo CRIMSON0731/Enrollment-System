@@ -65,6 +65,7 @@ function loadAdminContent() {
     
     setupAnnouncementManagement();
     setupPasswordChange(); 
+    setupEnrollmentToggle(); // NEW: Setup the Toggle
     
     setTimeout(animateQuickStats, 500); 
 }
@@ -161,6 +162,64 @@ async function handlePasswordChange(e) {
     } finally {
         submitBtn.textContent = 'Change Password';
         submitBtn.disabled = false;
+    }
+}
+
+// --- NEW: ENROLLMENT TOGGLE LOGIC ---
+async function setupEnrollmentToggle() {
+    const toggle = document.getElementById('enrollment-toggle');
+    const label = document.getElementById('enrollment-toggle-label');
+
+    if (!toggle || !label) return;
+
+    // 1. Get current status on load
+    try {
+        const response = await fetch(`${SERVER_URL}/get-enrollment-status`);
+        const data = await response.json();
+        if (data.success) {
+            toggle.checked = data.isOpen;
+            updateToggleLabel(data.isOpen);
+        }
+    } catch (err) {
+        console.error("Error checking enrollment status:", err);
+    }
+
+    // 2. Listen for changes
+    toggle.addEventListener('change', async () => {
+        const isOpen = toggle.checked;
+        updateToggleLabel(isOpen);
+
+        try {
+            const response = await fetch(`${SERVER_URL}/toggle-enrollment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isOpen })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showNotification(data.message, isOpen ? 'success' : 'info');
+            } else {
+                showNotification("Failed to update status.", 'error');
+                // Revert toggle if failed
+                toggle.checked = !isOpen;
+                updateToggleLabel(!isOpen);
+            }
+        } catch (err) {
+            console.error(err);
+            showNotification("Network Error.", 'error');
+            toggle.checked = !isOpen;
+            updateToggleLabel(!isOpen);
+        }
+    });
+
+    function updateToggleLabel(isOpen) {
+        if (isOpen) {
+            label.textContent = "Enrollment: OPEN";
+            label.style.color = "var(--approved-color)";
+        } else {
+            label.textContent = "Enrollment: CLOSED";
+            label.style.color = "var(--rejected-color)";
+        }
     }
 }
 
