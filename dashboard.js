@@ -40,18 +40,24 @@ async function loadAnnouncements() {
 // --- 2. Function to handle sidebar navigation ---
 function setupNavigation(isFirstLogin = false) {
   const links = document.querySelectorAll(".sidebar-links a");
+  // If isFirstLogin is true, force them to the password tab, otherwise go to home
   const initialTargetId = isFirstLogin ? "content-password" : "content-home";
   const initialNavLinkId = isFirstLogin ? "nav-password" : "nav-home";
 
   const target = document.getElementById(initialTargetId);
   const link = document.getElementById(initialNavLinkId);
   
+  // Clear all active states first to prevent overlap
+  document.querySelectorAll(".content-section").forEach(s => s.classList.remove("active-section"));
+  document.querySelectorAll(".sidebar-links a").forEach(l => l.classList.remove("active"));
+
   if(target) target.classList.add("active-section");
   if(link) link.classList.add("active");
 
   links.forEach(linkItem => {
     linkItem.addEventListener("click", (e) => {
       e.preventDefault(); 
+      // Security Guard: Prevent leaving password tab if they haven't changed default password
       if (isFirstLogin && linkItem.id !== 'nav-password') {
           showNotification("SECURITY ALERT: You must change your temporary password first.", 'error');
           return;
@@ -218,14 +224,18 @@ function setupPasswordForm(appData) {
       const data = await response.json();
 
       if (data.success) {
+        // Update the local object immediately
         appData.password = newPasswordInput.value; 
         localStorage.setItem("applicationData", JSON.stringify(appData));
+        
         showNotification(data.message, 'success');
         messageEl.textContent = '';
         form.reset();
         newPasswordInput.type = 'password';
         confirmPasswordInput.type = 'password';
-        if (currentPasswordInput.value === 'password123') window.location.reload(); 
+        
+        // Reload to clear the "First Login" state
+        window.location.reload(); 
       } else {
         messageEl.textContent = `Error: ${data.message}`;
         messageEl.style.color = '#dc3545';
@@ -487,6 +497,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   let appData = JSON.parse(appDataString);
+
+  // FIX: Ensure strict check. Only 'password123' triggers the first login state.
   const isFirstLogin = appData.password === 'password123';
   
   setupNavigation(isFirstLogin); 
@@ -504,12 +516,29 @@ document.addEventListener("DOMContentLoaded", () => {
   
   if (window.VanillaTilt) VanillaTilt.init(document.querySelectorAll("[data-tilt]"));
 
-  // --- FETCH FRESH DATA ---
+  // --- FETCH FRESH DATA AND FIX RE-ENROLLMENT PASSWORD BUG ---
   fetch(`https://enrollment-system-production-6820.up.railway.app/get-application-details/${appData.id}`)
     .then(res => res.json())
     .then(data => {
         if(data.success) {
-            const newData = { ...appData, ...data.application };
+            // IMPORTANT FIX: 
+            // The server might return the default 'password123' for re-enrollees even if they changed it.
+            // If we already have a custom password locally, DO NOT let the server overwrite it with 'password123'.
+            const serverApp = data.application;
+
+            if (appData.password !== 'password123' && serverApp.student_password === 'password123') {
+                // Remove the password from the incoming data so spread operator doesn't overwrite local
+                delete serverApp.student_password;
+                delete serverApp.password;
+            }
+            
+            // Note: We use 'student_password' or 'password' depending on what your server sends.
+            // This line handles both cases safely.
+            if (appData.password !== 'password123' && serverApp.password === 'password123') {
+                delete serverApp.password;
+            }
+
+            const newData = { ...appData, ...serverApp };
             localStorage.setItem("applicationData", JSON.stringify(newData));
             updateDashboardUI(newData);
             appData = newData;
@@ -518,20 +547,23 @@ document.addEventListener("DOMContentLoaded", () => {
     .catch(err => console.error(err));
 
   // --- SOCKET LISTENER ---
-  const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
-  socket.emit('registerUser', appData.id);
-  
-  // 1. Status Updates
-  socket.on('statusUpdated', (data) => {
-      appData.status = data.newStatus;
-      localStorage.setItem("applicationData", JSON.stringify(appData));
-      showNotification("🔔 Status Update: " + data.newStatus, data.newStatus === 'Approved' ? 'success' : 'info');
-      updateDashboardUI(appData);
-  });
+  try {
+      const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
+      socket.emit('registerUser', appData.id);
+      
+      // 1. Status Updates
+      socket.on('statusUpdated', (data) => {
+          appData.status = data.newStatus;
+          localStorage.setItem("applicationData", JSON.stringify(appData));
+          showNotification("🔔 Status Update: " + data.newStatus, data.newStatus === 'Approved' ? 'success' : 'info');
+          updateDashboardUI(appData);
+      });
 
-  // 2. Enrollment Toggle (Real-Time)
-  socket.on('enrollmentStatusChanged', (data) => {
-      // Reload page immediately to reflect open/closed state
-      window.location.reload();
-  });
+      // 2. Enrollment Toggle (Real-Time)
+      socket.on('enrollmentStatusChanged', (data) => {
+          window.location.reload();
+      });
+  } catch(e) {
+      console.warn("Socket connection failed or not supported.");
+  }
 });
