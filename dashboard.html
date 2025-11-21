@@ -56,6 +56,13 @@
                 <p class="text-muted mb-2">
                     Finished with your current grade? Select your next grade level to enroll for the upcoming school year.
                 </p>
+                
+                <div class="mb-2 w-100">
+                    <label for="re-enroll-card" class="form-label small fw-bold text-dark mb-1">Upload Report Card (Previous Grade): <span class="text-danger">*</span></label>
+                    <input type="file" id="re-enroll-card" class="form-control" accept=".pdf, .jpg, .jpeg, .png" required>
+                    <div class="form-text small">Accepted: PDF, JPG, PNG. Max 5MB.</div>
+                </div>
+
                 <div class="d-flex align-items-center gap-3 flex-wrap">
                     <select id="next-grade-select" class="form-select w-auto" style="min-width: 200px;">
                         <option selected disabled>Select Next Grade Level</option>
