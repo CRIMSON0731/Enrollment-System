@@ -214,10 +214,10 @@ async function setupEnrollmentToggle() {
 
     function updateToggleLabel(isOpen) {
         if (isOpen) {
-            label.textContent = "Enrollment: OPEN";
+            label.textContent = "ACTION CENTER: OPEN";
             label.style.color = "var(--approved-color)";
         } else {
-            label.textContent = "Enrollment: CLOSED";
+            label.textContent = "ACTION CENTER: CLOSED";
             label.style.color = "var(--rejected-color)";
         }
     }
