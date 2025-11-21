@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="notification.css"> 
   <link rel="stylesheet" href="index.css" /> 
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -96,26 +98,29 @@
 
               <fieldset class="mb-4 p-3 bg-light rounded-3 border">
                 <h2 class="h4 text-success-dark border-bottom pb-2 mb-3">Required Documents</h2>
-                <p class="small text-muted">These documents will be accessible to the Admin.</p>
+                <p class="small text-muted">
+                    These documents will be accessible to the Admin. 
+                    <span class="fw-bold text-primary">You can select multiple files (e.g., Page 1 & Page 2) for each upload.</span>
+                </p>
                 
                 <div class="mb-3 file-group">
                   <label for="card" class="form-label fw-medium">School Card (Previous Grade):</label>
-                  <input type="file" id="card" name="card_file" class="form-control" accept=".png,.pdf" required>
+                  <input type="file" id="card" name="card_file" class="form-control" accept=".png,.pdf,.jpg,.jpeg" required multiple>
                 </div>
                 
                 <div class="mb-3 file-group">
                   <label for="psa" class="form-label fw-medium">PSA (Birth Certificate) Original:</label>
-                  <input type="file" id="psa" name="psa_file" class="form-control" accept=".png,.pdf" required>
+                  <input type="file" id="psa" name="psa_file" class="form-control" accept=".png,.pdf,.jpg,.jpeg" required multiple>
                 </div>
 
                 <div class="mb-3 file-group">
                   <label for="f137" class="form-label fw-medium">FORM 137/SF10 (Academic Records):</label>
-                  <input type="file" id="f137" name="f137_file" class="form-control" accept=".png,.pdf" required>
+                  <input type="file" id="f137" name="f137_file" class="form-control" accept=".png,.pdf,.jpg,.jpeg" required multiple>
                 </div>
 
                 <div class="mb-3 file-group">
                   <label for="brgy-cert" class="form-label fw-medium">Barangay Certificate Original:</label>
-                  <input type="file" id="brgy-cert" name="brgy_cert_file" class="form-control" accept=".png,.pdf" required>
+                  <input type="file" id="brgy-cert" name="brgy_cert_file" class="form-control" accept=".png,.pdf,.jpg,.jpeg" required multiple>
                 </div>
               </fieldset>
               
