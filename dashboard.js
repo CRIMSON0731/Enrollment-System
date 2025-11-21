@@ -484,15 +484,37 @@ function setupMobileToggle() {
     }
 }
 
-// --- NEW: Re-enrollment Logic ---
+// --- NEW: Re-enrollment Logic (UPDATED) ---
 function setupReEnrollment(appData) {
     const btn = document.getElementById('btn-re-enroll');
     const select = document.getElementById('next-grade-select');
+    const actionCenter = document.querySelector('.dashboard-widget[style*="border-left: 5px solid #2b7a0b"]');
 
-    // Only run if the elements exist
-    if (!btn || !select) return;
+    if (!btn || !select || !actionCenter) return;
 
-    // If the student is already pending review, prevent another submission
+    // Logic: If grade is 10, hide the entire Action Center
+    const currentGrade = parseInt(appData.grade_level.replace(/\D/g, '')); // Extract number (e.g., "Grade 7" -> 7)
+    
+    if (currentGrade >= 10) {
+        actionCenter.style.display = 'none'; // Hide panel for graduates
+        return;
+    }
+
+    // Logic: Filter Dropdown options based on current grade
+    // We only want to show levels higher than current
+    const allOptions = select.querySelectorAll('option');
+    allOptions.forEach(opt => {
+        if (opt.disabled) return; // Skip the placeholder
+        const optGrade = parseInt(opt.value.replace(/\D/g, ''));
+        
+        if (optGrade <= currentGrade) {
+            opt.style.display = 'none'; // Hide previous/current grades
+        } else {
+            opt.style.display = 'block'; // Show future grades
+        }
+    });
+
+    // If Pending Review, disable button
     if (appData.status === 'Pending Review') {
         btn.disabled = true;
         btn.textContent = 'Application Under Review';
@@ -513,7 +535,6 @@ function setupReEnrollment(appData) {
             return;
         }
 
-        // UI Feedback
         btn.disabled = true;
         btn.textContent = "Processing...";
 
@@ -531,13 +552,9 @@ function setupReEnrollment(appData) {
 
             if (data.success) {
                 alert(data.message);
-                
-                // Update local storage immediately so the dashboard refreshes correctly
                 appData.grade_level = nextGrade;
                 appData.status = "Pending Review";
                 localStorage.setItem("applicationData", JSON.stringify(appData));
-                
-                // Reload to show new status
                 window.location.reload();
             } else {
                 alert("Error: " + data.message);
@@ -579,13 +596,15 @@ document.addEventListener("DOMContentLoaded", () => {
   setupPasswordForm(appData);
   setupLogout();
   loadFullApplicationDetails(appData); 
-  
-  // Call new functionality
   setupReEnrollment(appData);
 
   document.getElementById("student-name").textContent = appData.first_name;
   document.getElementById("student-name-full").textContent = `${appData.first_name} ${appData.last_name}`;
-  document.getElementById("status-summary-text").textContent = appData.status;
+  
+  // UPDATED: Show Grade Level in the Green Status Box
+  // If grade level starts with "Grade", use it, otherwise append "Grade"
+  const formattedGrade = appData.grade_level.includes('Grade') ? appData.grade_level : `Grade ${appData.grade_level}`;
+  document.getElementById("status-summary-text").textContent = `${appData.status} (${formattedGrade})`;
 
   const statusMessageEl = document.getElementById("status-message");
   statusMessageEl.textContent = appData.status;
@@ -595,7 +614,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateEnrollmentProgress(appData.status);
   
   document.getElementById("detail-name").textContent = `${appData.first_name} ${appData.middle_name || ''} ${appData.last_name}`;
-  document.getElementById("detail-grade").textContent = `Grade ${appData.grade_level}`;
+  document.getElementById("detail-grade").textContent = formattedGrade;
   document.getElementById("detail-bday").textContent = appData.birthdate ? new Date(appData.birthdate).toLocaleDateString() : 'N/A';
   document.getElementById("detail-email").textContent = appData.email;
   document.getElementById("detail-phone").textContent = appData.phone;
