@@ -1,13 +1,7 @@
 /**
  * File: admin.js
- * Description: Complete Admin Panel Logic
- * Features: 
- * - Application Review (Filter by Grade, Status, Type)
- * - Inquiry Management (View, Reply, Filter)
- * - Announcement Management (Create, Delete)
- * - Enrollment Status Toggle (Open/Close Action Center)
- * - Admin Password Change
- * - Security & Authentication
+ * Description: Complete Admin Panel Logic for Enrollment System
+ * Features: Application Review, Inquiry Management, Announcements, Security, Toggle Enrollment
  */
 
 // =========================================================================
@@ -20,7 +14,7 @@ let allInquiries = [];
 
 // State Filters
 let currentGradeLevel = 'ALL'; 
-let currentStudentType = 'ALL'; // 'ALL', 'NEW', 'OLD'
+let currentStudentType = 'ALL'; // Values: 'ALL', 'NEW', 'OLD'
 let currentSortKey = 'created_at'; 
 let currentSortDir = 'desc'; 
 
@@ -248,11 +242,27 @@ function displayTableContent(applicationsToDisplay) {
           ? '<span class="badge bg-primary">Old Student</span>' 
           : '<span class="badge bg-info text-dark">New Student</span>';
 
+      // --- SMART GRADE DISPLAY LOGIC ---
+      const gradeNum = parseInt(app.grade_level.toString().replace(/\D/g, ''), 10);
+      let gradeDisplay = `Grade ${gradeNum}`; // Default
+
+      // If Old Student and Grade > 7, append text
+      if (!isNaN(gradeNum) && app.is_old_student && gradeNum > 7) {
+          gradeDisplay = `
+            <div style="line-height: 1.2;">
+                <strong>Grade ${gradeNum}</strong>
+                <div class="text-muted small" style="font-size: 0.75rem; font-style: italic; margin-top: 2px;">
+                    (enrolled up from Grade ${gradeNum - 1})
+                </div>
+            </div>
+          `;
+      }
+
       row.innerHTML = `
         <td><span class="fw-bold">${app.first_name} ${app.last_name}</span></td>
         <td>${app.email}</td>
         <td>${typeBadge}</td>
-        <td>Grade ${app.grade_level}</td>
+        <td>${gradeDisplay}</td>
         <td><span class="status-pill status-${app.status.replace(/ /g, '')}">${app.status}</span></td>
         <td>${formattedDate}</td>
         <td class="actions">
@@ -376,7 +386,7 @@ async function showApplicationDetails(appId) {
             <hr>
 
             <div class="row gy-2">
-                <div class="col-md-6"><strong>Applying For:</strong> Grade ${fullApp.grade_level}</div>
+                <div class="col-md-6"><strong>Target Grade:</strong> Grade ${fullApp.grade_level}</div>
                 <div class="col-md-6"><strong>Birthdate:</strong> ${birthdate}</div>
                 <div class="col-md-6"><strong>Email:</strong> ${fullApp.email}</div>
                 <div class="col-md-6"><strong>Phone:</strong> ${fullApp.phone || 'N/A'}</div>
@@ -401,18 +411,11 @@ async function showApplicationDetails(appId) {
 }
 
 // =========================================================================
-// 6. APPLICATION ACTIONS (APPROVE, REJECT, DELETE)
+// 6. ACTIONS & TOGGLES
 // =========================================================================
 
-// Action Button Listeners
-modalApproveBtn.addEventListener('click', () => updateStatus('Approved'));
-modalRejectBtn.addEventListener('click', () => updateStatus('Rejected'));
-
-// Update Status Function
 async function updateStatus(newStatus) {
     const appId = modalApproveBtn.getAttribute('data-id');
-    
-    // Optimistic UI Update
     modalApproveBtn.disabled = true;
     modalRejectBtn.disabled = true;
     
@@ -427,7 +430,7 @@ async function updateStatus(newStatus) {
         if (data.success) {
             showNotification(data.message, 'success');
             detailsModal.hide(); 
-            simulateDataLoad(); // Refresh the table
+            simulateDataLoad(); 
         } else {
             showNotification(`Error: ${data.message}`, 'error');
         }
@@ -441,73 +444,14 @@ async function updateStatus(newStatus) {
     }
 }
 
-// Delete Function
-function addModalListeners() {
-    modalDeleteBtn.addEventListener('click', async () => {
-        const appId = modalDeleteBtn.getAttribute('data-id');
-        if(!confirm("Are you sure you want to PERMANENTLY delete this applicant? This cannot be undone.")) return;
-        
-        try {
-            const response = await fetch(`${SERVER_URL}/delete-application`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ applicationId: appId })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                showNotification(data.message, 'success');
-                detailsModal.hide();
-                simulateDataLoad();
-            } else {
-                showNotification(data.message, 'error');
-            }
-        } catch (e) {
-            showNotification("Deletion failed.", 'error');
-        }
-    });
-}
-
-// Credentials Manual Send (Only for New Students)
-modalSendCredentialsBtn.addEventListener('click', async () => {
-    const appId = modalSendCredentialsBtn.getAttribute('data-id');
-    if(!confirm("Send credentials now?")) return;
-    
-    modalSendCredentialsBtn.disabled = true;
-    modalSendCredentialsBtn.textContent = "Sending...";
-    
-    try {
-        const res = await fetch(`${SERVER_URL}/generate-credentials`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ applicationId: appId })
-        });
-        const data = await res.json();
-        if (data.success) {
-            showNotification("Credentials Sent!", "success");
-            showApplicationDetails(appId); // Refresh modal to show new creds
-        } else {
-            showNotification(data.message, "error");
-        }
-    } catch(e) {
-        showNotification("Failed to send credentials.", "error");
-    } finally {
-        modalSendCredentialsBtn.disabled = false;
-        modalSendCredentialsBtn.textContent = "Send Credentials";
-    }
-});
-
-// =========================================================================
-// 7. ENROLLMENT TOGGLE (ACTION CENTER CONTROL)
-// =========================================================================
-
+// --- Enrollment Toggle Logic ---
 async function setupEnrollmentToggle() {
     const toggle = document.getElementById('enrollment-toggle');
     const label = document.getElementById('enrollment-toggle-label');
 
     if (!toggle || !label) return;
 
-    // 1. Get Initial Status
+    // Check initial status
     try {
         const response = await fetch(`${SERVER_URL}/get-enrollment-status`);
         const data = await response.json();
@@ -517,10 +461,10 @@ async function setupEnrollmentToggle() {
         }
     } catch (err) { console.error(err); }
 
-    // 2. Listen for Changes
+    // Listen for change
     toggle.addEventListener('change', async () => {
         const isOpen = toggle.checked;
-        updateToggleUI(isOpen); // Immediate UI update
+        updateToggleUI(isOpen);
 
         try {
             const response = await fetch(`${SERVER_URL}/toggle-enrollment`, {
@@ -531,14 +475,10 @@ async function setupEnrollmentToggle() {
             const data = await response.json();
             if (data.success) {
                 showNotification(data.message, isOpen ? 'success' : 'info');
-            } else {
-                // Revert if server fails
-                toggle.checked = !isOpen;
-                updateToggleUI(!isOpen);
-                showNotification("Failed to update status.", 'error');
             }
         } catch (err) {
             showNotification("Network Error.", 'error');
+            // Revert UI on error
             toggle.checked = !isOpen;
             updateToggleUI(!isOpen);
         }
@@ -556,7 +496,7 @@ async function setupEnrollmentToggle() {
 }
 
 // =========================================================================
-// 8. INQUIRY MANAGEMENT SYSTEM
+// 7. INQUIRY MANAGEMENT
 // =========================================================================
 
 async function loadInquiries() {
@@ -571,10 +511,10 @@ async function loadInquiries() {
             displayInquiries(allInquiries);
             updateInquiryStats();
         } else {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Failed to load inquiries.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Failed to load.</td></tr>';
         }
     } catch (error) {
-        console.error("Inquiry Load Error:", error);
+        console.error("Inquiry Error:", error);
     }
 }
 
@@ -698,17 +638,12 @@ btnSendReply.addEventListener('click', async () => {
 });
 
 // =========================================================================
-// 9. ANNOUNCEMENT MANAGEMENT
+// 8. ANNOUNCEMENT MANAGEMENT
 // =========================================================================
-
-function setupAnnouncementManagement() {
-    loadCurrentAnnouncements();
-    // Form listener is attached in init
-}
 
 async function loadCurrentAnnouncements() {
     const listEl = document.getElementById('current-announcements-list');
-    listEl.innerHTML = '<li>Loading...</li>';
+    listEl.innerHTML = '<li>Fetching announcements...</li>';
 
     try {
         const response = await fetch(`${SERVER_URL}/get-announcements`);
@@ -728,10 +663,12 @@ async function loadCurrentAnnouncements() {
                 li.style.display = 'flex';
                 li.style.justifyContent = 'space-between';
                 li.style.alignItems = 'center';
+                li.style.padding = '10px';
+                li.style.borderBottom = '1px solid #eee';
                 listEl.appendChild(li);
             });
         } else {
-            listEl.innerHTML = '<li>No announcements published.</li>';
+            listEl.innerHTML = '<li>No announcements have been published yet.</li>';
         }
     } catch (error) {
         listEl.innerHTML = '<li>Error loading announcements.</li>';
@@ -740,7 +677,7 @@ async function loadCurrentAnnouncements() {
 
 // Expose function globally for onclick attribute
 window.deleteAnnouncement = async function(announcementId) {
-    if (!confirm('Delete this announcement?')) return;
+    if (!confirm('Are you sure you want to permanently delete this announcement?')) return;
 
     try {
         const response = await fetch(`${SERVER_URL}/delete-announcement`, {
@@ -788,7 +725,7 @@ async function handleAnnouncementSubmission(e) {
             showNotification(`Error: ${data.message}`, 'error');
         }
     } catch (error) {
-        showNotification('Network error.', 'error');
+        showNotification('Network error. Failed to publish announcement.', 'error');
     } finally {
         submitBtn.textContent = 'Publish Announcement';
         submitBtn.disabled = false;
@@ -796,7 +733,7 @@ async function handleAnnouncementSubmission(e) {
 }
 
 // =========================================================================
-// 10. PASSWORD CHANGE & AUTHENTICATION HELPERS
+// 9. PASSWORD CHANGE & AUTHENTICATION HELPERS
 // =========================================================================
 
 async function handlePasswordChange(e) {
@@ -805,7 +742,7 @@ async function handlePasswordChange(e) {
     const username = localStorage.getItem('adminUsername');
 
     if (!username) {
-        showNotification('Session error. Logout and Login.', 'error');
+        showNotification('Session error. Please logout and login again.', 'error');
         return;
     }
 
@@ -820,9 +757,15 @@ async function handlePasswordChange(e) {
         messageEl.style.color = 'red';
         return;
     }
+    if (newPassword.length < 6) {
+        messageEl.textContent = 'New password must be at least 6 characters long.';
+        messageEl.style.color = 'red';
+        return;
+    }
 
-    submitBtn.textContent = 'Changing...';
+    submitBtn.textContent = 'Changing Password...';
     submitBtn.disabled = true;
+    messageEl.textContent = '';
 
     try {
         const response = await fetch(`${SERVER_URL}/admin-change-password`, {
@@ -843,7 +786,8 @@ async function handlePasswordChange(e) {
             messageEl.style.color = 'red';
         }
     } catch (error) {
-        messageEl.textContent = '❌ Network error.';
+        showNotification('Network error. Failed to change password.', 'error');
+        messageEl.textContent = '❌ Network error occurred.';
         messageEl.style.color = 'red';
     } finally {
         submitBtn.textContent = 'Change Password';
@@ -857,18 +801,21 @@ function addLogoutListener() {
         logoutBtn.addEventListener('click', () => {
             if(confirm("Are you sure you want to logout?")) {
                 localStorage.removeItem('adminToken');
-                window.location.href = 'admin-login.html'; 
+                showNotification('Logging out...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'admin-login.html'; 
+                }, 1500);
             }
         });
     }
 }
 
 // =========================================================================
-// 11. EVENT LISTENER MANAGERS
+// 10. EVENT LISTENER MANAGERS (FILTERS, TABS, SORTS)
 // =========================================================================
 
 function addTabListeners() {
-    // Main Tabs
+    // Main Navigation Tabs
     document.querySelectorAll('.main-tab-button').forEach(button => {
         button.addEventListener('click', (e) => {
             document.querySelectorAll('.main-tab-button').forEach(btn => btn.classList.remove('active'));
@@ -892,7 +839,7 @@ function addTabListeners() {
         });
     });
 
-    // Student Type Tabs (NEW)
+    // NEW: Student Type Tabs
     document.querySelectorAll('.type-tabs .tab-button').forEach(button => {
         button.addEventListener('click', (e) => {
             document.querySelectorAll('.type-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
@@ -904,9 +851,11 @@ function addTabListeners() {
 }
 
 function addFilterListeners() {
+    // Application Filters
     document.getElementById('name-search').addEventListener('input', applyFiltersAndDisplay);
     document.getElementById('status-filter').addEventListener('change', applyFiltersAndDisplay);
     
+    // Inquiry Filters
     const inqSearch = document.getElementById('inquiry-search');
     if(inqSearch) inqSearch.addEventListener('input', applyInquiryFilters);
     
@@ -915,7 +864,7 @@ function addFilterListeners() {
 }
 
 function addSortListeners() {
-    document.querySelectorAll('#applications-table .sortable').forEach(header => {
+    document.querySelectorAll('.sortable').forEach(header => {
         header.addEventListener('click', () => {
             const newKey = header.getAttribute('data-sort');
             if (newKey === currentSortKey) {
@@ -929,4 +878,87 @@ function addSortListeners() {
     });
 }
 
-// Initial call to populate Inquiry stats on load is handled in loadInquiries()
+// =========================================================================
+// 11. GLOBAL MODAL ACTION LISTENERS
+// =========================================================================
+
+function addModalListeners() {
+    // 1. Delete Button Listener
+    if (modalDeleteBtn) {
+        modalDeleteBtn.addEventListener('click', async () => {
+            const appId = modalDeleteBtn.getAttribute('data-id');
+            if (!appId) return;
+
+            if (!confirm("Are you sure you want to PERMANENTLY delete this applicant? This cannot be undone.")) return;
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/delete-application`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ applicationId: appId })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    detailsModal.hide();
+                    simulateDataLoad();
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            } catch (e) {
+                showNotification("Deletion failed.", 'error');
+            }
+        });
+    }
+
+    // 2. Approve Button Listener
+    if (modalApproveBtn) {
+        modalApproveBtn.addEventListener('click', () => {
+            const appId = modalApproveBtn.getAttribute('data-id');
+            if (appId) updateStatus('Approved');
+        });
+    }
+
+    // 3. Reject Button Listener
+    if (modalRejectBtn) {
+        modalRejectBtn.addEventListener('click', () => {
+            const appId = modalRejectBtn.getAttribute('data-id');
+            if (appId) updateStatus('Rejected');
+        });
+    }
+
+    // 4. Send Credentials Button Listener
+    if (modalSendCredentialsBtn) {
+        modalSendCredentialsBtn.addEventListener('click', async () => {
+            const appId = modalSendCredentialsBtn.getAttribute('data-id');
+            if (!appId) return;
+            
+            if (!confirm("Send credentials now?")) return;
+            
+            modalSendCredentialsBtn.disabled = true;
+            modalSendCredentialsBtn.textContent = "Sending...";
+            
+            try {
+                const res = await fetch(`${SERVER_URL}/generate-credentials`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ applicationId: appId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification("Credentials Sent!", "success");
+                    // Refresh modal to ensure UI state updates (e.g., hide button if needed)
+                    showApplicationDetails(appId); 
+                } else {
+                    showNotification(data.message, "error");
+                }
+            } catch(e) {
+                showNotification("Failed to send credentials.", "error");
+            } finally {
+                modalSendCredentialsBtn.disabled = false;
+                modalSendCredentialsBtn.textContent = "Send Credentials";
+            }
+        });
+    }
+}
