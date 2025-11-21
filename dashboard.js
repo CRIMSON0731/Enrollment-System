@@ -26,10 +26,7 @@ async function loadAnnouncements() {
       data.announcements.forEach(ann => {
         const card = document.createElement("div");
         card.className = "announcement-card";
-        card.innerHTML = `
-          <strong>${ann.title}</strong>
-          <p>${ann.content}</p>
-        `;
+        card.innerHTML = `<strong>${ann.title}</strong><p>${ann.content}</p>`;
         containerElement.appendChild(card);
       });
     } else {
@@ -37,14 +34,12 @@ async function loadAnnouncements() {
     }
   } catch (error) {
     console.error("Error fetching announcements:", error);
-    document.getElementById("announcements-list").innerHTML = "<p>Connection error.</p>";
   }
 }
 
 // --- 2. Function to handle sidebar navigation ---
 function setupNavigation(isFirstLogin = false) {
   const links = document.querySelectorAll(".sidebar-links a");
-  const contentSections = document.querySelectorAll(".content-section");
   
   const initialTargetId = isFirstLogin ? "content-password" : "content-home";
   const initialNavLinkId = isFirstLogin ? "nav-password" : "nav-home";
@@ -55,50 +50,31 @@ function setupNavigation(isFirstLogin = false) {
   if(target) target.classList.add("active-section");
   if(link) link.classList.add("active");
 
-  links.forEach(link => {
-    link.addEventListener("click", (e) => {
+  links.forEach(linkItem => {
+    linkItem.addEventListener("click", (e) => {
       e.preventDefault(); 
-      const targetId = "content-" + link.id.split("-")[1]; 
-
-      if (isFirstLogin && link.id !== 'nav-password') {
-          showNotification("SECURITY ALERT: You must change your temporary password to access the dashboard.", 'error');
+      if (isFirstLogin && linkItem.id !== 'nav-password') {
+          showNotification("SECURITY ALERT: You must change your temporary password first.", 'error');
           return;
       }
-      
-      const sidebar = document.querySelector(".sidebar");
-      if (sidebar.classList.contains('sidebar-open')) {
-          sidebar.classList.remove('sidebar-open');
-      }
-
       links.forEach(l => l.classList.remove("active"));
-      link.classList.add("active");
+      linkItem.classList.add("active");
       
-      contentSections.forEach(section => {
-        section.classList.remove("active-section");
-      });
-      
-      const targetSection = document.getElementById(targetId);
-      if (targetSection) {
-        targetSection.classList.add("active-section");
-      }
+      document.querySelectorAll(".content-section").forEach(s => s.classList.remove("active-section"));
+      const contentId = "content-" + linkItem.id.split("-")[1];
+      const contentEl = document.getElementById(contentId);
+      if(contentEl) contentEl.classList.add("active-section");
     });
   });
 }
 
-// --- Function to toggle password visibility ---
 function setupPasswordToggle() {
     document.querySelectorAll('.toggle-password').forEach(icon => {
         icon.addEventListener('click', () => {
             const input = icon.previousElementSibling;
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            }
+            input.type = input.type === 'password' ? 'text' : 'password';
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
         });
     });
 }
@@ -282,22 +258,23 @@ function renderEnrollmentChecklist(status) {
     const checkIcon = '<span class="fa-solid fa-check"></span>'; 
     const pendingIcon = '<span class="fa-solid fa-circle-notch fa-spin"></span>'; 
     const rejectIcon = '<span class="fa-solid fa-xmark"></span>'; 
+    
     const isApproved = status === 'Approved';
     const isPending = status === 'Pending Review';
     const isRejected = status === 'Rejected';
 
-    let html = `<div class="checklist-item done">${checkIcon} Application Submitted (Documents Uploaded)</div>`;
+    let html = `<div class="checklist-item done">${checkIcon} Application Submitted</div>`;
     
     if (isApproved) {
-        html += `<div class="checklist-item done">${checkIcon} Documents Reviewed by Admin</div>`;
-        html += `<div class="checklist-item done">${checkIcon} Enrollment Finalized & Portal Access Granted</div>`;
-        html += `<div class="alert alert-success mt-3 small">You are all set! View your information tab.</div>`;
+        html += `<div class="checklist-item done">${checkIcon} Documents Reviewed</div>`;
+        html += `<div class="checklist-item done">${checkIcon} Enrollment Finalized</div>`;
+        html += `<div class="alert alert-success mt-3 small">You are all set!</div>`;
     } else if (isPending) {
-         html += `<div class="checklist-item pending">${pendingIcon} Documents Under Review by Admin</div>`;
-         html += `<div class="checklist-item pending">${pendingIcon} Awaiting Final Enrollment Status</div>`;
+         html += `<div class="checklist-item pending">${pendingIcon} Under Review</div>`;
+         html += `<div class="checklist-item pending">${pendingIcon} Awaiting Status</div>`;
     } else if (isRejected) {
-        html += `<div class="checklist-item rejected">${rejectIcon} Documents Rejected (See Admin Note)</div>`;
-        html += `<div class="checklist-item rejected">${rejectIcon} Enrollment Blocked - Contact Registrar.</div>`;
+        html += `<div class="checklist-item rejected">${rejectIcon} Documents Rejected</div>`;
+        html += `<div class="checklist-item rejected">${rejectIcon} Enrollment Blocked</div>`;
     }
     checklistEl.innerHTML = html;
 }
@@ -323,10 +300,10 @@ async function loadFullApplicationDetails(appData) {
         let linksHtml = '';
         const getMockStatus = () => appData.status === 'Approved' ? 'Verified' : (appData.status === 'Rejected' ? 'Rejected' : 'Pending');
         const docs = [
-            { path: fullApp.doc_card_path, name: "School Card (Previous Grade)" },
-            { path: fullApp.doc_psa_path, name: "PSA (Birth Certificate)" },
-            { path: fullApp.doc_f137_path, name: "FORM 137/SF10" },
-            { path: fullApp.doc_brgy_cert_path, name: "Barangay Certificate" }
+            { path: fullApp.doc_card_path, name: "School Card" },
+            { path: fullApp.doc_psa_path, name: "PSA" },
+            { path: fullApp.doc_f137_path, name: "FORM 137" },
+            { path: fullApp.doc_brgy_cert_path, name: "Brgy Cert" }
         ];
 
         docs.forEach(doc => {
@@ -351,9 +328,8 @@ async function loadFullApplicationDetails(appData) {
 // --- PROGRESS BAR (Updated for 100% Success) ---
 function updateEnrollmentProgress(status) {
     const progressBar = document.getElementById('enrollment-progress-bar');
-    const progressText = document.getElementById('progress-text');
     
-    if (!progressBar || !progressText) return;
+    if (!progressBar) return;
 
     let percentage = 0;
     let className = 'bg-secondary';
@@ -372,7 +348,7 @@ function updateEnrollmentProgress(status) {
     progressBar.style.width = `${percentage}%`;
     progressBar.setAttribute('aria-valuenow', percentage);
     progressBar.className = `progress-bar progress-bar-striped ${className}`;
-    progressText.textContent = `${percentage}% Complete`;
+    progressBar.textContent = `${percentage}% Complete`;
     
     if (percentage === 100) {
         progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
@@ -396,14 +372,14 @@ async function setupReEnrollment(appData) {
         if (statusData.success && !statusData.isOpen) {
             btn.disabled = true;
             btn.textContent = "Enrollment Closed";
-            btn.className = 'btn btn-secondary fw-bold w-100'; // Grey out
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-secondary');
             select.disabled = true;
             fileInput.disabled = true;
             
-            // Add visual notice
             const notice = document.createElement('p');
             notice.className = 'text-danger small fw-bold mt-2 mb-0';
-            notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment period is currently closed by the admin.';
+            notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment closed by admin.';
             actionCenter.querySelector('.d-flex.flex-column').appendChild(notice);
             return; 
         }
@@ -412,7 +388,7 @@ async function setupReEnrollment(appData) {
     // 2. Grade Logic (Show only next grade)
     const currentGrade = parseInt(appData.grade_level.replace(/\D/g, '')); 
     
-    // Hide Action Center if student is already Grade 10 (Graduated)
+    // Hide Action Center if student is already Grade 10
     if (currentGrade >= 10) { 
         actionCenter.style.display = 'none'; 
         return; 
@@ -423,16 +399,11 @@ async function setupReEnrollment(appData) {
     allOptions.forEach(opt => {
         if (opt.disabled) return; 
         const optGrade = parseInt(opt.value.replace(/\D/g, ''));
-        
-        // Show ONLY the next grade level
-        if (optGrade === nextGradeLevel) {
-            opt.style.display = 'block'; 
-        } else {
-            opt.style.display = 'none'; 
-        }
+        if (optGrade === nextGradeLevel) opt.style.display = 'block'; 
+        else opt.style.display = 'none'; 
     });
 
-    // 3. Status Check (Disable if already pending)
+    // 3. Status Check
     if (appData.status === 'Pending Review') {
         btn.disabled = true;
         btn.textContent = 'Application Under Review';
@@ -445,20 +416,9 @@ async function setupReEnrollment(appData) {
     // 4. Submit Logic
     btn.addEventListener('click', async () => {
         const nextGrade = select.value;
-
-        if (nextGrade === "Select Next Grade Level") {
-            alert("Please select the grade level you are enrolling for.");
-            return;
-        }
-
-        if (fileInput.files.length === 0) {
-            alert("Please upload your previous Report Card to proceed.");
-            return;
-        }
-
-        if (!confirm(`Are you sure you want to enroll for ${nextGrade}?`)) {
-            return;
-        }
+        if (nextGrade === "Select Next Grade Level") return alert("Select a grade.");
+        if (fileInput.files.length === 0) return alert("Upload report card.");
+        if (!confirm(`Enroll for ${nextGrade}?`)) return;
 
         btn.disabled = true;
         btn.textContent = "Uploading...";
@@ -473,9 +433,7 @@ async function setupReEnrollment(appData) {
                 method: 'POST',
                 body: formData
             });
-            
             const data = await response.json();
-
             if (data.success) {
                 alert(data.message);
                 appData.grade_level = nextGrade;
@@ -487,97 +445,110 @@ async function setupReEnrollment(appData) {
                 btn.disabled = false;
                 btn.textContent = "Enroll for Next Year";
             }
-
         } catch (error) {
-            console.error("Re-enrollment error:", error);
-            alert("Network error. Please try again later.");
+            alert("Network error.");
             btn.disabled = false;
             btn.textContent = "Enroll for Next Year";
         }
     });
 }
 
+// --- UPDATE UI FROM DATA ---
+function updateDashboardUI(appData) {
+    // 1. Update Names
+    const nameEl = document.getElementById("student-name");
+    const fullNameEl = document.getElementById("student-name-full");
+    if (nameEl) nameEl.textContent = appData.first_name || "Student";
+    if (fullNameEl) fullNameEl.textContent = `${appData.first_name} ${appData.last_name}`;
+    
+    // 2. Update Status Banner
+    const formattedGrade = appData.grade_level.includes('Grade') ? appData.grade_level : `Grade ${appData.grade_level}`;
+    const summaryEl = document.getElementById("status-summary-text");
+    if (summaryEl) summaryEl.textContent = `${appData.status} (${formattedGrade})`;
+    
+    // 3. Update Status Box
+    const statusEl = document.getElementById("status-message");
+    if(statusEl) {
+        statusEl.textContent = appData.status;
+        statusEl.className = `status-${appData.status.replace(/ /g, '')} mb-4`;
+    }
+
+    // 4. Update Progress & Checklist
+    renderEnrollmentChecklist(appData.status);
+    updateEnrollmentProgress(appData.status);
+
+    // 5. Update Info Tab
+    document.getElementById("detail-name").textContent = `${appData.first_name} ${appData.last_name}`;
+    document.getElementById("detail-grade").textContent = formattedGrade;
+    document.getElementById("detail-bday").textContent = appData.birthdate ? new Date(appData.birthdate).toLocaleDateString() : 'N/A';
+    document.getElementById("detail-email").textContent = appData.email;
+    document.getElementById("detail-phone").textContent = appData.phone || "N/A";
+    document.getElementById("detail-username").textContent = appData.username || "N/A";
+    
+    // 6. Re-run logic for Action Center (hide if approved)
+    setupReEnrollment(appData);
+}
 
 // =========================================================================
 // 5. MAIN INITIALIZATION
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
+  // 1. Get Local Data First (Fast Load)
   const appDataString = localStorage.getItem("applicationData");
   if (!appDataString) {
-    alert("You are not logged in. Redirecting to login page.");
     window.location.href = "index.html";
     return;
   }
   
-  const appData = JSON.parse(appDataString);
-  
+  let appData = JSON.parse(appDataString);
   const isFirstLogin = appData.password === 'password123';
   
   setupNavigation(isFirstLogin); 
+  if (isFirstLogin) showNotification("SECURITY ALERT: Please change your password.", 'error');
 
-  if (isFirstLogin) {
-      showNotification("SECURITY ALERT: Please change your temporary password immediately.", 'error');
-  }
+  // 2. Initial Render (Might be stale)
+  updateDashboardUI(appData);
 
-  // Initialize Modules
+  // 3. Init Features
   loadAnnouncements();
   setupPasswordToggle(); 
   setupPasswordForm(appData);
   setupLogout();
   loadFullApplicationDetails(appData); 
-  setupReEnrollment(appData);
-
-  // Render Static Info
-  document.getElementById("student-name").textContent = appData.first_name;
-  document.getElementById("student-name-full").textContent = `${appData.first_name} ${appData.last_name}`;
   
-  const formattedGrade = appData.grade_level.includes('Grade') ? appData.grade_level : `Grade ${appData.grade_level}`;
-  document.getElementById("status-summary-text").textContent = `${appData.status} (${formattedGrade})`;
+  if (window.VanillaTilt) VanillaTilt.init(document.querySelectorAll("[data-tilt]"));
 
-  const statusMessageEl = document.getElementById("status-message");
-  statusMessageEl.textContent = appData.status;
-  statusMessageEl.className = `status-${appData.status.replace(/ /g, '')} mb-4`; 
+  // 4. FETCH FRESH DATA FROM SERVER (CRITICAL FIX)
+  fetch(`https://enrollment-system-production-6820.up.railway.app/get-application-details/${appData.id}`)
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            console.log("Fresh data loaded:", data.application);
+            // Merge username/password from old data since endpoint might mask it
+            const newData = { ...appData, ...data.application };
+            // Save to LocalStorage
+            localStorage.setItem("applicationData", JSON.stringify(newData));
+            // Update UI immediately
+            updateDashboardUI(newData);
+            // Update global appData reference for other functions
+            appData = newData;
+        }
+    })
+    .catch(err => console.error("Failed to fetch fresh status:", err));
 
-  // Initial Render
-  renderEnrollmentChecklist(appData.status);
-  updateEnrollmentProgress(appData.status);
-  
-  document.getElementById("detail-name").textContent = `${appData.first_name} ${appData.middle_name || ''} ${appData.last_name}`;
-  document.getElementById("detail-grade").textContent = formattedGrade;
-  document.getElementById("detail-bday").textContent = appData.birthdate ? new Date(appData.birthdate).toLocaleDateString() : 'N/A';
-  document.getElementById("detail-email").textContent = appData.email;
-  document.getElementById("detail-phone").textContent = appData.phone;
-  document.getElementById("detail-username").textContent = appData.username;
-  
-  // --- NEW: REAL-TIME SOCKET LISTENER ---
+  // 5. SOCKET LISTENER (Real-time Updates)
   const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
   socket.emit('registerUser', appData.id);
   
   socket.on('statusUpdated', (data) => {
-      // 1. Update Local Data
+      // Update Data object
       appData.status = data.newStatus;
       localStorage.setItem("applicationData", JSON.stringify(appData));
       
-      // 2. Show Notification
-      showNotification("🔔 " + data.message, data.newStatus === 'Approved' ? 'success' : 'error');
+      // Show Notification
+      showNotification("🔔 Status Update: " + data.newStatus, data.newStatus === 'Approved' ? 'success' : 'info');
       
-      // 3. Update UI Elements Live
-      if(statusMessageEl) {
-          statusMessageEl.textContent = data.newStatus;
-          statusMessageEl.className = `status-${data.newStatus.replace(/ /g, '')} mb-4`;
-      }
-      const summaryEl = document.getElementById("status-summary-text");
-      if(summaryEl) {
-        summaryEl.textContent = `${data.newStatus} (${formattedGrade})`;
-      }
-
-      // 4. Update Progress & Checklist
-      updateEnrollmentProgress(data.newStatus);
-      renderEnrollmentChecklist(data.newStatus);
+      // Refresh UI
+      updateDashboardUI(appData);
   });
-
-  if (window.VanillaTilt) {
-      VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {
-      });
-  }
 });
