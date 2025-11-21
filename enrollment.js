@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Helper Functions (Validation) ---
-    addFileLimitNotices();
+    addFileLimitNotices(); // UPDATED for multiple files
     addAgeValidation();
     addNameValidation();
     addRequiredFieldValidation();
@@ -111,20 +111,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- UPDATED: Handles Multiple Files Validation ---
     function addFileLimitNotices() {
         const fileInputs = enrollmentForm.querySelectorAll('input[type="file"]');
         fileInputs.forEach(input => {
             const notice = document.createElement('small');
             notice.className = 'text-muted d-block mt-1';
             notice.style.fontSize = '0.85rem';
-            notice.textContent = '📎 Max file size: 5MB | Accepted formats: PDF, JPG, PNG';
+            notice.textContent = '📎 Max 5MB per file | Accepted formats: PDF, JPG, PNG';
             if (input.parentElement) input.parentElement.appendChild(notice);
             
             input.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file && file.size > 5 * 1024 * 1024) {
-                    showNotification(`File "${file.name}" exceeds 5MB limit.`, 'error');
-                    input.value = ''; 
+                const files = e.target.files; // Get all selected files
+                
+                if (files.length > 0) {
+                    for (let i = 0; i < files.length; i++) {
+                        // Check size for EACH file
+                        if (files[i].size > 5 * 1024 * 1024) {
+                            showNotification(`File "${files[i].name}" exceeds 5MB limit.`, 'error');
+                            input.value = ''; // Clear the input if ANY file is too big
+                            return; // Stop checking
+                        }
+                    }
                 }
             });
         });
@@ -259,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 enrollmentForm.parentElement.appendChild(successDiv);
 
-                // --- SOCKET CONNECTION (UPDATED FOR REJECTION NOTIFICATION) ---
+                // --- SOCKET CONNECTION ---
                 const appIdMatch = data.message.match(/ID: (\d+)/);
                 const appId = appIdMatch ? appIdMatch[1] : null;
 
@@ -286,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             `;
                         } else if (notification.newStatus === 'Rejected') {
-                            // REJECTED LOGIC (Updated)
+                            // REJECTED LOGIC
                             showNotification('⚠️ Application Rejected. Check your email.', 'error', true);
                             successDiv.innerHTML = `
                                 <div class="animate__animated animate__shakeX">
