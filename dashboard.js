@@ -484,7 +484,7 @@ function setupMobileToggle() {
     }
 }
 
-// --- NEW: Re-enrollment Logic (UPDATED) ---
+// --- NEW: Re-enrollment Logic (UPDATED: Shows ONLY Next Grade) ---
 function setupReEnrollment(appData) {
     const btn = document.getElementById('btn-re-enroll');
     const select = document.getElementById('next-grade-select');
@@ -492,25 +492,27 @@ function setupReEnrollment(appData) {
 
     if (!btn || !select || !actionCenter) return;
 
-    // Logic: If grade is 10, hide the entire Action Center
-    const currentGrade = parseInt(appData.grade_level.replace(/\D/g, '')); // Extract number (e.g., "Grade 7" -> 7)
+    // Extract number (e.g., "Grade 7" -> 7)
+    const currentGrade = parseInt(appData.grade_level.replace(/\D/g, '')); 
     
+    // If student is already Grade 10, hide the action center
     if (currentGrade >= 10) {
-        actionCenter.style.display = 'none'; // Hide panel for graduates
+        actionCenter.style.display = 'none'; 
         return;
     }
 
-    // Logic: Filter Dropdown options based on current grade
-    // We only want to show levels higher than current
+    // Logic: Show ONLY the option that matches (Current Grade + 1)
+    const nextGradeLevel = currentGrade + 1;
     const allOptions = select.querySelectorAll('option');
+    
     allOptions.forEach(opt => {
         if (opt.disabled) return; // Skip the placeholder
         const optGrade = parseInt(opt.value.replace(/\D/g, ''));
         
-        if (optGrade <= currentGrade) {
-            opt.style.display = 'none'; // Hide previous/current grades
+        if (optGrade === nextGradeLevel) {
+            opt.style.display = 'block'; // Show this specific next grade
         } else {
-            opt.style.display = 'block'; // Show future grades
+            opt.style.display = 'none'; // Hide everything else
         }
     });
 
