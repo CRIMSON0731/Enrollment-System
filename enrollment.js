@@ -239,6 +239,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
+            // CHECK: Is the response actually JSON?
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                // If server returns HTML (error page), throw text error
+                const text = await response.text(); 
+                console.error("Server returned non-JSON response:", text);
+                throw new Error("Server Error (Backend might not support multiple files).");
+            }
+
             const data = await response.json();
             
             if (!data.success) {
@@ -296,6 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else if (notification.newStatus === 'Rejected') {
                             // REJECTED LOGIC
                             showNotification('⚠️ Application Rejected. Check your email.', 'error', true);
+                            
+                            // FIX: The link below now points to "Enrollment page.html" instead of "enrollment.html"
                             successDiv.innerHTML = `
                                 <div class="animate__animated animate__shakeX">
                                     <h2 class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation"></i> Application Rejected</h2>
@@ -308,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         3. You may need to re-submit with correct documents.
                                     </div>
                                     <br>
-                                    <a href="enrollment.html" class="btn btn-outline-danger mt-4">Try Again</a>
+                                    <a href="Enrollment page.html" class="btn btn-outline-danger mt-4">Try Again</a>
                                     <a href="index.html" class="btn btn-outline-secondary mt-4 ms-2">Return Home</a>
                                 </div>
                             `;
@@ -318,8 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (err) {
-            console.error("Network Error:", err);
-            showNotification('CRITICAL ERROR: Cannot connect to server.', 'error');
+            console.error("Submission Error:", err);
+            showNotification(`Error: ${err.message || "Cannot connect to server."}`, 'error');
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalButtonHtml;
