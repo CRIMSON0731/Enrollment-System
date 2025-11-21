@@ -1,7 +1,7 @@
 /**
  * File: admin.js
  * Description: Complete Admin Panel Logic for Enrollment System
- * Features: Application Review, Inquiry Management, Announcements, Security, Real-Time Notifications
+ * Features: Application Review, Rejection Emails, Inquiry Management, Announcements, Security, Real-Time Notifications
  */
 
 // =========================================================================
@@ -110,7 +110,7 @@ function showNotification(message, type) {
   
   setTimeout(() => {
     notification.classList.remove('show');
-  }, 4000); // Increased duration slightly for alerts
+  }, 4000); 
 }
 
 // --- UTILITY: Stats Animation ---
@@ -445,21 +445,41 @@ async function showApplicationDetails(appId) {
 
 async function updateStatus(newStatus) {
     const appId = modalApproveBtn.getAttribute('data-id');
+    let rejectionReason = "";
+
+    // 1. If Rejecting, ask for a reason (to send in the email)
+    if (newStatus === 'Rejected') {
+        rejectionReason = prompt("Please enter the reason for rejection (this will be emailed to the student):", "Incomplete documents");
+        
+        // If admin clicks 'Cancel' on the prompt, stop the process
+        if (rejectionReason === null) return; 
+    }
+
     modalApproveBtn.disabled = true;
     modalRejectBtn.disabled = true;
     
     try {
+        // 2. Send Status + Reason to Server
         const response = await fetch(`${SERVER_URL}/update-application-status`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ applicationId: appId, newStatus: newStatus })
+            body: JSON.stringify({ 
+                applicationId: appId, 
+                newStatus: newStatus,
+                rejectionReason: rejectionReason // NEW: Sending reason to backend
+            })
         });
         const data = await response.json();
 
         if (data.success) {
-            showNotification(data.message, 'success');
+            // 3. Success Notification
+            if (newStatus === 'Rejected') {
+                showNotification(`Application Rejected. Email sent with reason: "${rejectionReason}"`, 'info');
+            } else {
+                showNotification(data.message, 'success');
+            }
+            
             detailsModal.hide(); 
-            // Refresh but keep real-time sync in mind
             simulateDataLoad(); 
         } else {
             showNotification(`Error: ${data.message}`, 'error');
