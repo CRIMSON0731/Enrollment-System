@@ -47,6 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function addPhoneValidation() {
         const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
         if (phoneInput) {
+            
+            // 0. Remove HTML attribute limits if they exist to let JS handle it
+            phoneInput.removeAttribute('maxlength'); 
+
             // 1. Set Default Value on Load
             if (!phoneInput.value) {
                 phoneInput.value = "+63";
@@ -65,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // 3. Restrict Input to Numbers Only & Limit Length to 13 Chars
+            // 3. Input Logic: Numbers Only, No Leading 0, Max 13 Chars
             phoneInput.addEventListener('input', function(e) {
                 let val = this.value;
                 
@@ -80,6 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Remove letters/symbols from the rest (Keep only numbers)
                 rest = rest.replace(/[^0-9]/g, '');
+
+                // AUTO-CORRECT: If user types '0' at the start (e.g., 09...), remove it
+                if (rest.startsWith('0')) {
+                    rest = rest.substring(1);
+                }
                 
                 // Strict Length Limit: 10 digits (Total 13 characters)
                 if (rest.length > 10) {
