@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addNameValidation();
     addRequiredFieldValidation();
     
-    // CALL THE NEW PHONE VALIDATION FUNCTION HERE
+    // CALL THE PHONE VALIDATION FUNCTION
     addPhoneValidation(); 
 
     function showNotification(message, type, persistent = false) {
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationBarEl.classList.remove('show');
     }
 
-    // --- NEW FUNCTION: PHONE NUMBER VALIDATION ---
+    // --- NEW FUNCTION: STRICT PHONE NUMBER VALIDATION (+63 + 10 digits) ---
     function addPhoneValidation() {
         const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
         if (phoneInput) {
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // 3. Restrict Input to Numbers Only (after the prefix)
+            // 3. Restrict Input to Numbers Only & Limit Length to 13 Chars
             phoneInput.addEventListener('input', function(e) {
                 let val = this.value;
                 
@@ -74,18 +74,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     val = "+63" + val.replace(/^\+63|^63|^\+/, ""); 
                 }
 
-                // Remove any non-digit characters (except the leading +)
-                // We split the string: keep the '+', regex the rest
+                // Separate prefix and the rest
                 const prefix = "+63";
                 let rest = val.substring(3);
                 
-                // Remove letters/symbols from the rest
+                // Remove letters/symbols from the rest (Keep only numbers)
                 rest = rest.replace(/[^0-9]/g, '');
                 
-                // Limit to typical mobile length (10 digits after +63, total 13 chars)
+                // Strict Length Limit: 10 digits (Total 13 characters)
                 if (rest.length > 10) {
                     rest = rest.substring(0, 10);
-                    showNotification('⚠️ Phone number cannot exceed 11 digits (excluding +63).', 'info');
+                    showNotification('⚠️ Maximum length reached (13 characters).', 'info');
                 }
 
                 this.value = prefix + rest;
