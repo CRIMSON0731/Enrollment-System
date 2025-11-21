@@ -9,7 +9,7 @@ function showNotification(message, type) {
   
   setTimeout(() => {
     notification.classList.remove('show');
-  }, 3000);
+  }, 5000); // Increased duration for visibility
 }
 
 // --- 1. Function to load announcements ---
@@ -104,7 +104,7 @@ function setupPasswordToggle() {
     });
 }
 
-// --- 3. Function to handle the "Change Password" form (ENHANCED) ---
+// --- 3. Change Password Logic ---
 function setupPasswordForm(appData) {
   const form = document.getElementById('change-password-form');
   const messageEl = document.getElementById('password-message');
@@ -114,7 +114,6 @@ function setupPasswordForm(appData) {
   const confirmPasswordInput = document.getElementById('confirm-password');
   const generateBtn = document.getElementById('generate-password-btn');
 
-  // Elements for Strength Meter
   const strengthBar = document.getElementById('password-strength-bar');
   const strengthText = document.getElementById('password-strength-text');
 
@@ -133,7 +132,6 @@ function setupPasswordForm(appData) {
       input.addEventListener('focus', clearErrors);
   });
 
-  // --- Password Strength Logic ---
   const calculateStrength = (password) => {
       let strength = 0;
       if (password.length >= 8) strength++;
@@ -159,230 +157,145 @@ function setupPasswordForm(appData) {
       let colorClass = 'bg-danger';
       let text = 'Weak';
 
-      if (strength <= 2) {
-          width = '30%';
-          colorClass = 'bg-danger';
-          text = 'Weak';
-      } else if (strength === 3 || strength === 4) {
-          width = '60%';
-          colorClass = 'bg-warning';
-          text = 'Medium';
-      } else if (strength >= 5) {
-          width = '100%';
-          colorClass = 'bg-success';
-          text = 'Strong';
-      }
+      if (strength <= 2) { width = '30%'; colorClass = 'bg-danger'; text = 'Weak'; }
+      else if (strength === 3 || strength === 4) { width = '60%'; colorClass = 'bg-warning'; text = 'Medium'; }
+      else if (strength >= 5) { width = '100%'; colorClass = 'bg-success'; text = 'Strong'; }
 
       strengthBar.style.width = width;
       strengthBar.className = `progress-bar ${colorClass}`;
       strengthText.textContent = `Strength: ${text}`;
   };
 
-  // --- Random Password Generator ---
   const generateStrongPassword = () => {
       const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$@#&!";
       let password = "";
-      for (let i = 0; i < 12; i++) {
-          password += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
+      for (let i = 0; i < 12; i++) password += chars.charAt(Math.floor(Math.random() * chars.length));
       return password;
   };
 
-  // Event Listeners for Strength & Generation
   newPasswordInput.addEventListener('input', updateStrengthMeter);
 
   generateBtn.addEventListener('click', () => {
       const strongPass = generateStrongPassword();
       newPasswordInput.value = strongPass;
       confirmPasswordInput.value = strongPass;
-      
-      // Show password momentarily
       newPasswordInput.type = 'text';
       confirmPasswordInput.type = 'text';
-      
-      // Trigger validation UI update
       updateStrengthMeter();
       clearErrors();
-      
       showNotification("Strong password generated! Please save it.", "info");
   });
 
-
   const validateForm = () => {
       clearErrors();
-      const currentPass = currentPasswordInput.value;
       const newPass = newPasswordInput.value;
       const confirmPass = confirmPasswordInput.value;
       let isValid = true;
 
-      if (currentPass.length === 0) {
+      if (currentPasswordInput.value.length === 0) {
           errorElements.current.textContent = 'Current password is required.';
           isValid = false;
       }
-
-      // 1. FORCED CHECK: Cannot be 'password123'
       if (newPass === 'password123') {
-          errorElements.new.textContent = 'You cannot use the default temporary password. Please choose a new one.';
+          errorElements.new.textContent = 'You cannot use the default temporary password.';
           isValid = false;
       }
-      
-      // 2. STRENGTH CHECK: Must be at least Medium strength
       if (calculateStrength(newPass) < 3) {
-          errorElements.new.textContent = 'Password is too weak. Include uppercase, numbers, or symbols.';
+          errorElements.new.textContent = 'Password is too weak.';
           isValid = false;
       }
-
       if (newPass.length < 8) {
-        errorElements.new.textContent = 'Password must be at least 8 characters.';
+        errorElements.new.textContent = 'Min 8 characters.';
         isValid = false;
       }
-
       if (newPass !== confirmPass) {
-          errorElements.confirm.textContent = 'New passwords do not match.';
+          errorElements.confirm.textContent = 'Passwords do not match.';
           isValid = false;
       }
-
       if (!isValid) {
-          messageEl.textContent = 'Please fix the errors above.';
+          messageEl.textContent = 'Please fix errors.';
           messageEl.style.color = '#dc3545';
       }
-
       return isValid;
   };
-
-  // Real-time validation listeners
-  confirmPasswordInput.addEventListener('keyup', () => {
-      if(newPasswordInput.value === confirmPasswordInput.value) errorElements.confirm.textContent = '';
-  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearErrors(); 
-
-    if (!validateForm()) {
-        return; 
-    }
+    if (!validateForm()) return; 
     
     messageEl.textContent = 'Updating...';
-    messageEl.style.color = '#666'; 
     
-    const currentPassword = currentPasswordInput.value;
-    const newPassword = newPasswordInput.value;
-
     try {
       const response = await fetch('https://enrollment-system-production-6820.up.railway.app/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           applicationId: appData.id,
-          currentPassword: currentPassword,
-          newPassword: newPassword
+          currentPassword: currentPasswordInput.value,
+          newPassword: newPasswordInput.value
         })
       });
-
       const data = await response.json();
 
       if (data.success) {
-        appData.password = newPassword; 
+        appData.password = newPasswordInput.value; 
         localStorage.setItem("applicationData", JSON.stringify(appData));
-        
         showNotification(data.message, 'success');
         messageEl.textContent = '';
         form.reset();
-        
-        // Reset inputs to password type if generator left them as text
         newPasswordInput.type = 'password';
         confirmPasswordInput.type = 'password';
-        
-        if (currentPassword === 'password123') { 
-            window.location.reload(); 
-        }
-        
+        if (currentPasswordInput.value === 'password123') window.location.reload(); 
       } else {
         messageEl.textContent = `Error: ${data.message}`;
         messageEl.style.color = '#dc3545';
-        
-        if (data.message.includes('current password')) {
-            errorElements.current.textContent = data.message;
-        }
       }
-
     } catch (err) {
-      messageEl.textContent = 'A connection error occurred.';
+      messageEl.textContent = 'Connection error.';
       messageEl.style.color = '#dc3545';
     }
   });
 }
 
-// --- 4. Function to handle logging out ---
+// --- 4. Logout ---
 function setupLogout() {
   const logoutBtn = document.getElementById('header-logout-btn');
   logoutBtn.addEventListener('click', () => {
-    if (!confirm("Are you sure you want to log out?")) {
-        return;
-    }
+    if (!confirm("Are you sure you want to log out?")) return;
     localStorage.removeItem("applicationData"); 
-    
     showNotification("Logging out...", "success");
-    
-    setTimeout(() => {
-        window.location.href = "index.html";
-    }, 1500);
+    setTimeout(() => { window.location.href = "index.html"; }, 1500);
   });
 }
 
-// --- Function to render dynamic checklist ---
+// --- Checklist Logic ---
 function renderEnrollmentChecklist(status) {
     const checklistEl = document.getElementById('enrollment-checklist');
-    let html = '';
-    
     const checkIcon = '<span class="fa-solid fa-check"></span>'; 
     const pendingIcon = '<span class="fa-solid fa-circle-notch fa-spin"></span>'; 
     const rejectIcon = '<span class="fa-solid fa-xmark"></span>'; 
-
     const isApproved = status === 'Approved';
     const isPending = status === 'Pending Review';
     const isRejected = status === 'Rejected';
 
-    html += `<div class="checklist-item done">
-                ${checkIcon} Application Submitted (Documents Uploaded)
-             </div>`;
+    let html = `<div class="checklist-item done">${checkIcon} Application Submitted (Documents Uploaded)</div>`;
     
     if (isApproved) {
-        html += `<div class="checklist-item done">
-                    ${checkIcon} Documents Reviewed by Admin
-                 </div>`;
+        html += `<div class="checklist-item done">${checkIcon} Documents Reviewed by Admin</div>`;
+        html += `<div class="checklist-item done">${checkIcon} Enrollment Finalized & Portal Access Granted</div>`;
+        html += `<div class="alert alert-success mt-3 small">You are all set! View your information tab.</div>`;
     } else if (isPending) {
-         html += `<div class="checklist-item pending">
-                    ${pendingIcon} Documents Under Review by Admin
-                 </div>`;
+         html += `<div class="checklist-item pending">${pendingIcon} Documents Under Review by Admin</div>`;
+         html += `<div class="checklist-item pending">${pendingIcon} Awaiting Final Enrollment Status</div>`;
     } else if (isRejected) {
-        html += `<div class="checklist-item rejected">
-                    ${rejectIcon} Documents Rejected (See Admin Note)
-                 </div>`;
+        html += `<div class="checklist-item rejected">${rejectIcon} Documents Rejected (See Admin Note)</div>`;
+        html += `<div class="checklist-item rejected">${rejectIcon} Enrollment Blocked - Contact Registrar.</div>`;
     }
-
-    if (isApproved) {
-        html += `<div class="checklist-item done">
-                    ${checkIcon} Enrollment Finalized & Portal Access Granted
-                 </div>`;
-        html += `<div class="alert alert-success mt-3" style="font-size: 0.9em;">
-                    You are all set! View your information tab to see your generated username.
-                 </div>`;
-    } else if (isPending) {
-         html += `<div class="checklist-item pending">
-                    ${pendingIcon} Awaiting Final Enrollment Status
-                 </div>`;
-    } else if (isRejected) {
-         html += `<div class="checklist-item rejected">
-                    ${rejectIcon} Enrollment Blocked - Contact Registrar.
-                 </div>`;
-    }
-
     checklistEl.innerHTML = html;
 }
 
-// --- Function to load student's submitted file links ---
+// --- Load Documents ---
 async function loadFullApplicationDetails(appData) {
     const serverUrl = 'https://enrollment-system-production-6820.up.railway.app'; 
     const documentLinksContainer = document.getElementById('document-links-container');
@@ -393,73 +306,58 @@ async function loadFullApplicationDetails(appData) {
         const data = await response.json();
 
         if (!data.success) {
-            documentLinksContainer.innerHTML = `<p style="color:red;">Error loading documents: ${data.message}</p>`;
+            documentLinksContainer.innerHTML = `<p style="color:red;">Error: ${data.message}</p>`;
             return;
         }
 
         const fullApp = data.application;
         let linksHtml = '';
-        
-        const getMockStatus = (docName) => {
-            if (appData.status === 'Approved') return 'Verified';
-            if (appData.status === 'Rejected') {
-                return docName.includes('Card') ? 'Rejected' : 'Pending';
-            }
-            return 'Pending';
-        };
-
+        const getMockStatus = () => appData.status === 'Approved' ? 'Verified' : (appData.status === 'Rejected' ? 'Rejected' : 'Pending');
         const docs = [
             { path: fullApp.doc_card_path, name: "School Card (Previous Grade)" },
             { path: fullApp.doc_psa_path, name: "PSA (Birth Certificate)" },
-            { path: fullApp.doc_f137_path, name: "FORM 137/SF10 (Academic Records)" },
+            { path: fullApp.doc_f137_path, name: "FORM 137/SF10" },
             { path: fullApp.doc_brgy_cert_path, name: "Barangay Certificate" }
         ];
 
         docs.forEach(doc => {
             if (doc.path) {
-                const status = getMockStatus(doc.name);
+                const status = getMockStatus();
                 const statusClass = `doc-status-${status.toLowerCase()}`;
-                
                 linksHtml += `
                     <div class="file-link-wrapper">
                         <a href="${serverUrl}/uploads/${doc.path}" target="_blank" class="file-link">
-                            <span class="fa-solid fa-file-pdf"></span> 
-                            <span>${doc.name}</span>
+                            <span class="fa-solid fa-file-pdf"></span> <span>${doc.name}</span>
                         </a>
                         <span class="doc-status-tag ${statusClass}">${status}</span>
                     </div>`;
             }
         });
-
-        documentLinksContainer.innerHTML = linksHtml || "<p>No documents found or links failed to load.</p>";
-
+        documentLinksContainer.innerHTML = linksHtml || "<p>No documents found.</p>";
     } catch (error) {
-        console.error('Error fetching application details for student:', error);
-        document.getElementById('document-links-container').innerHTML = '<p style="color:red;">Network error. Failed to load document links.</p>';
+        documentLinksContainer.innerHTML = '<p style="color:red;">Network error.</p>';
     }
 }
 
-// --- Function to update the progress bar visuals ---
+// --- PROGRESS BAR (Updated for 100% Success) ---
 function updateEnrollmentProgress(status) {
     const progressBar = document.getElementById('enrollment-progress-bar');
     const progressText = document.getElementById('progress-text');
-    let percentage = 0;
-    let className = 'bg-warning';
     
     if (!progressBar || !progressText) return;
 
-    if (status === 'Pending Review') {
-        percentage = 60;
-        className = 'bg-warning progress-bar-animated';
-    } else if (status === 'Approved') {
+    let percentage = 0;
+    let className = 'bg-secondary';
+
+    if (status === 'Approved') {
         percentage = 100;
         className = 'bg-success';
+    } else if (status === 'Pending Review') {
+        percentage = 60;
+        className = 'bg-warning progress-bar-animated';
     } else if (status === 'Rejected') {
         percentage = 10; 
         className = 'bg-danger';
-    } else {
-        percentage = 0;
-        className = 'bg-secondary';
     }
 
     progressBar.style.width = `${percentage}%`;
@@ -472,28 +370,16 @@ function updateEnrollmentProgress(status) {
     }
 }
 
-// --- Function to handle Mobile Sidebar Toggle ---
-function setupMobileToggle() {
-    const toggleBtn = document.getElementById('mobile-sidebar-toggle');
-    const sidebar = document.querySelector(".sidebar");
-    
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('sidebar-open');
-        });
-    }
-}
-
-// --- NEW: Re-enrollment Logic (UPDATED: CHECKS SERVER STATUS + FILE UPLOAD) ---
+// --- Re-enrollment Logic ---
 async function setupReEnrollment(appData) {
     const btn = document.getElementById('btn-re-enroll');
     const select = document.getElementById('next-grade-select');
     const actionCenter = document.getElementById('action-center-widget'); 
-    const fileInput = document.getElementById('re-enroll-card'); // FILE INPUT
+    const fileInput = document.getElementById('re-enroll-card');
 
     if (!btn || !select || !actionCenter || !fileInput) return;
 
-    // 1. Check if Enrollment is CLOSED globally
+    // 1. Check Server Status
     try {
         const statusRes = await fetch('https://enrollment-system-production-6820.up.railway.app/get-enrollment-status');
         const statusData = await statusRes.json();
@@ -504,39 +390,29 @@ async function setupReEnrollment(appData) {
             btn.classList.remove('btn-success');
             btn.classList.add('btn-secondary');
             select.disabled = true;
-            fileInput.disabled = true; // Disable file input too
-            
+            fileInput.disabled = true;
             const notice = document.createElement('p');
             notice.className = 'text-danger small fw-bold mt-2 mb-0';
-            notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment period is currently closed by the admin.';
+            notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment is currently closed.';
             actionCenter.querySelector('.d-flex.flex-column').appendChild(notice);
             return; 
         }
-    } catch(e) {
-        console.error("Failed to check status", e);
-    }
+    } catch(e) { console.error(e); }
 
-    // 2. Existing Logic (Grade Check)
+    // 2. Grade Logic
     const currentGrade = parseInt(appData.grade_level.replace(/\D/g, '')); 
-    if (currentGrade >= 10) {
-        actionCenter.style.display = 'none'; 
-        return;
-    }
+    if (currentGrade >= 10) { actionCenter.style.display = 'none'; return; }
 
     const nextGradeLevel = currentGrade + 1;
     const allOptions = select.querySelectorAll('option');
-    
     allOptions.forEach(opt => {
         if (opt.disabled) return; 
         const optGrade = parseInt(opt.value.replace(/\D/g, ''));
-        
-        if (optGrade === nextGradeLevel) {
-            opt.style.display = 'block'; 
-        } else {
-            opt.style.display = 'none'; 
-        }
+        if (optGrade === nextGradeLevel) opt.style.display = 'block'; 
+        else opt.style.display = 'none'; 
     });
 
+    // 3. Status Check
     if (appData.status === 'Pending Review') {
         btn.disabled = true;
         btn.textContent = 'Application Under Review';
@@ -548,26 +424,13 @@ async function setupReEnrollment(appData) {
 
     btn.addEventListener('click', async () => {
         const nextGrade = select.value;
-
-        if (nextGrade === "Select Next Grade Level") {
-            alert("Please select the grade level you are enrolling for.");
-            return;
-        }
-
-        // File Validation
-        if (fileInput.files.length === 0) {
-            alert("Please upload your previous Report Card to proceed.");
-            return;
-        }
-
-        if (!confirm(`Are you sure you want to enroll for ${nextGrade}?`)) {
-            return;
-        }
+        if (nextGrade === "Select Next Grade Level") return alert("Please select grade level.");
+        if (fileInput.files.length === 0) return alert("Please upload Report Card.");
+        if (!confirm(`Enroll for ${nextGrade}?`)) return;
 
         btn.disabled = true;
         btn.textContent = "Uploading...";
 
-        // Create FormData for file upload
         const formData = new FormData();
         formData.append('applicationId', appData.id);
         formData.append('nextGradeLevel', nextGrade);
@@ -576,11 +439,9 @@ async function setupReEnrollment(appData) {
         try {
             const response = await fetch('https://enrollment-system-production-6820.up.railway.app/student-re-enroll', {
                 method: 'POST',
-                body: formData // Use formData instead of JSON
+                body: formData
             });
-            
             const data = await response.json();
-
             if (data.success) {
                 alert(data.message);
                 appData.grade_level = nextGrade;
@@ -592,36 +453,68 @@ async function setupReEnrollment(appData) {
                 btn.disabled = false;
                 btn.textContent = "Enroll for Next Year";
             }
-
         } catch (error) {
-            console.error("Re-enrollment error:", error);
-            alert("Network error. Please try again later.");
+            alert("Network error.");
             btn.disabled = false;
             btn.textContent = "Enroll for Next Year";
         }
     });
 }
 
-
-// --- 5. Main function ---
+// =========================================================================
+// 5. MAIN INITIALIZATION
+// =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
   const appDataString = localStorage.getItem("applicationData");
   if (!appDataString) {
-    alert("You are not logged in. Redirecting to login page.");
+    alert("You are not logged in.");
     window.location.href = "index.html";
     return;
   }
   
   const appData = JSON.parse(appDataString);
-  
   const isFirstLogin = appData.password === 'password123';
   
   setupNavigation(isFirstLogin); 
+  if (isFirstLogin) showNotification("SECURITY ALERT: Change password immediately.", 'error');
 
-  if (isFirstLogin) {
-      showNotification("SECURITY ALERT: Please change your temporary password immediately.", 'error');
-  }
+  // --- NEW: REAL-TIME SOCKET LISTENER ---
+  const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
+  socket.emit('registerUser', appData.id);
+  
+  socket.on('statusUpdated', (data) => {
+      // 1. Update Local Data
+      appData.status = data.newStatus;
+      localStorage.setItem("applicationData", JSON.stringify(appData));
+      
+      // 2. Show Notification
+      showNotification("🔔 " + data.message, data.newStatus === 'Approved' ? 'success' : 'error');
+      
+      // 3. Update UI Elements Live
+      const statusEl = document.getElementById("status-message");
+      const summaryEl = document.getElementById("status-summary-text");
+      
+      if(statusEl) {
+          statusEl.textContent = data.newStatus;
+          statusEl.className = `status-${data.newStatus.replace(/ /g, '')} mb-4`;
+      }
+      if(summaryEl) {
+        const formattedGrade = appData.grade_level.includes('Grade') ? appData.grade_level : `Grade ${appData.grade_level}`;
+        summaryEl.textContent = `${data.newStatus} (${formattedGrade})`;
+      }
 
+      // 4. Update Progress & Checklist
+      updateEnrollmentProgress(data.newStatus);
+      renderEnrollmentChecklist(data.newStatus);
+      
+      // 5. If Approved, refresh action center state if needed (optional)
+      if(data.newStatus === 'Approved') {
+          // Re-enable action center logic if they want to enroll again next year (handled on reload mostly)
+          // But immediate visual feedback is 100% bar
+      }
+  });
+
+  // Initialize Modules
   loadAnnouncements();
   setupPasswordToggle(); 
   setupPasswordForm(appData);
@@ -629,6 +522,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadFullApplicationDetails(appData); 
   setupReEnrollment(appData);
 
+  // Render Static Info
   document.getElementById("student-name").textContent = appData.first_name;
   document.getElementById("student-name-full").textContent = `${appData.first_name} ${appData.last_name}`;
   
@@ -639,6 +533,7 @@ document.addEventListener("DOMContentLoaded", () => {
   statusMessageEl.textContent = appData.status;
   statusMessageEl.className = `status-${appData.status.replace(/ /g, '')} mb-4`; 
 
+  // Initial Render
   renderEnrollmentChecklist(appData.status);
   updateEnrollmentProgress(appData.status);
   
@@ -649,8 +544,5 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("detail-phone").textContent = appData.phone;
   document.getElementById("detail-username").textContent = appData.username;
   
-  if (window.VanillaTilt) {
-      VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {
-      });
-  }
+  if (window.VanillaTilt) VanillaTilt.init(document.querySelectorAll("[data-tilt]"));
 });
