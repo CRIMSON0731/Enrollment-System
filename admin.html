@@ -83,7 +83,8 @@
               <tr>
                 <th class="sortable" data-sort="first_name">Name <i class="fa-solid fa-sort"></i></th> 
                 <th class="sortable" data-sort="email">Email <i class="fa-solid fa-sort"></i></th>
-                <th>Type</th> <th class="sortable" data-sort="grade_level">Grade <i class="fa-solid fa-sort"></i></th>
+                <th>Type</th>
+                <th class="sortable" data-sort="grade_level">Grade</th>
                 <th>Status</th>
                 <th class="sortable" data-sort="created_at">Submitted <i class="fa-solid fa-sort"></i></th>
                 <th>Actions</th>
@@ -136,10 +137,12 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="mb-0">Manage Announcements</h2>
             
-            <div class="form-check form-switch p-3 border rounded bg-white shadow-sm">
-                <input class="form-check-input" type="checkbox" id="enrollment-toggle" style="width: 50px; height: 25px; cursor: pointer;">
-                <label class="form-check-label fw-bold ms-2" for="enrollment-toggle" id="enrollment-toggle-label" style="font-size: 1.1rem; padding-top: 2px;">
-                    Enrollment: CLOSED
+            <div class="d-flex align-items-center p-3 border rounded bg-white shadow-sm">
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="enrollment-toggle" style="width: 50px; height: 25px; cursor: pointer; margin-left: 0;">
+                </div>
+                <label class="fw-bold ms-3 mb-0" for="enrollment-toggle" id="enrollment-toggle-label" style="font-size: 1.1rem; cursor: pointer;">
+                    Enrollment Action Center: CLOSED
                 </label>
             </div>
         </div>
