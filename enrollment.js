@@ -1,4 +1,4 @@
-// File: enrollment.js (Script for Enrollment page.html - WITH REAL-TIME NOTIFICATIONS)
+// File: enrollment.js (Script for Enrollment page.html)
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Enrollment script loaded."); 
@@ -14,13 +14,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return; 
     }
 
+    // IMPORTANT: Disable default HTML5 validation to prevent "focus jumps"
+    if (enrollmentForm) {
+        enrollmentForm.noValidate = true;
+    }
+
     // --- Helper Functions (Validation) ---
     addFileLimitNotices();
     addAgeValidation();
     addNameValidation();
     addRequiredFieldValidation();
-    
-    // CALL THE PHONE VALIDATION FUNCTION
     addPhoneValidation(); 
 
     function showNotification(message, type, persistent = false) {
@@ -34,9 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         notificationBarEl.classList.add('show');
         
-        // FIX: Allow 'info' messages to auto-hide quickly
         if (!persistent) {
-             setTimeout(() => { notificationBarEl.classList.remove('show'); }, 3000); 
+             setTimeout(() => { notificationBarEl.classList.remove('show'); }, 4000); 
         }
     }
     
@@ -44,20 +46,21 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationBarEl.classList.remove('show');
     }
 
-    // --- STRICT PHONE NUMBER VALIDATION (+63 + 10 digits ONLY) ---
+    // --- STRICT PHONE NUMBER VALIDATION ---
     function addPhoneValidation() {
         const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
         if (phoneInput) {
             
-            phoneInput.type = "tel"; 
+            // 1. Force type to "text" to allow '+' symbol without browser errors
+            phoneInput.type = "text"; 
             phoneInput.removeAttribute('maxlength'); 
 
-            // 1. Set Default Value on Load
+            // 2. Set Default Value on Load
             if (!phoneInput.value) {
                 phoneInput.value = "+63";
             }
 
-            // 2. Prevent deleting the "+63" prefix
+            // 3. Prevent deleting the "+63" prefix
             phoneInput.addEventListener('keydown', function(e) {
                 const cursorPosition = this.selectionStart;
                 if ((e.key === 'Backspace' || e.key === 'Delete') && cursorPosition <= 3 && this.value.length <= 3) {
@@ -68,46 +71,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // 3. STRICT INPUT CLEANING
+            // 4. Input Logic
             phoneInput.addEventListener('input', function(e) {
-                this.classList.remove('is-invalid');
+                this.classList.remove('is-invalid'); // Clear error immediately on type
 
                 let val = this.value;
-
-                // A. First, strip absolutely anything that isn't a number or a plus sign
-                //    This removes letters, dashes, spaces, parentheses, @, #, etc.
-                val = val.replace(/[^0-9+]/g, '');
-
-                // B. Ensure '+' is only at the start. Remove any '+' that appears later.
-                val = val.replace(/(?!^)\+/g, '');
-
-                // C. Ensure it always starts with +63
+                
+                // Ensure it always starts with +63
                 if (!val.startsWith("+63")) {
-                    // If user messed up the prefix, rebuild it
-                    // Remove any leading +, 6, or 3 fragments to avoid duplication
                     val = "+63" + val.replace(/^\+63|^63|^\+/, ""); 
                 }
 
-                // D. Isolate the numbers after +63
                 const prefix = "+63";
-                let rest = val.substring(3); 
+                let rest = val.substring(3);
+                
+                // Remove letters/symbols
+                rest = rest.replace(/[^0-9]/g, '');
 
-                // E. Auto-Correct: Remove leading '0' if present (e.g. +6309...)
+                // Remove leading '0' (e.g., +6309 -> +639)
                 if (rest.startsWith('0')) {
                     rest = rest.substring(1);
                 }
                 
-                // F. Length Limit: 10 digits max (Total 13 characters)
+                // Strict Length Limit: 10 digits (Total 13 characters)
                 if (rest.length > 10) {
                     rest = rest.substring(0, 10);
                     showNotification('⚠️ Maximum length reached (13 characters).', 'info', false);
                 }
 
-                // Update value
                 this.value = prefix + rest;
             });
 
-            // 4. Reset on Focus (if empty)
+            // 5. Reset on Focus
             phoneInput.addEventListener('focus', function() {
                 if (this.value === '' || this.value === '+') {
                     this.value = "+63";
@@ -196,8 +191,25 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleEnrollmentSubmission(e) {
         e.preventDefault(); 
         
-        // Basic check for invalid fields
-        if (enrollmentForm.querySelectorAll('.is-invalid').length > 0) {
+        // 1. Manual Validation Check: Required Fields
+        let hasError = false;
+        const requiredInputs = enrollmentForm.querySelectorAll('[required]');
+        requiredInputs.forEach(input => {
+            if (!input.value) {
+                input.classList.add('is-invalid');
+                hasError = true;
+            }
+        });
+
+        // 2. Manual Validation Check: Phone Number Length
+        const phoneInput = enrollmentForm.querySelector('[name="phone_num"]');
+        if (phoneInput && phoneInput.value.length < 13) {
+            phoneInput.classList.add('is-invalid');
+            showNotification('⚠️ Phone number is incomplete. It must be 13 characters (e.g., +639...)', 'error');
+            hasError = true;
+        }
+
+        if (hasError || enrollmentForm.querySelectorAll('.is-invalid').length > 0) {
             showNotification('⚠️ Please fix the highlighted errors before submitting.', 'error');
             return;
         }
@@ -209,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Submitting...';
         }
-        // FIX: Make "Submitting" message persistent so it doesn't disappear during upload
         showNotification('Submitting your application...', 'info', true); 
 
         try {
@@ -232,10 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- SUCCESS ---
                 showNotification('✅ Application submitted! Please wait for Admin approval.', 'success', true);
                 
-                // Hide the form to prevent resubmission
                 enrollmentForm.style.display = 'none';
                 
-                // Show a waiting message
                 const successDiv = document.createElement('div');
                 successDiv.className = 'text-center p-5';
                 successDiv.innerHTML = `
@@ -250,33 +259,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 enrollmentForm.parentElement.appendChild(successDiv);
 
-                // --- REAL-TIME SOCKET CONNECTION ---
+                // --- SOCKET CONNECTION ---
                 const appIdMatch = data.message.match(/ID: (\d+)/);
                 const appId = appIdMatch ? appIdMatch[1] : null;
 
                 if (appId) {
                     const socket = io('https://enrollment-system-production-6820.up.railway.app');
-                    
-                    console.log(`Listening for updates on Application #${appId}`);
                     socket.emit('registerUser', appId);
 
                     socket.on('statusUpdated', (notification) => {
                         if (notification.newStatus === 'Approved') {
-                            showNotification('APPROVED! Please check your email (inbox/spam) for login credentials.', 'success', true);
+                            showNotification('APPROVED! Please check your email.', 'success', true);
                             successDiv.innerHTML = `
                                 <h2 class="text-success fw-bold">🎉 Application Approved!</h2>
                                 <p class="lead">Congratulations! You have been accepted.</p>
-                                <div class="alert alert-success">
-                                    <strong>Action Required:</strong> Login credentials have been sent to your email.
-                                </div>
+                                <div class="alert alert-success">Login credentials sent to your email.</div>
                                 <a href="index.html" class="btn btn-primary btn-lg mt-3">Go to Login</a>
                             `;
                         } else if (notification.newStatus === 'Rejected') {
-                            showNotification('⚠️ Application Update: ' + notification.newStatus, 'error', true);
+                            showNotification('⚠️ Application Rejected.', 'error', true);
                             successDiv.innerHTML = `
                                 <h2 class="text-danger fw-bold">Application Status Update</h2>
-                                <p>Your application status has been changed to: <strong>${notification.newStatus}</strong>.</p>
-                                <p>Please check your email or contact the school for details.</p>
+                                <p>Status changed to: <strong>${notification.newStatus}</strong>.</p>
                                 <a href="index.html" class="btn btn-outline-secondary mt-3">Return Home</a>
                             `;
                         }
