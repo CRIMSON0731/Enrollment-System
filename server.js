@@ -146,12 +146,12 @@ const upload = multer({
     }
 });
 
-// 2. Specific Middleware for New Applications (Multiple specific fields)
+// 2. Specific Middleware for New Applications (FIX: Increased Limits for Multiple Files)
 const uploadApplicationFiles = upload.fields([
-    { name: 'card_file', maxCount: 1 },
-    { name: 'psa_file', maxCount: 1 },
-    { name: 'f137_file', maxCount: 1 },
-    { name: 'brgy_cert_file', maxCount: 1 }
+    { name: 'card_file', maxCount: 10 },
+    { name: 'psa_file', maxCount: 10 },
+    { name: 'f137_file', maxCount: 10 },
+    { name: 'brgy_cert_file', maxCount: 10 }
 ]);
 
 const cleanupFiles = (files) => {
@@ -288,6 +288,45 @@ async function sendReEnrollmentEmail(recipientEmail, studentName, gradeLevel) {
         return { success: true };
     } catch (error) {
         console.error('❌ SendGrid Re-Enrollment Email Failed:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+// --- NEW HELPER: Send Rejection Email ---
+async function sendRejectionEmail(recipientEmail, studentName, reason) {
+    const msg = {
+        to: recipientEmail,
+        from: 'dalonzohighschool@gmail.com',
+        subject: 'Update on Your Enrollment Application',
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #dc3545;">
+                <h2>Hello, ${studentName}.</h2>
+                <p>We have reviewed your enrollment application. Unfortunately, we cannot approve your application at this time.</p>
+                
+                <div style="background-color: #f8d7da; color: #721c24; padding: 15px; border-left: 4px solid #dc3545; margin: 20px 0;">
+                    <strong>Reason for Rejection:</strong><br>
+                    ${reason || 'Application requirements were not met.'}
+                </div>
+
+                <p><strong>What you can do:</strong></p>
+                <ul>
+                    <li>Review the reason provided above.</li>
+                    <li>Prepare the correct documents or information.</li>
+                    <li>Submit a new application on our enrollment page.</li>
+                </ul>
+
+                <p>If you have questions, please contact the school administration.</p>
+                <p>Sincerely,<br>The Doña Teodora Alonzo Highschool Administration</p>
+            </div>
+        `,
+    };
+
+    try {
+        await sgMail.send(msg);
+        console.log(`✅ Rejection email sent to: ${recipientEmail}`);
+        return { success: true };
+    } catch (error) {
+        console.error('❌ SendGrid Rejection Email Failed:', error.message);
         return { success: false, error: error.message };
     }
 }
@@ -544,10 +583,19 @@ app.post('/generate-credentials', (req, res) => {
 app.post('/submit-application', uploadApplicationFiles, (req, res) => {
     const files = req.files || {};
     const { first_name, last_name, middle_name, birthdate, email, phone_num, grade_level } = req.body;
-    const card = files['card_file']?.[0]?.filename;
-    const psa = files['psa_file']?.[0]?.filename;
-    const f137 = files['f137_file']?.[0]?.filename;
-    const brgy = files['brgy_cert_file']?.[0]?.filename;
+
+    // --- FIX: HANDLE MULTIPLE FILES BY JOINING NAMES WITH COMMAS ---
+    const getFilenames = (fieldName) => {
+        if (files[fieldName] && files[fieldName].length > 0) {
+            return files[fieldName].map(f => f.filename).join(',');
+        }
+        return null;
+    };
+
+    const card = getFilenames('card_file');
+    const psa = getFilenames('psa_file');
+    const f137 = getFilenames('f137_file');
+    const brgy = getFilenames('brgy_cert_file');
 
     if (!first_name || !email) return res.status(400).json({ success: false, message: 'Missing fields.' });
 
@@ -556,7 +604,10 @@ app.post('/submit-application', uploadApplicationFiles, (req, res) => {
 
         const sql = `INSERT INTO applications (first_name, last_name, middle_name, birthdate, email, phone, grade_level, status, doc_card_path, doc_psa_path, doc_f137_path, doc_brgy_cert_path) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?, ?, ?, ?)`;
         db.query(sql, [first_name, last_name, middle_name, birthdate, email, phone_num, grade_level, card, psa, f137, brgy], (err, result) => {
-            if (err) return res.status(500).json({ success: false, message: 'DB Error.' });
+            if (err) {
+                console.error("DB Insert Error:", err);
+                return res.status(500).json({ success: false, message: 'DB Error.' });
+            }
             res.json({ success: true, message: 'ID: ' + result.insertId });
         });
     });
@@ -594,7 +645,7 @@ app.get('/get-applications', (req, res) => {
 
 // --- UPDATE STATUS ---
 app.post('/update-application-status', (req, res) => {
-    const { applicationId, newStatus } = req.body;
+    const { applicationId, newStatus, rejectionReason } = req.body; // Added rejectionReason
 
     db.query('SELECT * FROM applications WHERE id = ?', [applicationId], (err, apps) => {
         const appData = apps[0];
@@ -602,11 +653,13 @@ app.post('/update-application-status', (req, res) => {
             const isOldStudent = users.length > 0;
 
             db.query('UPDATE applications SET status = ? WHERE id = ?', [newStatus, applicationId], async () => {
+                // Notify via Socket.io (Frontend Realtime)
                 io.to(`user-${applicationId}`).emit('statusUpdated', { 
                     newStatus: newStatus, 
-                    message: isOldStudent ? `Re-enrollment Approved!` : "Status Updated" 
+                    message: isOldStudent ? `Re-enrollment Update` : "Status Updated" 
                 });
 
+                // Handle Email Notifications based on Status
                 if (newStatus === 'Approved') {
                     if (isOldStudent) {
                         await sendReEnrollmentEmail(appData.email, appData.first_name, appData.grade_level);
@@ -617,7 +670,13 @@ app.post('/update-application-status', (req, res) => {
                             res.json({ success: true, message: "New student approved." });
                         });
                     }
-                } else {
+                } 
+                // --- FIX: HANDLE REJECTION EMAILS ---
+                else if (newStatus === 'Rejected') {
+                    await sendRejectionEmail(appData.email, appData.first_name, rejectionReason);
+                    res.json({ success: true, message: "Application rejected and email sent." });
+                } 
+                else {
                     res.json({ success: true, message: `Status updated.` });
                 }
             });
