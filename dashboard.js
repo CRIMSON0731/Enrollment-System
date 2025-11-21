@@ -9,7 +9,7 @@ function showNotification(message, type) {
   
   setTimeout(() => {
     notification.classList.remove('show');
-  }, 5000); // Increased duration for visibility
+  }, 5000); 
 }
 
 // --- 1. Function to load announcements ---
@@ -19,13 +19,9 @@ async function loadAnnouncements() {
     const data = await response.json();
     const containerElement = document.getElementById("announcements-list");
     
-    if (!containerElement || containerElement.tagName !== 'DIV') return;
+    if (!containerElement) return;
     
-    if (data.success) {
-      if (data.announcements.length === 0) {
-        containerElement.innerHTML = "<p>No announcements at this time.</p>";
-        return;
-      }
+    if (data.success && data.announcements.length > 0) {
       containerElement.innerHTML = ""; 
       data.announcements.forEach(ann => {
         const card = document.createElement("div");
@@ -37,7 +33,7 @@ async function loadAnnouncements() {
         containerElement.appendChild(card);
       });
     } else {
-      containerElement.innerHTML = "<p>Error loading announcements.</p>";
+      containerElement.innerHTML = "<p>No announcements at this time.</p>";
     }
   } catch (error) {
     console.error("Error fetching announcements:", error);
@@ -53,8 +49,11 @@ function setupNavigation(isFirstLogin = false) {
   const initialTargetId = isFirstLogin ? "content-password" : "content-home";
   const initialNavLinkId = isFirstLogin ? "nav-password" : "nav-home";
 
-  document.getElementById(initialTargetId).classList.add("active-section");
-  document.getElementById(initialNavLinkId).classList.add("active");
+  const target = document.getElementById(initialTargetId);
+  const link = document.getElementById(initialNavLinkId);
+  
+  if(target) target.classList.add("active-section");
+  if(link) link.classList.add("active");
 
   links.forEach(link => {
     link.addEventListener("click", (e) => {
@@ -107,13 +106,13 @@ function setupPasswordToggle() {
 // --- 3. Change Password Logic ---
 function setupPasswordForm(appData) {
   const form = document.getElementById('change-password-form');
+  if (!form) return;
+
   const messageEl = document.getElementById('password-message');
-  
   const currentPasswordInput = document.getElementById('current-password');
   const newPasswordInput = document.getElementById('new-password');
   const confirmPasswordInput = document.getElementById('confirm-password');
   const generateBtn = document.getElementById('generate-password-btn');
-
   const strengthBar = document.getElementById('password-strength-bar');
   const strengthText = document.getElementById('password-strength-text');
 
@@ -124,12 +123,14 @@ function setupPasswordForm(appData) {
   };
 
   const clearErrors = () => {
-    Object.values(errorElements).forEach(el => el.textContent = '');
+    if(errorElements.current) errorElements.current.textContent = '';
+    if(errorElements.new) errorElements.new.textContent = '';
+    if(errorElements.confirm) errorElements.confirm.textContent = '';
     messageEl.textContent = '';
   };
   
   [currentPasswordInput, newPasswordInput, confirmPasswordInput].forEach(input => {
-      input.addEventListener('focus', clearErrors);
+      if(input) input.addEventListener('focus', clearErrors);
   });
 
   const calculateStrength = (password) => {
@@ -147,9 +148,8 @@ function setupPasswordForm(appData) {
       const strength = calculateStrength(val);
       
       if (val.length === 0) {
-          strengthBar.style.width = '0%';
-          strengthBar.className = 'progress-bar';
-          strengthText.textContent = 'Strength: None';
+          if(strengthBar) { strengthBar.style.width = '0%'; strengthBar.className = 'progress-bar'; }
+          if(strengthText) strengthText.textContent = 'Strength: None';
           return;
       }
 
@@ -161,9 +161,11 @@ function setupPasswordForm(appData) {
       else if (strength === 3 || strength === 4) { width = '60%'; colorClass = 'bg-warning'; text = 'Medium'; }
       else if (strength >= 5) { width = '100%'; colorClass = 'bg-success'; text = 'Strong'; }
 
-      strengthBar.style.width = width;
-      strengthBar.className = `progress-bar ${colorClass}`;
-      strengthText.textContent = `Strength: ${text}`;
+      if(strengthBar) {
+        strengthBar.style.width = width;
+        strengthBar.className = `progress-bar ${colorClass}`;
+      }
+      if(strengthText) strengthText.textContent = `Strength: ${text}`;
   };
 
   const generateStrongPassword = () => {
@@ -173,18 +175,20 @@ function setupPasswordForm(appData) {
       return password;
   };
 
-  newPasswordInput.addEventListener('input', updateStrengthMeter);
+  if(newPasswordInput) newPasswordInput.addEventListener('input', updateStrengthMeter);
 
-  generateBtn.addEventListener('click', () => {
-      const strongPass = generateStrongPassword();
-      newPasswordInput.value = strongPass;
-      confirmPasswordInput.value = strongPass;
-      newPasswordInput.type = 'text';
-      confirmPasswordInput.type = 'text';
-      updateStrengthMeter();
-      clearErrors();
-      showNotification("Strong password generated! Please save it.", "info");
-  });
+  if(generateBtn) {
+      generateBtn.addEventListener('click', () => {
+          const strongPass = generateStrongPassword();
+          newPasswordInput.value = strongPass;
+          confirmPasswordInput.value = strongPass;
+          newPasswordInput.type = 'text';
+          confirmPasswordInput.type = 'text';
+          updateStrengthMeter();
+          clearErrors();
+          showNotification("Strong password generated! Please save it.", "info");
+      });
+  }
 
   const validateForm = () => {
       clearErrors();
@@ -193,23 +197,23 @@ function setupPasswordForm(appData) {
       let isValid = true;
 
       if (currentPasswordInput.value.length === 0) {
-          errorElements.current.textContent = 'Current password is required.';
+          if(errorElements.current) errorElements.current.textContent = 'Current password is required.';
           isValid = false;
       }
       if (newPass === 'password123') {
-          errorElements.new.textContent = 'You cannot use the default temporary password.';
+          if(errorElements.new) errorElements.new.textContent = 'You cannot use the default temporary password.';
           isValid = false;
       }
       if (calculateStrength(newPass) < 3) {
-          errorElements.new.textContent = 'Password is too weak.';
+          if(errorElements.new) errorElements.new.textContent = 'Password is too weak.';
           isValid = false;
       }
       if (newPass.length < 8) {
-        errorElements.new.textContent = 'Min 8 characters.';
+        if(errorElements.new) errorElements.new.textContent = 'Min 8 characters.';
         isValid = false;
       }
       if (newPass !== confirmPass) {
-          errorElements.confirm.textContent = 'Passwords do not match.';
+          if(errorElements.confirm) errorElements.confirm.textContent = 'Passwords do not match.';
           isValid = false;
       }
       if (!isValid) {
@@ -261,6 +265,7 @@ function setupPasswordForm(appData) {
 // --- 4. Logout ---
 function setupLogout() {
   const logoutBtn = document.getElementById('header-logout-btn');
+  if(!logoutBtn) return;
   logoutBtn.addEventListener('click', () => {
     if (!confirm("Are you sure you want to log out?")) return;
     localStorage.removeItem("applicationData"); 
@@ -272,6 +277,8 @@ function setupLogout() {
 // --- Checklist Logic ---
 function renderEnrollmentChecklist(status) {
     const checklistEl = document.getElementById('enrollment-checklist');
+    if(!checklistEl) return;
+    
     const checkIcon = '<span class="fa-solid fa-check"></span>'; 
     const pendingIcon = '<span class="fa-solid fa-circle-notch fa-spin"></span>'; 
     const rejectIcon = '<span class="fa-solid fa-xmark"></span>'; 
@@ -299,6 +306,8 @@ function renderEnrollmentChecklist(status) {
 async function loadFullApplicationDetails(appData) {
     const serverUrl = 'https://enrollment-system-production-6820.up.railway.app'; 
     const documentLinksContainer = document.getElementById('document-links-container');
+    if(!documentLinksContainer) return;
+    
     documentLinksContainer.innerHTML = '<p>Fetching document links...</p>';
 
     try {
@@ -379,7 +388,7 @@ async function setupReEnrollment(appData) {
 
     if (!btn || !select || !actionCenter || !fileInput) return;
 
-    // 1. Check Server Status
+    // 1. Check Server Status (Toggle)
     try {
         const statusRes = await fetch('https://enrollment-system-production-6820.up.railway.app/get-enrollment-status');
         const statusData = await statusRes.json();
@@ -387,32 +396,43 @@ async function setupReEnrollment(appData) {
         if (statusData.success && !statusData.isOpen) {
             btn.disabled = true;
             btn.textContent = "Enrollment Closed";
-            btn.classList.remove('btn-success');
-            btn.classList.add('btn-secondary');
+            btn.className = 'btn btn-secondary fw-bold w-100'; // Grey out
             select.disabled = true;
             fileInput.disabled = true;
+            
+            // Add visual notice
             const notice = document.createElement('p');
             notice.className = 'text-danger small fw-bold mt-2 mb-0';
-            notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment is currently closed.';
+            notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment period is currently closed by the admin.';
             actionCenter.querySelector('.d-flex.flex-column').appendChild(notice);
             return; 
         }
     } catch(e) { console.error(e); }
 
-    // 2. Grade Logic
+    // 2. Grade Logic (Show only next grade)
     const currentGrade = parseInt(appData.grade_level.replace(/\D/g, '')); 
-    if (currentGrade >= 10) { actionCenter.style.display = 'none'; return; }
+    
+    // Hide Action Center if student is already Grade 10 (Graduated)
+    if (currentGrade >= 10) { 
+        actionCenter.style.display = 'none'; 
+        return; 
+    }
 
     const nextGradeLevel = currentGrade + 1;
     const allOptions = select.querySelectorAll('option');
     allOptions.forEach(opt => {
         if (opt.disabled) return; 
         const optGrade = parseInt(opt.value.replace(/\D/g, ''));
-        if (optGrade === nextGradeLevel) opt.style.display = 'block'; 
-        else opt.style.display = 'none'; 
+        
+        // Show ONLY the next grade level
+        if (optGrade === nextGradeLevel) {
+            opt.style.display = 'block'; 
+        } else {
+            opt.style.display = 'none'; 
+        }
     });
 
-    // 3. Status Check
+    // 3. Status Check (Disable if already pending)
     if (appData.status === 'Pending Review') {
         btn.disabled = true;
         btn.textContent = 'Application Under Review';
@@ -422,11 +442,23 @@ async function setupReEnrollment(appData) {
         return;
     }
 
+    // 4. Submit Logic
     btn.addEventListener('click', async () => {
         const nextGrade = select.value;
-        if (nextGrade === "Select Next Grade Level") return alert("Please select grade level.");
-        if (fileInput.files.length === 0) return alert("Please upload Report Card.");
-        if (!confirm(`Enroll for ${nextGrade}?`)) return;
+
+        if (nextGrade === "Select Next Grade Level") {
+            alert("Please select the grade level you are enrolling for.");
+            return;
+        }
+
+        if (fileInput.files.length === 0) {
+            alert("Please upload your previous Report Card to proceed.");
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to enroll for ${nextGrade}?`)) {
+            return;
+        }
 
         btn.disabled = true;
         btn.textContent = "Uploading...";
@@ -441,7 +473,9 @@ async function setupReEnrollment(appData) {
                 method: 'POST',
                 body: formData
             });
+            
             const data = await response.json();
+
             if (data.success) {
                 alert(data.message);
                 appData.grade_level = nextGrade;
@@ -453,13 +487,16 @@ async function setupReEnrollment(appData) {
                 btn.disabled = false;
                 btn.textContent = "Enroll for Next Year";
             }
+
         } catch (error) {
-            alert("Network error.");
+            console.error("Re-enrollment error:", error);
+            alert("Network error. Please try again later.");
             btn.disabled = false;
             btn.textContent = "Enroll for Next Year";
         }
     });
 }
+
 
 // =========================================================================
 // 5. MAIN INITIALIZATION
@@ -467,52 +504,20 @@ async function setupReEnrollment(appData) {
 document.addEventListener("DOMContentLoaded", () => {
   const appDataString = localStorage.getItem("applicationData");
   if (!appDataString) {
-    alert("You are not logged in.");
+    alert("You are not logged in. Redirecting to login page.");
     window.location.href = "index.html";
     return;
   }
   
   const appData = JSON.parse(appDataString);
+  
   const isFirstLogin = appData.password === 'password123';
   
   setupNavigation(isFirstLogin); 
-  if (isFirstLogin) showNotification("SECURITY ALERT: Change password immediately.", 'error');
 
-  // --- NEW: REAL-TIME SOCKET LISTENER ---
-  const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
-  socket.emit('registerUser', appData.id);
-  
-  socket.on('statusUpdated', (data) => {
-      // 1. Update Local Data
-      appData.status = data.newStatus;
-      localStorage.setItem("applicationData", JSON.stringify(appData));
-      
-      // 2. Show Notification
-      showNotification("🔔 " + data.message, data.newStatus === 'Approved' ? 'success' : 'error');
-      
-      // 3. Update UI Elements Live
-      const statusEl = document.getElementById("status-message");
-      const summaryEl = document.getElementById("status-summary-text");
-      
-      if(statusEl) {
-          statusEl.textContent = data.newStatus;
-          statusEl.className = `status-${data.newStatus.replace(/ /g, '')} mb-4`;
-      }
-      if(summaryEl) {
-        const formattedGrade = appData.grade_level.includes('Grade') ? appData.grade_level : `Grade ${appData.grade_level}`;
-        summaryEl.textContent = `${data.newStatus} (${formattedGrade})`;
-      }
-
-      // 4. Update Progress & Checklist
-      updateEnrollmentProgress(data.newStatus);
-      renderEnrollmentChecklist(data.newStatus);
-      
-      // 5. If Approved, refresh action center state if needed (optional)
-      if(data.newStatus === 'Approved') {
-          // Re-enable action center logic if they want to enroll again next year (handled on reload mostly)
-          // But immediate visual feedback is 100% bar
-      }
-  });
+  if (isFirstLogin) {
+      showNotification("SECURITY ALERT: Please change your temporary password immediately.", 'error');
+  }
 
   // Initialize Modules
   loadAnnouncements();
@@ -544,5 +549,35 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("detail-phone").textContent = appData.phone;
   document.getElementById("detail-username").textContent = appData.username;
   
-  if (window.VanillaTilt) VanillaTilt.init(document.querySelectorAll("[data-tilt]"));
+  // --- NEW: REAL-TIME SOCKET LISTENER ---
+  const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
+  socket.emit('registerUser', appData.id);
+  
+  socket.on('statusUpdated', (data) => {
+      // 1. Update Local Data
+      appData.status = data.newStatus;
+      localStorage.setItem("applicationData", JSON.stringify(appData));
+      
+      // 2. Show Notification
+      showNotification("🔔 " + data.message, data.newStatus === 'Approved' ? 'success' : 'error');
+      
+      // 3. Update UI Elements Live
+      if(statusMessageEl) {
+          statusMessageEl.textContent = data.newStatus;
+          statusMessageEl.className = `status-${data.newStatus.replace(/ /g, '')} mb-4`;
+      }
+      const summaryEl = document.getElementById("status-summary-text");
+      if(summaryEl) {
+        summaryEl.textContent = `${data.newStatus} (${formattedGrade})`;
+      }
+
+      // 4. Update Progress & Checklist
+      updateEnrollmentProgress(data.newStatus);
+      renderEnrollmentChecklist(data.newStatus);
+  });
+
+  if (window.VanillaTilt) {
+      VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {
+      });
+  }
 });
