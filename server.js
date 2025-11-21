@@ -303,7 +303,6 @@ app.post('/toggle-enrollment', (req, res) => {
 });
 
 // === UPDATED: FORGOT PASSWORD ENDPOINT ===
-// Changed from '/request-password-reset' to '/forgot-password'
 app.post('/forgot-password', (req, res) => {
     const { email } = req.body;
 
@@ -324,20 +323,17 @@ app.post('/forgot-password', (req, res) => {
         }
 
         if (results.length === 0) {
-            // Return success even if not found (security practice)
             return res.json({ success: true, message: "If this email is registered, a reset link has been sent." });
         }
 
         const user = results[0];
         
-        // Generate a temporary password
         const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         let tempPassword = "";
         for (let i = 0; i < 8; i++) {
             tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
-        // Hash and update the password
         bcrypt.hash(tempPassword, 10, (hashErr, hashedPassword) => {
             if (hashErr) {
                 return res.status(500).json({ success: false, message: "Encryption error." });
@@ -350,7 +346,6 @@ app.post('/forgot-password', (req, res) => {
                      return res.status(500).json({ success: false, message: "Failed to update password." });
                 }
 
-                // Send Email via SendGrid
                 const msg = {
                     to: user.contact_email, 
                     from: 'dalonzohighschool@gmail.com',
@@ -386,7 +381,6 @@ app.post('/forgot-password', (req, res) => {
 // ... (Rest of existing routes) ...
 
 app.post('/submit-application', (req, res) => {
-    // Use the SPECIFIC middleware 'uploadApplicationFiles' here
     uploadApplicationFiles(req, res, (err) => {
         const uploadedFiles = req.files || {};
         const fileNames = Object.values(uploadedFiles).flat().map(f => f.filename).filter(n => n); 
@@ -840,39 +834,48 @@ app.post('/reply-inquiry', (req, res) => {
 });
 
 // ==========================================
-//      RE-ENROLLMENT ROUTE (NEW FEATURE)
+//      RE-ENROLLMENT ROUTE (UPDATED WITH FILE UPLOAD)
 // ==========================================
-app.post('/student-re-enroll', (req, res) => {
+app.post('/student-re-enroll', upload.single('school_card'), (req, res) => {
     // FIRST CHECK: Is enrollment open?
     if (!enrollmentOpen) {
         return res.json({ success: false, message: "Enrollment is currently closed by the admin." });
     }
 
     const { applicationId, nextGradeLevel } = req.body;
+    // Check if file exists
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: "You must upload your report card." });
+    }
+    const schoolCardPath = req.file.filename;
 
     if (!applicationId || !nextGradeLevel) {
+        // Clean up uploaded file if data is missing
+        if (schoolCardPath) fs.unlinkSync(path.join(__dirname, 'uploads', schoolCardPath));
         return res.status(400).json({ success: false, message: 'Missing required fields.' });
     }
 
-    // Logic: Update grade, reset status to 'Pending Review', and update timestamp
-    // This effectively "submits" them to the top of the Admin's list
+    // Logic: Update grade, reset status to 'Pending Review', update timestamp, AND update the card file path
     const sql = `
         UPDATE applications 
-        SET grade_level = ?, status = 'Pending Review', created_at = NOW() 
+        SET grade_level = ?, status = 'Pending Review', created_at = NOW(), doc_card_path = ? 
         WHERE id = ?`;
 
-    db.query(sql, [nextGradeLevel, applicationId], (err, result) => {
+    db.query(sql, [nextGradeLevel, schoolCardPath, applicationId], (err, result) => {
         if (err) {
             console.error("Re-enrollment DB Error:", err);
+            // Clean up file on DB error
+            if (schoolCardPath) fs.unlinkSync(path.join(__dirname, 'uploads', schoolCardPath));
             return res.status(500).json({ success: false, message: "Database error during re-enrollment." });
         }
 
         if (result.affectedRows === 0) {
+            if (schoolCardPath) fs.unlinkSync(path.join(__dirname, 'uploads', schoolCardPath));
             return res.status(404).json({ success: false, message: "Student record not found." });
         }
 
         // Notify Admin via Socket
-        io.emit('newApplicationReceived', { message: `A student has re-enrolled for ${nextGradeLevel}` });
+        io.emit('newApplicationReceived', { message: `A student has re-enrolled for ${nextGradeLevel} and uploaded a new card.` });
 
         res.json({ success: true, message: "Re-enrollment successful! Your status is now Pending Review." });
     });
