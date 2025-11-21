@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 enrollmentForm.parentElement.appendChild(successDiv);
 
-                // --- SOCKET CONNECTION ---
+                // --- SOCKET CONNECTION (UPDATED FOR REJECTION NOTIFICATION) ---
                 const appIdMatch = data.message.match(/ID: (\d+)/);
                 const appId = appIdMatch ? appIdMatch[1] : null;
 
@@ -267,21 +267,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     const socket = io('https://enrollment-system-production-6820.up.railway.app');
                     socket.emit('registerUser', appId);
 
+                    console.log("Listening for updates on App ID:", appId);
+
                     socket.on('statusUpdated', (notification) => {
+                        console.log("Real-time update received:", notification);
+
                         if (notification.newStatus === 'Approved') {
-                            showNotification('APPROVED! Please check your email.', 'success', true);
+                            // APPROVED LOGIC
+                            showNotification('🎉 APPROVED! Please check your email.', 'success', true);
                             successDiv.innerHTML = `
-                                <h2 class="text-success fw-bold">🎉 Application Approved!</h2>
-                                <p class="lead">Congratulations! You have been accepted.</p>
-                                <div class="alert alert-success">Login credentials sent to your email.</div>
-                                <a href="index.html" class="btn btn-primary btn-lg mt-3">Go to Login</a>
+                                <div class="animate__animated animate__bounceIn">
+                                    <h2 class="text-success fw-bold"><i class="fa-solid fa-check-circle"></i> Application Approved!</h2>
+                                    <p class="lead">Congratulations! You have been officially enrolled.</p>
+                                    <div class="alert alert-success">
+                                        <strong>Action Required:</strong> Your student portal credentials have been sent to your email.
+                                    </div>
+                                    <a href="index.html" class="btn btn-primary btn-lg mt-3 shadow">Go to Login</a>
+                                </div>
                             `;
                         } else if (notification.newStatus === 'Rejected') {
-                            showNotification('⚠️ Application Rejected.', 'error', true);
+                            // REJECTED LOGIC (Updated)
+                            showNotification('⚠️ Application Rejected. Check your email.', 'error', true);
                             successDiv.innerHTML = `
-                                <h2 class="text-danger fw-bold">Application Status Update</h2>
-                                <p>Status changed to: <strong>${notification.newStatus}</strong>.</p>
-                                <a href="index.html" class="btn btn-outline-secondary mt-3">Return Home</a>
+                                <div class="animate__animated animate__shakeX">
+                                    <h2 class="text-danger fw-bold"><i class="fa-solid fa-circle-exclamation"></i> Application Rejected</h2>
+                                    <p class="lead">We could not process your enrollment at this time.</p>
+                                    
+                                    <div class="alert alert-danger text-start d-inline-block">
+                                        <strong>Next Steps:</strong><br>
+                                        1. Check your email inbox (and spam folder) immediately.<br>
+                                        2. Read the rejection reason provided by the Admin.<br>
+                                        3. You may need to re-submit with correct documents.
+                                    </div>
+                                    <br>
+                                    <a href="enrollment.html" class="btn btn-outline-danger mt-4">Try Again</a>
+                                    <a href="index.html" class="btn btn-outline-secondary mt-4 ms-2">Return Home</a>
+                                </div>
                             `;
                         }
                     });
