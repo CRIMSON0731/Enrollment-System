@@ -484,13 +484,14 @@ function setupMobileToggle() {
     }
 }
 
-// --- NEW: Re-enrollment Logic (UPDATED: CHECKS SERVER STATUS) ---
+// --- NEW: Re-enrollment Logic (UPDATED: CHECKS SERVER STATUS + FILE UPLOAD) ---
 async function setupReEnrollment(appData) {
     const btn = document.getElementById('btn-re-enroll');
     const select = document.getElementById('next-grade-select');
     const actionCenter = document.getElementById('action-center-widget'); 
+    const fileInput = document.getElementById('re-enroll-card'); // FILE INPUT
 
-    if (!btn || !select || !actionCenter) return;
+    if (!btn || !select || !actionCenter || !fileInput) return;
 
     // 1. Check if Enrollment is CLOSED globally
     try {
@@ -503,13 +504,13 @@ async function setupReEnrollment(appData) {
             btn.classList.remove('btn-success');
             btn.classList.add('btn-secondary');
             select.disabled = true;
+            fileInput.disabled = true; // Disable file input too
             
-            // Add a visible notice
             const notice = document.createElement('p');
             notice.className = 'text-danger small fw-bold mt-2 mb-0';
             notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment period is currently closed by the admin.';
             actionCenter.querySelector('.d-flex.flex-column').appendChild(notice);
-            return; // Stop here
+            return; 
         }
     } catch(e) {
         console.error("Failed to check status", e);
@@ -541,6 +542,7 @@ async function setupReEnrollment(appData) {
         btn.textContent = 'Application Under Review';
         btn.className = 'btn btn-secondary fw-bold'; 
         select.disabled = true;
+        fileInput.disabled = true;
         return;
     }
 
@@ -552,21 +554,29 @@ async function setupReEnrollment(appData) {
             return;
         }
 
+        // File Validation
+        if (fileInput.files.length === 0) {
+            alert("Please upload your previous Report Card to proceed.");
+            return;
+        }
+
         if (!confirm(`Are you sure you want to enroll for ${nextGrade}?`)) {
             return;
         }
 
         btn.disabled = true;
-        btn.textContent = "Processing...";
+        btn.textContent = "Uploading...";
+
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('applicationId', appData.id);
+        formData.append('nextGradeLevel', nextGrade);
+        formData.append('school_card', fileInput.files[0]);
 
         try {
             const response = await fetch('https://enrollment-system-production-6820.up.railway.app/student-re-enroll', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    applicationId: appData.id,
-                    nextGradeLevel: nextGrade
-                })
+                body: formData // Use formData instead of JSON
             });
             
             const data = await response.json();
