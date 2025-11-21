@@ -1,7 +1,7 @@
 /**
  * File: admin.js
  * Description: Complete Admin Panel Logic for Enrollment System
- * Features: Application Review, Inquiry Management, Announcements, Security, Toggle Enrollment
+ * Features: Application Review, Inquiry Management, Announcements, Security, Real-Time Notifications
  */
 
 // =========================================================================
@@ -17,6 +17,11 @@ let currentGradeLevel = 'ALL';
 let currentStudentType = 'ALL'; // Values: 'ALL', 'NEW', 'OLD'
 let currentSortKey = 'created_at'; 
 let currentSortDir = 'desc'; 
+
+// Real-Time Monitoring State
+let lastKnownApplicationCount = 0;
+let isFirstLoad = true;
+const POLLING_INTERVAL = 5000; // Check for updates every 5 seconds
 
 // Server Configuration
 const SERVER_URL = 'https://enrollment-system-production-6820.up.railway.app'; 
@@ -89,6 +94,9 @@ function loadAdminContent() {
     
     // 4. Trigger Animations
     setTimeout(animateQuickStats, 500); 
+
+    // 5. Start Real-Time Monitoring (Heartbeat)
+    startRealTimeMonitoring();
 }
 
 // --- UTILITY: Notification System ---
@@ -102,7 +110,7 @@ function showNotification(message, type) {
   
   setTimeout(() => {
     notification.classList.remove('show');
-  }, 3000);
+  }, 4000); // Increased duration slightly for alerts
 }
 
 // --- UTILITY: Stats Animation ---
@@ -121,7 +129,10 @@ function animateQuickStats() {
 
 async function simulateDataLoad() {
     const tableBody = document.getElementById('applications-tbody');
-    tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Loading applications from server...</td></tr>';
+    // Only show loading spinner on the very first load, not during background updates
+    if (isFirstLoad) {
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Loading applications from server...</td></tr>';
+    }
 
     try {
         const response = await fetch(`${SERVER_URL}/get-applications`);
@@ -129,15 +140,22 @@ async function simulateDataLoad() {
 
         if (data.success) {
             allApplications = data.applications;
+
+            // Sync the counter so we don't trigger alerts on the initial page load
+            if (isFirstLoad) {
+                lastKnownApplicationCount = allApplications.length;
+                isFirstLoad = false;
+            }
+
             updateQuickStats();
             applyFiltersAndDisplay(); 
         } else {
-            tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load applications.</td></tr>';
+            if (isFirstLoad) tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load applications.</td></tr>';
         }
         
     } catch (error) {
         console.error('Error connecting to server:', error);
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Connection error. Is the server running?</td></tr>';
+        if (isFirstLoad) tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Connection error. Is the server running?</td></tr>';
     }
 }
 
@@ -170,7 +188,6 @@ function applyFiltersAndDisplay() {
         }
 
         // 2. Student Type Filter (NEW vs OLD)
-        // app.is_old_student is 1 (Old) or 0 (New) from server
         if (currentStudentType === 'NEW' && app.is_old_student === 1) return false;
         if (currentStudentType === 'OLD' && app.is_old_student === 0) return false;
 
@@ -235,6 +252,9 @@ function displayTableContent(applicationsToDisplay) {
     
     applicationsToDisplay.forEach(app => {
       const row = document.createElement('tr');
+      // Use ID for row highlighting later
+      row.setAttribute('data-row-id', app.id);
+
       const formattedDate = new Date(app.created_at || Date.now()).toLocaleDateString(); 
       
       // Badge logic for New vs Old
@@ -308,7 +328,6 @@ async function showApplicationDetails(appId) {
         const isOldStudent = fullApp.is_old_student === 1; 
         const birthdate = new Date(fullApp.birthdate || fullApp.bday || '2000-01-01').toLocaleDateString();
         
-        // FIX: Extract pure number for calculations to avoid NaN
         const gradeNum = parseInt(fullApp.grade_level.toString().replace(/\D/g, ''), 10);
 
         const isApproved = fullApp.status === 'Approved';
@@ -341,7 +360,6 @@ async function showApplicationDetails(appId) {
         let documentsHtml = '';
         
         if (isOldStudent) {
-            // Old Student: Shows New Report Card AND Old Documents
             documentsHtml = `
                 <h5 class="mt-3 text-primary border-bottom pb-2">Current Re-Enrollment Requirement:</h5>
                 <div class="mb-3 p-3 border rounded bg-light shadow-sm">
@@ -365,7 +383,6 @@ async function showApplicationDetails(appId) {
                 </div>
             `;
         } else {
-            // New Student: Needs all documents
             documentsHtml = `
                 <h5 class="mt-3 text-success">New Student Requirements:</h5>
                 <div class="list-group">
@@ -442,6 +459,7 @@ async function updateStatus(newStatus) {
         if (data.success) {
             showNotification(data.message, 'success');
             detailsModal.hide(); 
+            // Refresh but keep real-time sync in mind
             simulateDataLoad(); 
         } else {
             showNotification(`Error: ${data.message}`, 'error');
@@ -851,7 +869,7 @@ function addTabListeners() {
         });
     });
 
-    // NEW: Student Type Tabs
+    // Student Type Tabs
     document.querySelectorAll('.type-tabs .tab-button').forEach(button => {
         button.addEventListener('click', (e) => {
             document.querySelectorAll('.type-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
@@ -973,4 +991,119 @@ function addModalListeners() {
             }
         });
     }
+}
+
+// =========================================================================
+// 12. REAL-TIME NOTIFICATION SYSTEM
+// =========================================================================
+
+function startRealTimeMonitoring() {
+    // Poll the server every 5 seconds (POLLING_INTERVAL)
+    setInterval(async () => {
+        try {
+            // 1. Silent Fetch (does not show loading spinners)
+            const response = await fetch(`${SERVER_URL}/get-applications`);
+            const data = await response.json();
+
+            if (data.success) {
+                checkForNewApplications(data.applications);
+            }
+        } catch (error) {
+            // Silent fail: we don't want to annoy admin with connection errors every 5 seconds
+            console.warn("Real-time sync skipped due to connection issue.");
+        }
+    }, POLLING_INTERVAL);
+}
+
+function checkForNewApplications(newServerData) {
+    // If this is the very first load or a manual refresh just happened, just sync count
+    if (isFirstLoad) {
+        lastKnownApplicationCount = newServerData.length;
+        isFirstLoad = false;
+        return;
+    }
+
+    // Check if we have MORE applications than before
+    if (newServerData.length > lastKnownApplicationCount) {
+        
+        // Identify exactly which applications are new
+        const currentIds = new Set(allApplications.map(app => app.id));
+        const newEntries = newServerData.filter(app => !currentIds.has(app.id));
+
+        if (newEntries.length > 0) {
+            // Update the Global Data Source
+            allApplications = newServerData;
+            lastKnownApplicationCount = newServerData.length;
+
+            // Refresh the Table and Stats immediately
+            updateQuickStats();
+            applyFiltersAndDisplay();
+
+            // Trigger Notifications for each new entry
+            newEntries.forEach(app => {
+                triggerNewApplicantAlert(app);
+            });
+        }
+    } 
+    // Handle edge case: If admin deleted someone, sync the count downwards so logic doesn't break next time
+    else if (newServerData.length < lastKnownApplicationCount) {
+        lastKnownApplicationCount = newServerData.length;
+        allApplications = newServerData; // Sync silently
+        updateQuickStats();
+        applyFiltersAndDisplay();
+    }
+}
+
+function triggerNewApplicantAlert(app) {
+    // Determine text based on student type
+    const typeText = app.is_old_student ? "Old Student Re-Enrollment" : "New Student Application";
+    const name = `${app.first_name} ${app.last_name}`;
+    
+    // 1. Show Toast Notification
+    showNotification(`🔔 New ${typeText}: ${name}`, 'success');
+
+    // 2. Play a Notification Sound
+    playNotificationSound();
+    
+    // 3. Highlight the new row
+    highlightNewRow(app.id);
+}
+
+function playNotificationSound() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(500, audioCtx.currentTime); // Frequency
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume
+        
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), 200); // Duration
+    } catch(e) {
+        console.warn("Audio Context blocked or not supported.");
+    }
+}
+
+function highlightNewRow(id) {
+    // Wait for table to re-render then flash the row
+    setTimeout(() => {
+        // We rely on the data-row-id attribute we added in displayTableContent
+        const row = document.querySelector(`tr[data-row-id="${id}"]`);
+        
+        if(row) {
+             row.style.backgroundColor = "#d4edda"; // Light green flash
+             row.style.transition = "background-color 1s";
+             // Scroll into view if needed
+             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+             
+             setTimeout(() => {
+                 row.style.backgroundColor = "transparent";
+             }, 3000);
+        }
+    }, 200); // Small delay to allow DOM to update
 }
