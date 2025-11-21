@@ -484,39 +484,58 @@ function setupMobileToggle() {
     }
 }
 
-// --- NEW: Re-enrollment Logic (UPDATED: Shows ONLY Next Grade) ---
-function setupReEnrollment(appData) {
+// --- NEW: Re-enrollment Logic (UPDATED: CHECKS SERVER STATUS) ---
+async function setupReEnrollment(appData) {
     const btn = document.getElementById('btn-re-enroll');
     const select = document.getElementById('next-grade-select');
-    const actionCenter = document.querySelector('.dashboard-widget[style*="border-left: 5px solid #2b7a0b"]');
+    const actionCenter = document.getElementById('action-center-widget'); 
 
     if (!btn || !select || !actionCenter) return;
 
-    // Extract number (e.g., "Grade 7" -> 7)
+    // 1. Check if Enrollment is CLOSED globally
+    try {
+        const statusRes = await fetch('https://enrollment-system-production-6820.up.railway.app/get-enrollment-status');
+        const statusData = await statusRes.json();
+        
+        if (statusData.success && !statusData.isOpen) {
+            btn.disabled = true;
+            btn.textContent = "Enrollment Closed";
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-secondary');
+            select.disabled = true;
+            
+            // Add a visible notice
+            const notice = document.createElement('p');
+            notice.className = 'text-danger small fw-bold mt-2 mb-0';
+            notice.innerHTML = '<i class="fa-solid fa-lock"></i> Enrollment period is currently closed by the admin.';
+            actionCenter.querySelector('.d-flex.flex-column').appendChild(notice);
+            return; // Stop here
+        }
+    } catch(e) {
+        console.error("Failed to check status", e);
+    }
+
+    // 2. Existing Logic (Grade Check)
     const currentGrade = parseInt(appData.grade_level.replace(/\D/g, '')); 
-    
-    // If student is already Grade 10, hide the action center
     if (currentGrade >= 10) {
         actionCenter.style.display = 'none'; 
         return;
     }
 
-    // Logic: Show ONLY the option that matches (Current Grade + 1)
     const nextGradeLevel = currentGrade + 1;
     const allOptions = select.querySelectorAll('option');
     
     allOptions.forEach(opt => {
-        if (opt.disabled) return; // Skip the placeholder
+        if (opt.disabled) return; 
         const optGrade = parseInt(opt.value.replace(/\D/g, ''));
         
         if (optGrade === nextGradeLevel) {
-            opt.style.display = 'block'; // Show this specific next grade
+            opt.style.display = 'block'; 
         } else {
-            opt.style.display = 'none'; // Hide everything else
+            opt.style.display = 'none'; 
         }
     });
 
-    // If Pending Review, disable button
     if (appData.status === 'Pending Review') {
         btn.disabled = true;
         btn.textContent = 'Application Under Review';
@@ -603,8 +622,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("student-name").textContent = appData.first_name;
   document.getElementById("student-name-full").textContent = `${appData.first_name} ${appData.last_name}`;
   
-  // UPDATED: Show Grade Level in the Green Status Box
-  // If grade level starts with "Grade", use it, otherwise append "Grade"
   const formattedGrade = appData.grade_level.includes('Grade') ? appData.grade_level : `Grade ${appData.grade_level}`;
   document.getElementById("status-summary-text").textContent = `${appData.status} (${formattedGrade})`;
 
