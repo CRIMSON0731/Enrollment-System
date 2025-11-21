@@ -59,15 +59,9 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' })); 
 app.use(cors()); 
 
-app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'ok', message: 'Server is running' });
-});
-
-app.get('/', (req, res) => {
-    res.send('<h1>Server is running!</h1><p>If you see this, the deployment is working.</p>');
-});
-
-app.use('/uploads', express.static('uploads')); 
+// --- CRITICAL FIX: USE ABSOLUTE PATH FOR UPLOADS ---
+// This ensures the server finds the folder regardless of where the script is run
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
 app.use(express.static(__dirname)); 
 
 // -----------------------------------------------------------------
@@ -122,7 +116,7 @@ server.listen(PORT, '0.0.0.0', () => {
 attemptDbConnection();
 
 // -----------------------------------------------------------------
-// FILE UPLOAD CONFIGURATION (FIXED)
+// FILE UPLOAD CONFIGURATION
 // -----------------------------------------------------------------
 
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
