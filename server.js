@@ -29,6 +29,9 @@ const io = new Server(server, {
     }
 });
 
+// GLOBAL STATE FOR ENROLLMENT
+let enrollmentOpen = false; // Default closed
+
 app.use((req, res, next) => {
     const allowedOrigins = [
         'https://crimson0731.github.io',
@@ -287,6 +290,18 @@ io.on('connection', (socket) => {
 // ROUTES
 // -----------------------------------------------------------------
 
+// NEW ROUTES FOR ENROLLMENT TOGGLE
+app.get('/get-enrollment-status', (req, res) => {
+    res.json({ success: true, isOpen: enrollmentOpen });
+});
+
+app.post('/toggle-enrollment', (req, res) => {
+    const { isOpen } = req.body;
+    enrollmentOpen = isOpen;
+    console.log(`Enrollment system is now ${enrollmentOpen ? 'OPEN' : 'CLOSED'}`);
+    res.json({ success: true, message: `Enrollment is now ${isOpen ? 'OPEN' : 'CLOSED'}` });
+});
+
 // === UPDATED: FORGOT PASSWORD ENDPOINT ===
 // Changed from '/request-password-reset' to '/forgot-password'
 app.post('/forgot-password', (req, res) => {
@@ -432,41 +447,6 @@ app.post('/submit-application', (req, res) => {
         });
     });
 });
-
-// ==========================================
-//      RE-ENROLLMENT ROUTE (NEW FEATURE)
-// ==========================================
-app.post('/student-re-enroll', (req, res) => {
-    const { applicationId, nextGradeLevel } = req.body;
-
-    if (!applicationId || !nextGradeLevel) {
-        return res.status(400).json({ success: false, message: 'Missing required fields.' });
-    }
-
-    // Logic: Update grade, reset status to 'Pending Review', and update timestamp
-    // This effectively "submits" them to the top of the Admin's list
-    const sql = `
-        UPDATE applications 
-        SET grade_level = ?, status = 'Pending Review', created_at = NOW() 
-        WHERE id = ?`;
-
-    db.query(sql, [nextGradeLevel, applicationId], (err, result) => {
-        if (err) {
-            console.error("Re-enrollment DB Error:", err);
-            return res.status(500).json({ success: false, message: "Database error during re-enrollment." });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: "Student record not found." });
-        }
-
-        // Notify Admin via Socket
-        io.emit('newApplicationReceived', { message: `A student has re-enrolled for ${nextGradeLevel}` });
-
-        res.json({ success: true, message: "Re-enrollment successful! Your status is now Pending Review." });
-    });
-});
-
 
 app.get('/get-applications', (req, res) => {
     const sql = 'SELECT id, first_name, last_name, email, grade_level, status, created_at FROM applications ORDER BY created_at DESC';
@@ -856,5 +836,44 @@ app.post('/reply-inquiry', (req, res) => {
 
             res.json({ success: true, message: "Reply sent to student's email and status updated." });
         });
+    });
+});
+
+// ==========================================
+//      RE-ENROLLMENT ROUTE (NEW FEATURE)
+// ==========================================
+app.post('/student-re-enroll', (req, res) => {
+    // FIRST CHECK: Is enrollment open?
+    if (!enrollmentOpen) {
+        return res.json({ success: false, message: "Enrollment is currently closed by the admin." });
+    }
+
+    const { applicationId, nextGradeLevel } = req.body;
+
+    if (!applicationId || !nextGradeLevel) {
+        return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    }
+
+    // Logic: Update grade, reset status to 'Pending Review', and update timestamp
+    // This effectively "submits" them to the top of the Admin's list
+    const sql = `
+        UPDATE applications 
+        SET grade_level = ?, status = 'Pending Review', created_at = NOW() 
+        WHERE id = ?`;
+
+    db.query(sql, [nextGradeLevel, applicationId], (err, result) => {
+        if (err) {
+            console.error("Re-enrollment DB Error:", err);
+            return res.status(500).json({ success: false, message: "Database error during re-enrollment." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Student record not found." });
+        }
+
+        // Notify Admin via Socket
+        io.emit('newApplicationReceived', { message: `A student has re-enrolled for ${nextGradeLevel}` });
+
+        res.json({ success: true, message: "Re-enrollment successful! Your status is now Pending Review." });
     });
 });
