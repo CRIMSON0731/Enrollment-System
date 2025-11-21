@@ -123,7 +123,18 @@
     </section>
 
     <section id="content-announcement" class="main-content-section" style="display: none;">
-        <h2>Create New Announcement</h2>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Manage Announcements</h2>
+            
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="enrollment-toggle" style="width: 50px; height: 25px; cursor: pointer;">
+                <label class="form-check-label fw-bold ms-2" for="enrollment-toggle" id="enrollment-toggle-label" style="font-size: 1.1rem; padding-top: 2px;">
+                    Enrollment: CLOSED
+                </label>
+            </div>
+        </div>
+
         <form id="create-announcement-form" class="form-card">
             <div class="input-group">
                 <label for="announcement-title">Title (e.g., Enrollment Orientation)</label>
