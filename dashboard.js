@@ -306,7 +306,14 @@ async function loadFullApplicationDetails(appData) {
 
         const fullApp = data.application;
         let linksHtml = '';
-        const getMockStatus = () => appData.status === 'Approved' ? 'Verified' : (appData.status === 'Rejected' ? 'Rejected' : 'Pending');
+        
+        // --- FIX: Ensure 'Approved' status translates to 'Verified' (Green Badge) ---
+        const getMockStatus = () => {
+             if(appData.status === 'Approved') return 'Verified';
+             if(appData.status === 'Rejected') return 'Rejected';
+             return 'Pending';
+        };
+
         const docs = [
             { path: fullApp.doc_card_path, name: "School Card" },
             { path: fullApp.doc_psa_path, name: "PSA" },
@@ -317,6 +324,7 @@ async function loadFullApplicationDetails(appData) {
         docs.forEach(doc => {
             if (doc.path) {
                 const status = getMockStatus();
+                // Ensure CSS class matches: .doc-status-verified for green
                 const statusClass = `doc-status-${status.toLowerCase()}`;
                 linksHtml += `
                     <div class="file-link-wrapper">
@@ -540,7 +548,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const newData = { ...appData, ...serverApp };
             localStorage.setItem("applicationData", JSON.stringify(newData));
+            
+            // 1. Update General UI (Header, Status Bar)
             updateDashboardUI(newData);
+            
+            // 2. Update Documents Section (This was missing before!)
+            loadFullApplicationDetails(newData);
+            
             appData = newData;
         }
     })
@@ -556,7 +570,11 @@ document.addEventListener("DOMContentLoaded", () => {
           appData.status = data.newStatus;
           localStorage.setItem("applicationData", JSON.stringify(appData));
           showNotification("🔔 Status Update: " + data.newStatus, data.newStatus === 'Approved' ? 'success' : 'info');
+          
           updateDashboardUI(appData);
+          
+          // FIX: Also update documents immediately when socket event fires
+          loadFullApplicationDetails(appData); 
       });
 
       // 2. Enrollment Toggle (Real-Time)
