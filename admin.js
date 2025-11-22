@@ -1014,7 +1014,7 @@ function addModalListeners() {
 }
 
 // =========================================================================
-// 12. REAL-TIME NOTIFICATION SYSTEM
+// 12. REAL-TIME NOTIFICATION SYSTEM (UPDATED)
 // =========================================================================
 
 function startRealTimeMonitoring() {
@@ -1036,56 +1036,78 @@ function startRealTimeMonitoring() {
 }
 
 function checkForNewApplications(newServerData) {
-    // If this is the very first load or a manual refresh just happened, just sync count
+    // If this is the very first load, just sync the data and exit
     if (isFirstLoad) {
+        allApplications = newServerData;
         lastKnownApplicationCount = newServerData.length;
         isFirstLoad = false;
         return;
     }
 
-    // Check if we have MORE applications than before
-    if (newServerData.length > lastKnownApplicationCount) {
+    let refreshNeeded = false;
+
+    // Create a map of current applications for fast lookup by ID
+    // Map Key: ID, Map Value: Application Object
+    const currentAppMap = new Map(allApplications.map(app => [app.id, app]));
+
+    // Loop through the NEW data from server
+    newServerData.forEach(newApp => {
+        const oldApp = currentAppMap.get(newApp.id);
+
+        // CHECK 1: Is this a completely new student? (ID didn't exist before)
+        if (!oldApp) {
+            triggerNewApplicantAlert(newApp, 'NEW');
+            refreshNeeded = true;
+        } 
         
-        // Identify exactly which applications are new
-        const currentIds = new Set(allApplications.map(app => app.id));
-        const newEntries = newServerData.filter(app => !currentIds.has(app.id));
-
-        if (newEntries.length > 0) {
-            // Update the Global Data Source
-            allApplications = newServerData;
-            lastKnownApplicationCount = newServerData.length;
-
-            // Refresh the Table and Stats immediately
-            updateQuickStats();
-            applyFiltersAndDisplay();
-
-            // Trigger Notifications for each new entry
-            newEntries.forEach(app => {
-                triggerNewApplicantAlert(app);
-            });
+        // CHECK 2: Did the status change? (Specifically looking for Resubmissions)
+        // If old status was NOT 'Pending Review' (e.g. Rejected) AND new status IS 'Pending Review'
+        else if (oldApp.status !== 'Pending Review' && newApp.status === 'Pending Review') {
+            triggerNewApplicantAlert(newApp, 'RESUBMIT');
+            refreshNeeded = true;
         }
-    } 
-    // Handle edge case: If admin deleted someone, sync the count downwards so logic doesn't break next time
-    else if (newServerData.length < lastKnownApplicationCount) {
+        
+        // CHECK 3: General Status Change (e.g. Another admin approved it elsewhere)
+        // We just need to refresh the table, but we don't need a loud notification
+        else if (oldApp.status !== newApp.status) {
+            refreshNeeded = true;
+        }
+    });
+
+    // CHECK 4: Did the total count decrease? (Someone was deleted)
+    if (newServerData.length < allApplications.length) {
+        refreshNeeded = true;
+    }
+
+    // If any changes were detected, update the global variables and UI
+    if (refreshNeeded) {
+        allApplications = newServerData;
         lastKnownApplicationCount = newServerData.length;
-        allApplications = newServerData; // Sync silently
         updateQuickStats();
         applyFiltersAndDisplay();
     }
 }
 
-function triggerNewApplicantAlert(app) {
-    // Determine text based on student type
-    const typeText = app.is_old_student ? "Old Student Re-Enrollment" : "New Student Application";
-    const name = `${app.first_name} ${app.last_name}`;
+function triggerNewApplicantAlert(app, type) {
+    let title = "";
+    let messageType = "success";
+
+    if (type === 'RESUBMIT') {
+        title = `🔄 Resubmission: ${app.first_name} ${app.last_name}`;
+        messageType = "info"; // Different color for resubmission if css supports it, else defaults
+    } else {
+        // Standard New Application
+        const typeText = app.is_old_student ? "Old Student Re-Enrollment" : "New Student Application";
+        title = `🔔 New ${typeText}: ${app.first_name} ${app.last_name}`;
+    }
     
     // 1. Show Toast Notification
-    showNotification(`🔔 New ${typeText}: ${name}`, 'success');
+    showNotification(title, messageType === "info" ? "success" : "success");
 
     // 2. Play a Notification Sound
     playNotificationSound();
     
-    // 3. Highlight the new row
+    // 3. Highlight the row
     highlightNewRow(app.id);
 }
 
