@@ -548,25 +548,55 @@ app.get('/get-inquiries', (req, res) => {
     db.query("SELECT * FROM inquiries ORDER BY created_at DESC", (err, r) => res.json({ success: true, inquiries: r }));
 });
 
-// --- UPDATED REPLY INQUIRY (WITH SOCKET NOTIFICATION) ---
+// --- UPDATED REPLY INQUIRY (NOW SENDS EMAIL VIA SENDGRID) ---
 app.post('/reply-inquiry', (req, res) => {
-    const { inquiryId, status, message } = req.body; // Expecting admin to send a message
+    const { inquiryId, status, message } = req.body;
 
-    db.query("UPDATE inquiries SET status = ? WHERE id = ?", [status, inquiryId], (err) => {
-        if (err) {
-            console.error("DB Update Error:", err);
-            return res.status(500).json({ success: false });
-        }
+    // 1. Get the inquirer's email first
+    db.query("SELECT * FROM inquiries WHERE id = ?", [inquiryId], (err, results) => {
+        if (err || results.length === 0) return res.status(500).json({ success: false, message: "Inquiry not found." });
 
-        // --- REAL-TIME NOTIFICATION TO SITE ---
-        // This tells the room "inquiry-123" that a reply happened
-        io.to(`inquiry-${inquiryId}`).emit('inquiryReplied', {
-            message: message || "The admin has updated the status of your inquiry."
+        const inquiry = results[0];
+        const recipientEmail = inquiry.sender_email;
+        const recipientName = inquiry.sender_name;
+
+        // 2. Update the status in DB
+        db.query("UPDATE inquiries SET status = ? WHERE id = ?", [status, inquiryId], async (updateErr) => {
+            if (updateErr) return res.status(500).json({ success: false });
+
+            // 3. Send Real-time Notification (Socket)
+            io.to(`inquiry-${inquiryId}`).emit('inquiryReplied', {
+                message: message || "The admin has updated the status of your inquiry."
+            });
+
+            // 4. Send Email via SendGrid
+            if (message) { // Only send email if there is a message content
+                const msg = {
+                    to: recipientEmail,
+                    from: 'dalonzohighschool@gmail.com',
+                    subject: `Re: ${inquiry.subject} - Inquiry Update`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #2b7a0b;">
+                            <h3>Hello ${recipientName},</h3>
+                            <p>We are replying to your inquiry regarding: <strong>${inquiry.subject}</strong></p>
+                            <hr>
+                            <p><strong>Admin Response:</strong></p>
+                            <p style="background-color: #f9f9f9; padding: 15px;">${message}</p>
+                            <br>
+                            <p>Sincerely,<br>Doña Teodora Alonzo Highschool Admin</p>
+                        </div>
+                    `
+                };
+                try {
+                    await sgMail.send(msg);
+                    console.log(`Reply email sent to ${recipientEmail}`);
+                } catch (emailErr) {
+                    console.error("Reply Email Failed:", emailErr);
+                }
+            }
+
+            res.json({ success: true });
         });
-
-        // (Optional: You could also send an email reply here using SendGrid if you wanted)
-
-        res.json({ success: true });
     });
 });
 
