@@ -2,6 +2,9 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     
+    // --- CONFIGURATION ---
+    const API_BASE_URL = 'https://enrollment-system-production-6820.up.railway.app';
+
     // --- HEADER SCROLL BEHAVIOR ---
     let lastScrollTop = 0;
     const navbar = document.querySelector('.navbar');
@@ -65,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- SOCKET.IO (REAL-TIME NOTIFICATIONS) ---
-    const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
+    const socket = io(API_BASE_URL); 
 
     // Global listener (in case the user is already watching from a previous session)
     socket.on('inquiryReplied', (data) => {
@@ -101,7 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const response = await fetch('https://enrollment-system-production-6820.up.railway.app/login', {
+                // Using API_BASE_URL variable
+                const response = await fetch(`${API_BASE_URL}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: usernameInput.value, password: passwordInput.value })
@@ -173,7 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const response = await fetch('https://enrollment-system-production-6820.up.railway.app/submit-inquiry', {
+                // Using API_BASE_URL variable
+                const response = await fetch(`${API_BASE_URL}/submit-inquiry`, {
                     method: 'POST',
                     body: formData 
                 });
@@ -237,8 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.textContent = 'Sending...';
 
             try {
-                // We send a POST request to /forgot-password
-                const response = await fetch('https://enrollment-system-production-6820.up.railway.app/forgot-password', {
+                // Using API_BASE_URL variable
+                const response = await fetch(`${API_BASE_URL}/forgot-password`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: emailInput.value })
