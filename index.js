@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- NOTIFICATION SYSTEM ---
+    // --- NOTIFICATION SYSTEM (Top Bar) ---
     const notificationBarEl = document.getElementById('notification-bar'); 
     
     function showNotification(message, type) {
@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (type === 'success') notificationBarEl.classList.add('success');
         else if (type === 'error') notificationBarEl.classList.add('error');
+        else if (type === 'info') notificationBarEl.classList.add('info');
         
         notificationBarEl.style.transition = 'none';
         notificationBarEl.style.top = '-100px'; 
@@ -66,8 +67,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- SOCKET.IO (REAL-TIME NOTIFICATIONS) ---
     const socket = io('https://enrollment-system-production-6820.up.railway.app'); 
 
-    socket.on('inquiryReplyReceived', (data) => {
-        showNotification('🔔 ' + data.message, 'info'); 
+    // Global listener (in case the user is already watching from a previous session)
+    socket.on('inquiryReplied', (data) => {
+        // We use SweetAlert here for high visibility when a reply comes in
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'New Message',
+                text: data.message,
+                confirmButtonText: 'Check Email'
+            });
+        } else {
+            showNotification('🔔 ' + data.message, 'info'); 
+        }
     });
 
     // ============================================================
@@ -125,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 2. INQUIRY FORM SUBMISSION LOGIC
+    // 2. INQUIRY FORM SUBMISSION LOGIC (UPDATED WITH SWEETALERT)
     // ============================================================
     const inquiryForm = document.getElementById('inquiry-form');
     
@@ -133,12 +145,21 @@ document.addEventListener('DOMContentLoaded', () => {
         inquiryForm.addEventListener('submit', async (e) => {
             e.preventDefault(); 
             
-            const submitBtn = inquiryForm.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
-            showNotification('Sending inquiry...', 'info');
+            // Check if SweetAlert is loaded, otherwise fallback
+            if (typeof Swal === 'undefined') {
+                alert("SweetAlert2 script is missing from HTML. Please add it.");
+                return;
+            }
+
+            // 1. Show Loading Popup
+            Swal.fire({
+                title: 'Sending inquiry...',
+                text: 'Please wait while we upload your message.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
             const formData = new FormData();
             formData.append('name', document.getElementById('inquiry-name').value);
@@ -160,23 +181,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 
                 if (data.success) {
-                    showNotification('Inquiry sent successfully! Please check your email (inbox/spam) for our reply.', 'success');
+                    // 2. Show Success Popup
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Inquiry Sent!',
+                        text: 'We have received your message. If the admin replies while you are here, you will be notified.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+
                     inquiryForm.reset();
                     
-                    // Watch for this specific inquiry ID
+                    // 3. REAL-TIME WATCH LOGIC
+                    // If the server returned an inquiryId, we tell Socket.io to "watch" this specific ID
                     if (data.inquiryId) {
                         socket.emit('watchInquiry', data.inquiryId);
-                        console.log("Watching inquiry #" + data.inquiryId);
+                        console.log("Socket is watching inquiry #" + data.inquiryId);
+                        
+                        // We are now listening for the 'inquiryReplied' event (handled by the global listener above)
                     }
+
                 } else {
-                    showNotification(`Error: ${data.message}`, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed',
+                        text: data.message
+                    });
                 }
             } catch (error) {
                 console.error("Inquiry Error:", error);
-                showNotification('Network error. Please check your connection.', 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Could not connect to the server. Please check your internet.'
+                });
             }
         });
     }
@@ -212,8 +250,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Close the modal
                     const modalEl = document.getElementById('forgotPasswordModal');
                     // We assume 'bootstrap' global is available since bootstrap.bundle.min.js is included
-                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                    if (modalInstance) modalInstance.hide();
+                    if (typeof bootstrap !== 'undefined') {
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+                    }
 
                     // Show success message
                     showNotification('Password reset link sent! Check your email.', 'success');
