@@ -548,8 +548,26 @@ app.get('/get-inquiries', (req, res) => {
     db.query("SELECT * FROM inquiries ORDER BY created_at DESC", (err, r) => res.json({ success: true, inquiries: r }));
 });
 
+// --- UPDATED REPLY INQUIRY (WITH SOCKET NOTIFICATION) ---
 app.post('/reply-inquiry', (req, res) => {
-    db.query("UPDATE inquiries SET status = ? WHERE id = ?", [req.body.status, req.body.inquiryId], () => res.json({ success: true }));
+    const { inquiryId, status, message } = req.body; // Expecting admin to send a message
+
+    db.query("UPDATE inquiries SET status = ? WHERE id = ?", [status, inquiryId], (err) => {
+        if (err) {
+            console.error("DB Update Error:", err);
+            return res.status(500).json({ success: false });
+        }
+
+        // --- REAL-TIME NOTIFICATION TO SITE ---
+        // This tells the room "inquiry-123" that a reply happened
+        io.to(`inquiry-${inquiryId}`).emit('inquiryReplied', {
+            message: message || "The admin has updated the status of your inquiry."
+        });
+
+        // (Optional: You could also send an email reply here using SendGrid if you wanted)
+
+        res.json({ success: true });
+    });
 });
 
 app.post('/generate-credentials', (req, res) => {
