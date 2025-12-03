@@ -1,12 +1,5 @@
 const sgMail = require('@sendgrid/mail');
-
-// Set the key using the environment variable
-if (process.env.SENDGRID_API_KEY) {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-} else {
-    console.warn("⚠️ WARNING: SENDGRID_API_KEY is missing in environment variables.");
-}
-
+const nodemailer = require('nodemailer'); 
 const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
@@ -15,11 +8,18 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const mysql = require('mysql2'); 
-const nodemailer = require('nodemailer'); 
 const bcrypt = require('bcryptjs'); 
+
+// Set the SendGrid key using the environment variable
+if (process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+} else {
+    console.warn("⚠️ WARNING: SENDGRID_API_KEY is missing in environment variables.");
+}
 
 const PORT = process.env.PORT || 8080;
 console.log(`🔍 Attempting to start server on PORT: ${PORT}`);
+
 const app = express();
 const server = http.createServer(app); 
 const io = new Server(server, { 
@@ -64,7 +64,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cors()); 
 
 // --- CRITICAL FIX: SERVE UPLOADS WITH ABSOLUTE PATH ---
-// This ensures images/PDFs load correctly on cloud hosting like Railway
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
 app.use(express.static(__dirname)); 
 
@@ -133,7 +132,7 @@ const storage = multer.diskStorage({
     }
 });
 
-// 1. Main Multer Instance (Use this for general configs)
+// 1. Main Multer Instance
 const upload = multer({
     storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
@@ -146,28 +145,13 @@ const upload = multer({
     }
 });
 
-// 2. Specific Middleware for New Applications (FIX: Increased Limits for Multiple Files)
+// 2. Specific Middleware for New Applications
 const uploadApplicationFiles = upload.fields([
     { name: 'card_file', maxCount: 10 },
     { name: 'psa_file', maxCount: 10 },
     { name: 'f137_file', maxCount: 10 },
     { name: 'brgy_cert_file', maxCount: 10 }
 ]);
-
-const cleanupFiles = (files) => {
-    files.forEach(file => {
-        if (file) {
-            try {
-                const filePath = path.join(__dirname, 'uploads', file); 
-                fs.unlinkSync(filePath); 
-            } catch (e) {
-                if (e.code !== 'ENOENT') {
-                    console.error('File Cleanup Error (Suppressed):', file, e);
-                }
-            }
-        }
-    });
-};
 
 // =========================================================================
 // 4. HELPER FUNCTIONS (EMAIL & CREDENTIALS)
@@ -260,7 +244,6 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     }
 }
 
-// --- NEW HELPER: Send Re-Enrollment Approval Email (For Old Students) ---
 async function sendReEnrollmentEmail(recipientEmail, studentName, gradeLevel) {
     const msg = {
         to: recipientEmail,
@@ -292,7 +275,6 @@ async function sendReEnrollmentEmail(recipientEmail, studentName, gradeLevel) {
     }
 }
 
-// --- NEW HELPER: Send Rejection Email ---
 async function sendRejectionEmail(recipientEmail, studentName, reason) {
     const msg = {
         to: recipientEmail,
@@ -672,7 +654,7 @@ app.get('/get-applications', (req, res) => {
 
 // --- UPDATE STATUS ---
 app.post('/update-application-status', (req, res) => {
-    const { applicationId, newStatus, rejectionReason } = req.body; // Added rejectionReason
+    const { applicationId, newStatus, rejectionReason } = req.body;
 
     db.query('SELECT * FROM applications WHERE id = ?', [applicationId], (err, apps) => {
         const appData = apps[0];
@@ -698,7 +680,7 @@ app.post('/update-application-status', (req, res) => {
                         });
                     }
                 } 
-                // --- FIX: HANDLE REJECTION EMAILS ---
+                // --- HANDLE REJECTION EMAILS ---
                 else if (newStatus === 'Rejected') {
                     await sendRejectionEmail(appData.email, appData.first_name, rejectionReason);
                     res.json({ success: true, message: "Application rejected and email sent." });
@@ -721,7 +703,64 @@ app.get('/get-application-details/:id', (req, res) => {
     });
 });
 
-app.post('/submit-inquiry', upload.single('attachment'), (req, res) => {
-    db.query("INSERT INTO inquiries (sender_name, sender_email, subject, message, attachment_path) VALUES (?, ?, ?, ?, ?)", 
-    [req.body.name, req.body.email, req.body.subject, req.body.message, req.file ? req.file.filename : null], () => res.json({success: true}));
+// =========================================================================
+// 9. INQUIRY ROUTE (WITH EMAIL NOTIFICATION FIX)
+// =========================================================================
+
+app.post('/submit-inquiry', upload.single('attachment'), async (req, res) => {
+    const { name, email, subject, message } = req.body;
+    const attachmentFilename = req.file ? req.file.filename : null;
+
+    // 1. Save to Database
+    const sql = "INSERT INTO inquiries (sender_name, sender_email, subject, message, attachment_path) VALUES (?, ?, ?, ?, ?)";
+    
+    db.query(sql, [name, email, subject, message, attachmentFilename], async (err, result) => {
+        if (err) {
+            console.error("Database Insert Error:", err);
+            return res.status(500).json({ success: false, message: "Failed to save inquiry." });
+        }
+
+        // 2. Setup Nodemailer Transporter (Using Gmail)
+        // Ensure EMAIL_USER and EMAIL_PASS are set in your Railway Environment Variables
+        const transporter = nodemailer.createTransport({
+            service: 'gmail', 
+            auth: {
+                user: process.env.EMAIL_USER, 
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        // 3. Setup Email Content
+        const mailOptions = {
+            from: `"Inquiry System" <${process.env.EMAIL_USER}>`, 
+            to: 'dalonzohighschool@gmail.com', // Admin Email (where you receive inquiries)
+            replyTo: email, // This allows you to reply directly to the student
+            subject: `New Inquiry: ${subject}`,
+            html: `
+                <h3>New Web Inquiry Received</h3>
+                <p><strong>From:</strong> ${name} (${email})</p>
+                <p><strong>Subject:</strong> ${subject}</p>
+                <hr>
+                <p><strong>Message:</strong></p>
+                <p>${message}</p>
+            `,
+            attachments: req.file ? [
+                {
+                    filename: req.file.originalname,
+                    path: req.file.path
+                }
+            ] : []
+        };
+
+        // 4. Send the Email
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log("✅ Inquiry email sent to admin successfully.");
+            res.json({ success: true, message: "Inquiry sent and saved!" });
+        } catch (emailError) {
+            console.error("❌ Email Sending Failed:", emailError);
+            // Return success because the DB insert worked, but log the email failure.
+            res.json({ success: true, message: "Inquiry saved (Email notification failed)." });
+        }
+    });
 });
