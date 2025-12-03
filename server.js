@@ -723,10 +723,15 @@ app.post('/submit-inquiry', upload.single('attachment'), async (req, res) => {
         // 2. Setup Nodemailer Transporter (Using Gmail)
         // Ensure EMAIL_USER and EMAIL_PASS are set in your Railway Environment Variables
         const transporter = nodemailer.createTransport({
-            service: 'gmail', 
+            host: 'smtp.gmail.com', // Explicitly use Gmail's SMTP server
+            port: 587,              // Use Port 587 for TLS
+            secure: false,          // False for 587
             auth: {
                 user: process.env.EMAIL_USER, 
                 pass: process.env.EMAIL_PASS
+            },
+            tls: {
+                rejectUnauthorized: false // Helps prevent cloud SSL errors
             }
         });
 
