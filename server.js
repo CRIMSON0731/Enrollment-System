@@ -704,68 +704,71 @@ app.get('/get-application-details/:id', (req, res) => {
 });
 
 // =========================================================================
-// 9. INQUIRY ROUTE (WITH EMAIL NOTIFICATION FIX)
+// 9. INQUIRY ROUTE (UPDATED TO USE SENDGRID)
 // =========================================================================
 
 app.post('/submit-inquiry', upload.single('attachment'), async (req, res) => {
     const { name, email, subject, message } = req.body;
+    
+    // 1. Save to Database first
+    const sql = "INSERT INTO inquiries (sender_name, sender_email, subject, message, attachment_path) VALUES (?, ?, ?, ?, ?)";
     const attachmentFilename = req.file ? req.file.filename : null;
 
-    // 1. Save to Database
-    const sql = "INSERT INTO inquiries (sender_name, sender_email, subject, message, attachment_path) VALUES (?, ?, ?, ?, ?)";
-    
     db.query(sql, [name, email, subject, message, attachmentFilename], async (err, result) => {
         if (err) {
             console.error("Database Insert Error:", err);
             return res.status(500).json({ success: false, message: "Failed to save inquiry." });
         }
 
-        // 2. Setup Nodemailer Transporter (Using Gmail)
-        // Ensure EMAIL_USER and EMAIL_PASS are set in your Railway Environment Variables
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com', // Explicitly use Gmail's SMTP server
-            port: 587,              // Use Port 587 for TLS
-            secure: false,          // False for 587
-            auth: {
-                user: process.env.EMAIL_USER, 
-                pass: process.env.EMAIL_PASS
-            },
-            tls: {
-                rejectUnauthorized: false // Helps prevent cloud SSL errors
+        // 2. Prepare Attachment for SendGrid (if any)
+        let attachments = [];
+        if (req.file) {
+            try {
+                // SendGrid requires the file content to be Base64 encoded
+                const fileContent = fs.readFileSync(req.file.path).toString('base64');
+                attachments.push({
+                    content: fileContent,
+                    filename: req.file.originalname,
+                    type: req.file.mimetype,
+                    disposition: 'attachment'
+                });
+            } catch (fileErr) {
+                console.error("Error reading attachment file:", fileErr);
             }
-        });
+        }
 
-        // 3. Setup Email Content
-        const mailOptions = {
-            from: `"Inquiry System" <${process.env.EMAIL_USER}>`, 
-            to: 'dalonzohighschool@gmail.com', // Admin Email (where you receive inquiries)
-            replyTo: email, // This allows you to reply directly to the student
+        // 3. Prepare Email via SendGrid
+        const msg = {
+            to: 'dalonzohighschool@gmail.com', // Admin receives the inquiry
+            from: 'dalonzohighschool@gmail.com', // Verified Sender
+            replyTo: email, // So you can hit "Reply" to answer the student
             subject: `New Inquiry: ${subject}`,
             html: `
-                <h3>New Web Inquiry Received</h3>
-                <p><strong>From:</strong> ${name} (${email})</p>
-                <p><strong>Subject:</strong> ${subject}</p>
-                <hr>
-                <p><strong>Message:</strong></p>
-                <p>${message}</p>
+                <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #2b7a0b;">
+                    <h3>New Web Inquiry Received</h3>
+                    <p><strong>From:</strong> ${name} (<a href="mailto:${email}">${email}</a>)</p>
+                    <p><strong>Subject:</strong> ${subject}</p>
+                    <hr>
+                    <p><strong>Message:</strong></p>
+                    <p style="background-color: #f9f9f9; padding: 15px;">${message}</p>
+                </div>
             `,
-            attachments: req.file ? [
-                {
-                    filename: req.file.originalname,
-                    path: req.file.path
-                }
-            ] : []
+            attachments: attachments
         };
 
         // 4. Send the Email
         try {
-            await transporter.sendMail(mailOptions);
-            console.log("✅ Inquiry email sent to admin successfully.");
-            res.json({ success: true, message: "Inquiry sent and saved!" });
+            await sgMail.send(msg);
+            console.log("✅ Inquiry email sent to admin via SendGrid.");
+            
+            // IMPORTANT: Send response to frontend to stop the spinner!
+            res.json({ success: true, message: "Inquiry sent and saved!", inquiryId: result.insertId });
+            
         } catch (emailError) {
-            console.error("❌ Email Sending Failed:", emailError);
-            // Return success because the DB insert worked, but log the email failure.
-            res.json({ success: true, message: "Inquiry saved (Email notification failed)." });
+            console.error("❌ SendGrid Email Failed:", emailError);
+            
+            // Even if email fails, we tell the user it succeeded because the DB saved it
+            res.json({ success: true, message: "Inquiry saved (Admin notification pending).", inquiryId: result.insertId });
         }
     });
 });
