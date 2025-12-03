@@ -8,6 +8,16 @@
 // 1. GLOBAL VARIABLES & CONSTANTS
 // =========================================================================
 
+// --- SERVER CONFIGURATION (FIXED) ---
+// Toggle this to TRUE if you are testing locally, FALSE for Railway
+const IS_LOCALHOST = false; 
+
+const LIVE_URL = 'https://enrollment-system-production-6820.up.railway.app';
+const LOCAL_URL = 'http://localhost:8080';
+
+const SERVER_URL = IS_LOCALHOST ? LOCAL_URL : LIVE_URL;
+console.log(`🔌 Admin Panel Connecting to: ${SERVER_URL}`);
+
 // Data Stores
 let allApplications = [];
 let allInquiries = [];
@@ -22,9 +32,6 @@ let currentSortDir = 'desc';
 let lastKnownApplicationCount = 0;
 let isFirstLoad = true;
 const POLLING_INTERVAL = 5000; // Check for updates every 5 seconds
-
-// Server Configuration
-const SERVER_URL = 'https://enrollment-system-production-6820.up.railway.app'; 
 
 // --- DOM ELEMENTS ---
 
@@ -53,7 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function getAdminToken() {
-    return localStorage.getItem('adminToken');
+    // FIX: Check both keys to prevent lockout if login page uses generic 'token'
+    return localStorage.getItem('adminToken') || localStorage.getItem('token');
 }
 
 function checkAdminAuthentication() {
@@ -79,7 +87,11 @@ function loadAdminContent() {
     simulateDataLoad();         // Fetches Applications
     loadInquiries();            // Fetches Inquiries
     loadCurrentAnnouncements(); // Fetches Announcements
-    setupEnrollmentToggle();    // Checks Enrollment Status
+    
+    // FIX: Wrap in try-catch to prevent script stop if endpoint is missing
+    try {
+        setupEnrollmentToggle();    
+    } catch(e) { console.warn("Enrollment toggle setup skipped", e); }
     
     // 3. Initialize Forms
     const announcementForm = document.getElementById('create-announcement-form');
@@ -102,7 +114,10 @@ function loadAdminContent() {
 // --- UTILITY: Notification System ---
 function showNotification(message, type) {
   const notification = document.getElementById('notification-bar');
-  if (!notification) return;
+  if (!notification) {
+      console.log(`[${type}] ${message}`); // Fallback
+      return;
+  }
   
   notification.textContent = message;
   notification.className = `notification-bar ${type}`;
@@ -150,6 +165,7 @@ async function simulateDataLoad() {
             updateQuickStats();
             applyFiltersAndDisplay(); 
         } else {
+            console.error("Data Load Failed:", data.message);
             if (isFirstLoad) tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load applications.</td></tr>';
         }
         
@@ -160,7 +176,7 @@ async function simulateDataLoad() {
 }
 
 function updateQuickStats() {
-    if (allApplications.length === 0) {
+    if (!allApplications || allApplications.length === 0) {
         document.getElementById('stat-total').textContent = 0;
         document.getElementById('stat-pending').textContent = 0;
         document.getElementById('stat-approved').textContent = 0;
@@ -182,14 +198,19 @@ function applyFiltersAndDisplay() {
     
     // --- FILTER LOGIC ---
     let filteredApps = allApplications.filter(app => {
+        // FIX: Ensure grade_level exists
+        const appGrade = app.grade_level || '0';
+        
         // 1. Grade Level Filter
-        if (currentGradeLevel !== 'ALL' && app.grade_level != currentGradeLevel) {
+        if (currentGradeLevel !== 'ALL' && appGrade != currentGradeLevel) {
             return false;
         }
 
         // 2. Student Type Filter (NEW vs OLD)
-        if (currentStudentType === 'NEW' && app.is_old_student === 1) return false;
-        if (currentStudentType === 'OLD' && app.is_old_student === 0) return false;
+        // FIX: Use loose equality (==) because DB might return '1' (string) or 1 (int)
+        const isOld = app.is_old_student || 0;
+        if (currentStudentType === 'NEW' && isOld == 1) return false;
+        if (currentStudentType === 'OLD' && isOld == 0) return false;
 
         // 3. Status Filter
         if (statusFilter !== 'All' && app.status !== statusFilter) {
@@ -199,7 +220,7 @@ function applyFiltersAndDisplay() {
         // 4. Search Bar Filter
         if (searchName) {
             const fullName = `${app.first_name} ${app.last_name}`.toLowerCase();
-            const email = app.email.toLowerCase();
+            const email = (app.email || '').toLowerCase();
             // Check if search matches name OR email
             if (!fullName.includes(searchName) && !email.includes(searchName)) {
                 return false;
@@ -218,8 +239,8 @@ function applyFiltersAndDisplay() {
 
 // Helper: Sort Comparator
 function compare(a, b, key, dir) {
-    let valA = a[key];
-    let valB = b[key];
+    let valA = a[key] || '';
+    let valB = b[key] || '';
 
     if (typeof valA === 'string') {
         valA = valA.toLowerCase();
@@ -257,17 +278,20 @@ function displayTableContent(applicationsToDisplay) {
 
       const formattedDate = new Date(app.created_at || Date.now()).toLocaleDateString(); 
       
+      // FIX: Strict check logic
+      const isOld = app.is_old_student == 1;
+
       // Badge logic for New vs Old
-      const typeBadge = app.is_old_student 
+      const typeBadge = isOld 
           ? '<span class="badge bg-primary">Old Student</span>' 
           : '<span class="badge bg-info text-dark">New Student</span>';
 
       // --- SMART GRADE DISPLAY LOGIC ---
-      const gradeNum = parseInt(app.grade_level.toString().replace(/\D/g, ''), 10);
+      const gradeNum = parseInt((app.grade_level || '0').toString().replace(/\D/g, ''), 10);
       let gradeDisplay = `Grade ${gradeNum}`; // Default
 
       // If Old Student and Grade > 7, append text
-      if (!isNaN(gradeNum) && app.is_old_student && gradeNum > 7) {
+      if (!isNaN(gradeNum) && isOld && gradeNum > 7) {
           gradeDisplay = `
             <div style="line-height: 1.2;">
                 <strong>Grade ${gradeNum}</strong>
@@ -293,7 +317,7 @@ function displayTableContent(applicationsToDisplay) {
     });
 
     // Attach Event Listeners to "View Details" buttons
-    document.querySelectorAll('#applications-table .view-details-btn').forEach(button => {
+    document.querySelectorAll('.view-details-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             const id = e.target.getAttribute('data-id');
             showApplicationDetails(id);
@@ -310,10 +334,9 @@ async function showApplicationDetails(appId) {
     detailsDiv.innerHTML = '<p class="text-center">Loading details from server...</p>'; 
 
     // Assign ID to all action buttons in the modal footer
-    modalApproveBtn.setAttribute('data-id', appId);
-    modalRejectBtn.setAttribute('data-id', appId);
-    modalDeleteBtn.setAttribute('data-id', appId);
-    modalSendCredentialsBtn.setAttribute('data-id', appId); 
+    [modalApproveBtn, modalRejectBtn, modalDeleteBtn, modalSendCredentialsBtn].forEach(btn => {
+        if(btn) btn.setAttribute('data-id', appId);
+    });
 
     try {
         const response = await fetch(`${SERVER_URL}/get-application-details/${appId}`);
@@ -325,19 +348,24 @@ async function showApplicationDetails(appId) {
         }
 
         const fullApp = data.application;
-        const isOldStudent = fullApp.is_old_student === 1; 
+        const isOldStudent = fullApp.is_old_student == 1; // Loose check
         const birthdate = new Date(fullApp.birthdate || fullApp.bday || '2000-01-01').toLocaleDateString();
         
-        const gradeNum = parseInt(fullApp.grade_level.toString().replace(/\D/g, ''), 10);
+        const gradeNum = parseInt((fullApp.grade_level || '0').toString().replace(/\D/g, ''), 10);
 
         const isApproved = fullApp.status === 'Approved';
-        const hasCredentials = !!fullApp.student_username; 
+        
+        // FIX: Check both field names as JOINs sometimes return 'username' or 'student_username'
+        const studentUser = fullApp.username || fullApp.student_username;
+        const studentPass = fullApp.password || fullApp.student_password || '******';
+        const hasCredentials = !!studentUser; 
 
         // --- BUTTON VISIBILITY LOGIC ---
-        modalApproveBtn.style.display = isApproved ? 'none' : 'inline-block';
-        modalRejectBtn.style.display = isApproved ? 'none' : 'inline-block';
+        if(modalApproveBtn) modalApproveBtn.style.display = isApproved ? 'none' : 'inline-block';
+        if(modalRejectBtn) modalRejectBtn.style.display = isApproved ? 'none' : 'inline-block';
         
         if (isOldStudent) {
+            // Old students might not need credentials resent, but logic depends on your school
             modalSendCredentialsBtn.style.display = 'none';
         } else {
             modalSendCredentialsBtn.style.display = (!isApproved && !hasCredentials) ? 'inline-block' : 'none';
@@ -349,8 +377,8 @@ async function showApplicationDetails(appId) {
             loginDetailsHtml = `
                 <div class="user-credentials">
                     <p><strong>Student Login Details:</strong></p>
-                    <div><strong>Username:</strong> <code>${fullApp.student_username}</code></div>
-                    <div><strong>Password:</strong> <code>${fullApp.student_password}</code></div>
+                    <div><strong>Username:</strong> <code>${studentUser}</code></div>
+                    <div><strong>Password:</strong> <code>${studentPass}</code></div>
                     <p class="note">Note: These credentials have been sent to the student.</p>
                 </div>
                 <hr>`;
