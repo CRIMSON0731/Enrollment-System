@@ -6,25 +6,28 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-const mysql = require('mysql2'); 
-const bcrypt = require('bcryptjs'); 
+const mysql = require('mysql2');
+const bcrypt = require('bcryptjs');
 
 // 1. CONFIGURE SENDGRID
-// Ensure you have SENDGRID_API_KEY in your Railway Variables
+// Ensure you have SENDGRID_API_KEY in your Railway Variables or .env file
 if (process.env.SENDGRID_API_KEY) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 } else {
     console.warn("⚠️ WARNING: SENDGRID_API_KEY is missing in environment variables.");
 }
 
+// Define the verified sender email (Must be verified in SendGrid Dashboard)
+const SENDER_EMAIL = 'dalonzohighschool@gmail.com';
+
 const PORT = process.env.PORT || 8080;
 console.log(`🔍 Attempting to start server on PORT: ${PORT}`);
 
 const app = express();
-const server = http.createServer(app); 
-const io = new Server(server, { 
+const server = http.createServer(app);
+const io = new Server(server, {
     cors: {
-        origin: "*", 
+        origin: "*",
         methods: ["GET", "POST"]
     }
 });
@@ -53,14 +56,13 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.json({ limit: '50mb' })); 
-app.use(express.urlencoded({ extended: true, limit: '50mb' })); 
-app.use(cors()); 
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(cors());
 
 // 3. STATIC FILES
-// CRITICAL FIX: Serve uploads correctly
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
-app.use(express.static(__dirname)); 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(__dirname));
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', message: 'Server is running' });
@@ -71,7 +73,7 @@ app.get('/', (req, res) => {
 });
 
 // 4. DATABASE CONNECTION
-let db; 
+let db;
 const MAX_RETRIES = 10;
 const RETRY_DELAY_MS = 2500;
 
@@ -137,7 +139,7 @@ const upload = multer({
         if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg' || file.mimetype === 'application/pdf') {
             cb(null, true);
         } else {
-            cb(null, false); 
+            cb(null, false);
         }
     }
 });
@@ -154,8 +156,8 @@ const cleanupFiles = (files) => {
     files.forEach(file => {
         if (file) {
             try {
-                const filePath = path.join(__dirname, 'uploads', file); 
-                fs.unlinkSync(filePath); 
+                const filePath = path.join(__dirname, 'uploads', file);
+                fs.unlinkSync(filePath);
             } catch (e) {
                 // Ignore if file doesn't exist
             }
@@ -172,8 +174,8 @@ const createOrGetCredentials = (app, callback) => {
         }
 
         if (existingUsers.length > 0) {
-            return callback(null, { 
-                username: existingUsers[0].username, 
+            return callback(null, {
+                username: existingUsers[0].username,
                 password: 'password123'
             });
         }
@@ -183,7 +185,7 @@ const createOrGetCredentials = (app, callback) => {
         const middleNameInitals = getInitials(app.middle_name);
         const formattedLastName = (app.last_name || '').toLowerCase().replace(/ /g, '');
         const username = `${firstNameInitials}${middleNameInitals}${formattedLastName}@dtahs.edu.ph`;
-        const plainPassword = 'password123'; 
+        const plainPassword = 'password123';
 
         bcrypt.hash(plainPassword, 10, (hashErr, passwordHash) => {
             if (hashErr) return callback(hashErr);
@@ -193,7 +195,7 @@ const createOrGetCredentials = (app, callback) => {
                     if (insertErr) {
                         if (insertErr.code === 'ER_DUP_ENTRY') {
                             console.warn(`Duplicate entry detected for application ${app.id}. Re-querying credentials.`);
-                            return createOrGetCredentials(app, callback); 
+                            return createOrGetCredentials(app, callback);
                         }
                         console.error('DB INSERT Error:', insertErr);
                         return callback(insertErr);
@@ -208,7 +210,7 @@ const createOrGetCredentials = (app, callback) => {
 async function sendCredentialsEmail(recipientEmail, studentName, username, password) {
     const msg = {
         to: recipientEmail,
-        from: 'dalonzohighschool@gmail.com', // Must be verified in SendGrid
+        from: SENDER_EMAIL, // Must be verified in SendGrid
         subject: 'Enrollment Status & Portal Credentials',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ccc; border-top: 5px solid #2b7a0b;">
@@ -240,7 +242,7 @@ async function sendCredentialsEmail(recipientEmail, studentName, username, passw
     };
 
     try {
-        await sgMail.send(msg); 
+        await sgMail.send(msg);
         console.log(`✅ Credentials email sent successfully via SendGrid to: ${recipientEmail}`);
         return { success: true };
     } catch (error) {
@@ -276,7 +278,7 @@ io.on('connection', (socket) => {
 app.post('/submit-application', (req, res) => {
     uploadAppFiles(req, res, (err) => {
         const uploadedFiles = req.files || {};
-        const fileNames = Object.values(uploadedFiles).flat().map(f => f.filename).filter(n => n); 
+        const fileNames = Object.values(uploadedFiles).flat().map(f => f.filename).filter(n => n);
 
         if (err instanceof multer.MulterError) {
             console.error('Multer Error:', err.code, err.message);
@@ -310,9 +312,9 @@ app.post('/submit-application', (req, res) => {
 
             if (existingApps.length > 0) {
                 cleanupFiles(fileNames);
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'An application with this email address already exists. Please use a different email or contact the school administration.' 
+                return res.status(400).json({
+                    success: false,
+                    message: 'An application with this email address already exists. Please use a different email or contact the school administration.'
                 });
             }
 
@@ -324,12 +326,12 @@ app.post('/submit-application', (req, res) => {
             db.query(sql, [first_name, last_name, middle_name, birthdate, email, phone_num, grade_level, card_file, psa_file, f137_file, brgy_cert_file], (dbErr, result) => {
                 if (dbErr) {
                     console.error('DB Insert Error:', dbErr);
-                    cleanupFiles(fileNames); 
+                    cleanupFiles(fileNames);
                     
                     if (dbErr.code === 'ER_DUP_ENTRY') {
-                        return res.status(400).json({ 
-                            success: false, 
-                            message: 'This email address is already registered. Please use a different email.' 
+                        return res.status(400).json({
+                            success: false,
+                            message: 'This email address is already registered. Please use a different email.'
                         });
                     }
                     
@@ -342,12 +344,12 @@ app.post('/submit-application', (req, res) => {
     });
 });
 
-// --- SUBMIT INQUIRY (FIXED with SendGrid) ---
+// --- SUBMIT INQUIRY (UPDATED FOR SENDGRID) ---
 app.post('/submit-inquiry', upload.single('attachment'), async (req, res) => {
     const { name, email, subject, message } = req.body;
     
     // 1. Save to Database
-    const sql = "INSERT INTO inquiries (sender_name, sender_email, subject, message, attachment_path) VALUES (?, ?, ?, ?, ?)";
+    const sql = "INSERT INTO inquiries (sender_name, sender_email, subject, message, attachment_path, created_at) VALUES (?, ?, ?, ?, ?, NOW())";
     const attachmentFilename = req.file ? req.file.filename : null;
 
     db.query(sql, [name, email, subject, message, attachmentFilename], async (err, result) => {
@@ -357,11 +359,12 @@ app.post('/submit-inquiry', upload.single('attachment'), async (req, res) => {
         }
 
         // 2. Prepare Attachment for SendGrid
+        // SendGrid requires attachments to be base64 strings
         let attachments = [];
         if (req.file) {
             try {
-                // SendGrid requires base64 encoded content
-                const fileContent = fs.readFileSync(req.file.path).toString('base64');
+                const filePath = path.join(__dirname, 'uploads', req.file.filename);
+                const fileContent = fs.readFileSync(filePath).toString('base64');
                 attachments.push({
                     content: fileContent,
                     filename: req.file.originalname,
@@ -369,15 +372,15 @@ app.post('/submit-inquiry', upload.single('attachment'), async (req, res) => {
                     disposition: 'attachment'
                 });
             } catch (fileErr) {
-                console.error("Error reading attachment:", fileErr);
+                console.error("Error reading attachment for email:", fileErr);
             }
         }
 
-        // 3. Send Email via SendGrid (Replaces Nodemailer)
+        // 3. Send Email via SendGrid
         const msg = {
-            to: 'dalonzohighschool@gmail.com', // Admin email
-            from: 'dalonzohighschool@gmail.com', // Verified Sender
-            replyTo: email,
+            to: SENDER_EMAIL, // Send to Admin
+            from: SENDER_EMAIL, // Must be verified
+            replyTo: email, // Admin can click reply to email the student
             subject: `New Inquiry: ${subject}`,
             html: `
                 <h3>New Web Inquiry</h3>
@@ -388,12 +391,11 @@ app.post('/submit-inquiry', upload.single('attachment'), async (req, res) => {
         };
 
         try {
-            await sgMail.send(msg); 
+            await sgMail.send(msg);
             console.log("✅ Inquiry email sent via SendGrid.");
-            // Return success immediately so the spinner stops
             res.json({ success: true, message: "Inquiry sent!", inquiryId: result.insertId });
         } catch (emailError) {
-            console.error("❌ SendGrid Inquiry Error:", emailError);
+            console.error("❌ SendGrid Inquiry Error:", emailError.response ? emailError.response.body : emailError.message);
             // Return success because DB save worked, just email failed
             res.json({ success: true, message: "Inquiry saved (Email pending).", inquiryId: result.insertId });
         }
@@ -421,17 +423,17 @@ app.post('/update-application-status', (req, res) => {
                 return res.status(500).json({ success: false, message: 'Failed to update application status.' });
             }
             
-            io.to(`user-${applicationId}`).emit('statusUpdated', { 
+            io.to(`user-${applicationId}`).emit('statusUpdated', {
                 newStatus: newStatus,
                 message: "Your application status has been updated!"
             });
 
             if (credentials) {
-                return res.json({ 
-                    success: true, 
+                return res.json({
+                    success: true,
                     message: successMessage,
                     student_username: credentials.username,
-                    student_password: credentials.password 
+                    student_password: credentials.password
                 });
             }
             res.json({ success: true, message: successMessage });
@@ -451,9 +453,9 @@ app.post('/update-application-status', (req, res) => {
                 }
 
                 const emailResult = await sendCredentialsEmail(
-                    app.email, 
-                    app.first_name, 
-                    credentials.username, 
+                    app.email,
+                    app.first_name,
+                    credentials.username,
                     credentials.password
                 );
                 
@@ -481,7 +483,7 @@ app.get('/get-application-details/:id', (req, res) => {
     
     db.query(sql, [applicationId], (err, results) => {
         if (err) {
-            console.error('DB ERROR fetching application details:', err); 
+            console.error('DB ERROR fetching application details:', err);
             return res.status(500).json({ success: false, message: 'Server error.' });
         }
         if (results.length === 0) return res.json({ success: false, message: 'Application not found.' });
@@ -630,17 +632,17 @@ app.post('/login', (req, res) => {
             applicationData.username = username;
             applicationData.password = password;
 
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 application: applicationData,
-                firstLogin: isFirstLogin 
+                firstLogin: isFirstLogin
             });
         });
     });
 });
 
 app.get('/get-announcements', (req, res) => {
-    const sql = 'SELECT id, title, content FROM announcements ORDER BY created_at DESC'; 
+    const sql = 'SELECT id, title, content FROM announcements ORDER BY created_at DESC';
     db.query(sql, (err, results) => {
         if (err) {
             return res.status(500).json({ success: false, message: 'Failed to retrieve announcements.' });
@@ -697,9 +699,9 @@ app.post('/generate-credentials', (req, res) => {
             }
 
             const emailResult = await sendCredentialsEmail(
-                app.email, 
-                app.first_name, 
-                credentials.username, 
+                app.email,
+                app.first_name,
+                credentials.username,
                 credentials.password
             );
             
@@ -708,11 +710,11 @@ app.post('/generate-credentials', (req, res) => {
                 successMessage = `Credentials generated but FAILED to send email. Check server logs.`;
             }
             
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 message: successMessage,
                 student_username: credentials.username,
-                student_password: credentials.password 
+                student_password: credentials.password
             });
         });
     });
@@ -759,7 +761,7 @@ app.post('/delete-announcement', (req, res) => {
     });
 });
 
-// --- REPLY INQUIRY (ADDED MISSING ROUTE) ---
+// --- REPLY INQUIRY (UPDATED FOR SENDGRID) ---
 app.post('/reply-inquiry', (req, res) => {
     const { inquiryId, status, message } = req.body;
 
@@ -781,10 +783,10 @@ app.post('/reply-inquiry', (req, res) => {
             });
 
             // 4. Send Email via SendGrid
-            if (message) { 
+            if (message) {
                 const msg = {
                     to: recipientEmail,
-                    from: 'dalonzohighschool@gmail.com',
+                    from: SENDER_EMAIL,
                     subject: `Re: ${inquiry.subject} - Inquiry Update`,
                     html: `
                         <div style="font-family: Arial, sans-serif; padding: 20px; border-left: 5px solid #2b7a0b;">
@@ -802,7 +804,7 @@ app.post('/reply-inquiry', (req, res) => {
                     await sgMail.send(msg);
                     console.log(`Reply email sent to ${recipientEmail}`);
                 } catch (emailErr) {
-                    console.error("Reply Email Failed:", emailErr);
+                    console.error("Reply Email Failed:", emailErr.response ? emailErr.response.body : emailErr);
                 }
             }
 
